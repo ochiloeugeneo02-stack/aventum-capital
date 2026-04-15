@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, contributionsTable, groupsTable, contributionCyclesTable, groupMembersTable, payoutsTable } from "@workspace/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import { requireAuth, requireRole } from "../lib/auth";
 import { PayContributionBody } from "@workspace/api-zod";
 import { createAuditLog } from "../lib/auditLog";
@@ -37,8 +37,6 @@ router.get("/contributions", requireAuth, async (req, res): Promise<void> => {
   const cycleId = req.query.cycleId ? parseInt(String(req.query.cycleId), 10) : undefined;
   const status = req.query.status ? String(req.query.status) : undefined;
 
-  let query = db.select().from(contributionsTable).where(eq(contributionsTable.userId, userId));
-
   const conditions = [eq(contributionsTable.userId, userId)];
   if (groupId) conditions.push(eq(contributionsTable.groupId, groupId));
   if (cycleId) conditions.push(eq(contributionsTable.cycleId, cycleId));
@@ -48,7 +46,25 @@ router.get("/contributions", requireAuth, async (req, res): Promise<void> => {
     .where(and(...conditions))
     .orderBy(sql`${contributionsTable.createdAt} DESC`);
 
-  const result = await Promise.all(contributions.map((c) => formatContribution(c)));
+  const userIds = [...new Set(contributions.map((c) => c.userId))];
+  const users = userIds.length > 0
+    ? await db.select().from(usersTable).where(inArray(usersTable.id, userIds))
+    : [];
+  const userMap = new Map(users.map((u) => [u.id, u]));
+
+  const result = contributions.map((c) => ({
+    id: c.id,
+    userId: c.userId,
+    groupId: c.groupId,
+    cycleId: c.cycleId,
+    amount: parseFloat(c.amount as unknown as string),
+    status: c.status,
+    paidAt: c.paidAt ? c.paidAt.toISOString() : null,
+    user: userMap.has(c.userId) ? formatUser(userMap.get(c.userId)!) : null,
+    group: null,
+    createdAt: c.createdAt.toISOString(),
+  }));
+
   res.json(result);
 });
 
@@ -62,30 +78,58 @@ router.post("/contributions/pay", requireAuth, async (req, res): Promise<void> =
   const { groupId, cycleId } = parsed.data;
   const userId = req.session!.userId!;
 
-  const existing = await db.select().from(contributionsTable)
+  // Must be a member of the group
+  const [membership] = await db.select().from(groupMembersTable)
+    .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, userId)))
+    .limit(1);
+  if (!membership) {
+    res.status(403).json({ error: "You are not a member of this group" });
+    return;
+  }
+
+  // Group must exist and be active
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
+  if (!group) {
+    res.status(404).json({ error: "Group not found" });
+    return;
+  }
+  if (group.status !== "active") {
+    res.status(400).json({ error: `Group is currently ${group.status} and not accepting contributions` });
+    return;
+  }
+
+  // Cycle must belong to this group and be active
+  const [cycle] = await db.select().from(contributionCyclesTable)
+    .where(and(eq(contributionCyclesTable.id, cycleId), eq(contributionCyclesTable.groupId, groupId)))
+    .limit(1);
+  if (!cycle) {
+    res.status(404).json({ error: "Cycle not found for this group" });
+    return;
+  }
+  if (cycle.status !== "active") {
+    res.status(400).json({ error: "This cycle is no longer accepting contributions" });
+    return;
+  }
+
+  // Already paid?
+  const [existing] = await db.select().from(contributionsTable)
     .where(and(
       eq(contributionsTable.userId, userId),
       eq(contributionsTable.groupId, groupId),
       eq(contributionsTable.cycleId, cycleId),
     )).limit(1);
 
-  if (existing.length > 0 && existing[0].status === "paid") {
+  if (existing?.status === "paid") {
     res.status(400).json({ error: "Already paid for this cycle" });
-    return;
-  }
-
-  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
-  if (!group) {
-    res.status(404).json({ error: "Group not found" });
     return;
   }
 
   let contribution: typeof contributionsTable.$inferSelect;
 
-  if (existing.length > 0) {
+  if (existing) {
     const [updated] = await db.update(contributionsTable)
       .set({ status: "paid", paidAt: new Date() })
-      .where(eq(contributionsTable.id, existing[0].id))
+      .where(eq(contributionsTable.id, existing.id))
       .returning();
     contribution = updated;
   } else {
@@ -108,14 +152,19 @@ router.post("/contributions/pay", requireAuth, async (req, res): Promise<void> =
     details: `Amount: ${group.contributionAmount}`,
   });
 
+  // Check if all active members have now paid for this cycle
   const allMembers = await db.select().from(groupMembersTable).where(eq(groupMembersTable.groupId, groupId));
   const paidContribs = await db.select().from(contributionsTable)
     .where(and(eq(contributionsTable.cycleId, cycleId), eq(contributionsTable.status, "paid")));
 
   if (paidContribs.length >= allMembers.length) {
+    // Find the current rotation recipient
     const rotationMember = allMembers.find((m) => m.rotationOrder === group.currentRotationIndex);
+
     if (rotationMember) {
       const totalPayout = parseFloat(group.contributionAmount as unknown as string) * allMembers.length;
+
+      // Create the payout record
       await db.insert(payoutsTable).values({
         groupId,
         cycleId,
@@ -124,8 +173,49 @@ router.post("/contributions/pay", requireAuth, async (req, res): Promise<void> =
         status: "pending",
       });
 
-      await db.update(groupsTable).set({ currentRotationIndex: group.currentRotationIndex + 1 }).where(eq(groupsTable.id, groupId));
+      // Mark the recipient as having received their payout
+      await db.update(groupMembersTable)
+        .set({ hasReceivedPayout: true })
+        .where(eq(groupMembersTable.id, rotationMember.id));
     }
+
+    // Close this cycle
+    await db.update(contributionCyclesTable)
+      .set({ status: "completed", endDate: new Date() })
+      .where(eq(contributionCyclesTable.id, cycleId));
+
+    const nextCycleNumber = group.currentCycle + 1;
+    const nextRotationIndex = group.currentRotationIndex + 1;
+
+    // Determine group status after advance: if everyone has received a payout, mark complete
+    const allPaidOut = nextRotationIndex >= allMembers.length;
+    const newGroupStatus = allPaidOut ? "completed" : "active";
+
+    // Open the next cycle (unless all rotations are done)
+    if (!allPaidOut) {
+      const dueDate = new Date();
+      if (group.schedule === "weekly") {
+        dueDate.setDate(dueDate.getDate() + 7);
+      } else if (group.schedule === "monthly") {
+        dueDate.setMonth(dueDate.getMonth() + 1);
+      } else {
+        dueDate.setDate(dueDate.getDate() + 14); // bi-weekly default
+      }
+
+      await db.insert(contributionCyclesTable).values({
+        groupId,
+        cycleNumber: nextCycleNumber,
+        status: "active",
+        dueDate,
+      });
+    }
+
+    // Advance the group's cycle and rotation counters
+    await db.update(groupsTable).set({
+      currentCycle: nextCycleNumber,
+      currentRotationIndex: nextRotationIndex,
+      status: newGroupStatus,
+    }).where(eq(groupsTable.id, groupId));
   }
 
   res.status(201).json(await formatContribution(contribution));
@@ -141,7 +231,25 @@ router.get("/contributions/all", requireRole("super_admin"), async (req, res): P
     db.select({ count: sql<number>`count(*)` }).from(contributionsTable),
   ]);
 
-  const result = await Promise.all(contributions.map((c) => formatContribution(c)));
+  // Batch user fetch — avoids N+1
+  const userIds = [...new Set(contributions.map((c) => c.userId))];
+  const users = userIds.length > 0
+    ? await db.select().from(usersTable).where(inArray(usersTable.id, userIds))
+    : [];
+  const userMap = new Map(users.map((u) => [u.id, u]));
+
+  const result = contributions.map((c) => ({
+    id: c.id,
+    userId: c.userId,
+    groupId: c.groupId,
+    cycleId: c.cycleId,
+    amount: parseFloat(c.amount as unknown as string),
+    status: c.status,
+    paidAt: c.paidAt ? c.paidAt.toISOString() : null,
+    user: userMap.has(c.userId) ? formatUser(userMap.get(c.userId)!) : null,
+    group: null,
+    createdAt: c.createdAt.toISOString(),
+  }));
 
   res.json({
     contributions: result,

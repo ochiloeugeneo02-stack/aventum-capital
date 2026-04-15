@@ -1,24 +1,12 @@
 import { Router, type IRouter } from "express";
 import { db, groupsTable, groupMembersTable, usersTable, contributionCyclesTable, contributionsTable } from "@workspace/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import { requireAuth } from "../lib/auth";
 import { CreateGroupBody, UpdateGroupBody, InviteMemberBody } from "@workspace/api-zod";
 import { createAuditLog } from "../lib/auditLog";
+import { formatUser } from "./users";
 
 const router: IRouter = Router();
-
-export function formatUser(u: typeof usersTable.$inferSelect) {
-  return {
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    role: u.role,
-    organizationId: u.organizationId ?? null,
-    phoneNumber: u.phoneNumber ?? null,
-    isActive: u.isActive,
-    createdAt: u.createdAt.toISOString(),
-  };
-}
 
 async function getGroupWithCounts(g: typeof groupsTable.$inferSelect) {
   const [memberCount, currentCycle] = await Promise.all([
@@ -57,6 +45,15 @@ async function getGroupWithCounts(g: typeof groupsTable.$inferSelect) {
   };
 }
 
+/** Returns true if the session user is the group's admin or a super_admin. */
+function isGroupAdmin(
+  sessionUserId: number | undefined,
+  sessionRole: string | undefined,
+  group: typeof groupsTable.$inferSelect,
+): boolean {
+  return sessionRole === "super_admin" || sessionUserId === group.adminId;
+}
+
 router.get("/groups", requireAuth, async (req, res): Promise<void> => {
   const userId = req.session!.userId!;
   const role = req.session!.userRole;
@@ -66,20 +63,20 @@ router.get("/groups", requireAuth, async (req, res): Promise<void> => {
   if (role === "super_admin") {
     groups = await db.select().from(groupsTable).orderBy(groupsTable.createdAt);
   } else {
-    const memberships = await db.select().from(groupMembersTable).where(eq(groupMembersTable.userId, userId));
-    const adminGroups = await db.select().from(groupsTable).where(eq(groupsTable.adminId, userId));
+    const [memberships, adminGroups] = await Promise.all([
+      db.select().from(groupMembersTable).where(eq(groupMembersTable.userId, userId)),
+      db.select().from(groupsTable).where(eq(groupsTable.adminId, userId)),
+    ]);
+
     const memberGroupIds = new Set(memberships.map((m) => m.groupId));
-    const allIds = [...memberGroupIds, ...adminGroups.map((g) => g.id)];
-    const uniqueIds = [...new Set(allIds)];
+    const uniqueIds = [...new Set([...memberGroupIds, ...adminGroups.map((g) => g.id)])];
 
     if (uniqueIds.length === 0) {
       res.json([]);
       return;
     }
 
-    groups = await db.select().from(groupsTable).where(
-      sql`${groupsTable.id} = ANY(${sql.raw(`ARRAY[${uniqueIds.join(",")}]`)})`
-    );
+    groups = await db.select().from(groupsTable).where(inArray(groupsTable.id, uniqueIds));
   }
 
   const result = await Promise.all(groups.map(getGroupWithCounts));
@@ -127,13 +124,25 @@ router.post("/groups", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.get("/groups/:groupId", requireAuth, async (req, res): Promise<void> => {
-  const raw = Array.isArray(req.params.groupId) ? req.params.groupId[0] : req.params.groupId;
-  const groupId = parseInt(raw, 10);
+  const groupId = parseInt(req.params.groupId, 10);
+  const userId = req.session!.userId!;
+  const role = req.session!.userRole;
 
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
   if (!group) {
     res.status(404).json({ error: "Group not found" });
     return;
+  }
+
+  // Only members, the group admin, or super_admin can view group details
+  if (role !== "super_admin" && group.adminId !== userId) {
+    const [membership] = await db.select().from(groupMembersTable)
+      .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, userId)))
+      .limit(1);
+    if (!membership) {
+      res.status(403).json({ error: "You are not a member of this group" });
+      return;
+    }
   }
 
   const [members, currentCycle] = await Promise.all([
@@ -144,12 +153,9 @@ router.get("/groups/:groupId", requireAuth, async (req, res): Promise<void> => {
   ]);
 
   const userIds = members.map((m) => m.userId);
-  let users: (typeof usersTable.$inferSelect)[] = [];
-  if (userIds.length > 0) {
-    users = await db.select().from(usersTable).where(
-      sql`${usersTable.id} = ANY(${sql.raw(`ARRAY[${userIds.join(",")}]`)})`
-    );
-  }
+  const users = userIds.length > 0
+    ? await db.select().from(usersTable).where(inArray(usersTable.id, userIds))
+    : [];
 
   const userMap = new Map(users.map((u) => [u.id, u]));
 
@@ -184,12 +190,23 @@ router.get("/groups/:groupId", requireAuth, async (req, res): Promise<void> => {
     members: formattedMembers,
     currentRecipient: currentRecipient ? formatUser(currentRecipient) : null,
     nextDueDate: currentCycle.length > 0 && currentCycle[0].dueDate ? currentCycle[0].dueDate.toISOString() : null,
+    currentCycleId: currentCycle.length > 0 ? currentCycle[0].id : null,
   });
 });
 
 router.put("/groups/:groupId", requireAuth, async (req, res): Promise<void> => {
-  const raw = Array.isArray(req.params.groupId) ? req.params.groupId[0] : req.params.groupId;
-  const groupId = parseInt(raw, 10);
+  const groupId = parseInt(req.params.groupId, 10);
+
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
+  if (!group) {
+    res.status(404).json({ error: "Group not found" });
+    return;
+  }
+
+  if (!isGroupAdmin(req.session?.userId, req.session?.userRole, group)) {
+    res.status(403).json({ error: "Only the group admin can update group settings" });
+    return;
+  }
 
   const parsed = UpdateGroupBody.safeParse(req.body);
   if (!parsed.success) {
@@ -202,59 +219,15 @@ router.put("/groups/:groupId", requireAuth, async (req, res): Promise<void> => {
   if (parsed.data.contributionAmount !== undefined) updateData.contributionAmount = String(parsed.data.contributionAmount);
   if (parsed.data.schedule !== undefined) updateData.schedule = parsed.data.schedule;
 
-  const [group] = await db.update(groupsTable).set(updateData).where(eq(groupsTable.id, groupId)).returning();
-  if (!group) {
-    res.status(404).json({ error: "Group not found" });
-    return;
-  }
+  const [updated] = await db.update(groupsTable).set(updateData).where(eq(groupsTable.id, groupId)).returning();
 
-  res.json(await getGroupWithCounts(group));
-});
-
-router.post("/groups/:groupId/invite", requireAuth, async (req, res): Promise<void> => {
-  const raw = Array.isArray(req.params.groupId) ? req.params.groupId[0] : req.params.groupId;
-  const groupId = parseInt(raw, 10);
-
-  const parsed = InviteMemberBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, parsed.data.email)).limit(1);
-  if (!user) {
-    res.status(404).json({ error: "User with that email not found" });
-    return;
-  }
-
-  const existing = await db.select().from(groupMembersTable)
-    .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, user.id)))
-    .limit(1);
-
-  if (existing.length > 0) {
-    res.status(409).json({ error: "User is already a member" });
-    return;
-  }
-
-  const memberCount = await db.select({ count: sql<number>`count(*)` })
-    .from(groupMembersTable).where(eq(groupMembersTable.groupId, groupId));
-  const order = parsed.data.rotationOrder ?? Number(memberCount[0]?.count ?? 0);
-
-  await db.insert(groupMembersTable).values({
-    userId: user.id,
-    groupId,
-    rotationOrder: order,
-    hasReceivedPayout: false,
-  });
-
-  await createAuditLog({ action: "group.invite_member", performedBy: req.session!.userId!, targetType: "group", targetId: groupId, details: user.email });
-
-  res.json({ success: true, message: `${user.name} has been invited to the group` });
+  res.json(await getGroupWithCounts(updated));
 });
 
 router.get("/groups/:groupId/members", requireAuth, async (req, res): Promise<void> => {
-  const raw = Array.isArray(req.params.groupId) ? req.params.groupId[0] : req.params.groupId;
-  const groupId = parseInt(raw, 10);
+  const groupId = parseInt(req.params.groupId, 10);
+  const userId = req.session!.userId!;
+  const role = req.session!.userRole;
 
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
   if (!group) {
@@ -262,14 +235,22 @@ router.get("/groups/:groupId/members", requireAuth, async (req, res): Promise<vo
     return;
   }
 
+  // Only members, the group admin, or super_admin can view the member list
+  if (role !== "super_admin" && group.adminId !== userId) {
+    const [membership] = await db.select().from(groupMembersTable)
+      .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, userId)))
+      .limit(1);
+    if (!membership) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+  }
+
   const members = await db.select().from(groupMembersTable).where(eq(groupMembersTable.groupId, groupId)).orderBy(groupMembersTable.rotationOrder);
   const userIds = members.map((m) => m.userId);
-  let users: (typeof usersTable.$inferSelect)[] = [];
-  if (userIds.length > 0) {
-    users = await db.select().from(usersTable).where(
-      sql`${usersTable.id} = ANY(${sql.raw(`ARRAY[${userIds.join(",")}]`)})`
-    );
-  }
+  const users = userIds.length > 0
+    ? await db.select().from(usersTable).where(inArray(usersTable.id, userIds))
+    : [];
 
   const userMap = new Map(users.map((u) => [u.id, u]));
 
@@ -301,32 +282,149 @@ router.get("/groups/:groupId/members", requireAuth, async (req, res): Promise<vo
   res.json(result);
 });
 
-router.post("/groups/:groupId/pause", requireAuth, async (req, res): Promise<void> => {
-  const raw = Array.isArray(req.params.groupId) ? req.params.groupId[0] : req.params.groupId;
-  const groupId = parseInt(raw, 10);
+router.post("/groups/:groupId/invite", requireAuth, async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId, 10);
 
-  const [group] = await db.update(groupsTable).set({ status: "paused" }).where(eq(groupsTable.id, groupId)).returning();
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
   if (!group) {
     res.status(404).json({ error: "Group not found" });
     return;
   }
 
+  if (!isGroupAdmin(req.session?.userId, req.session?.userRole, group)) {
+    res.status(403).json({ error: "Only the group admin can invite members" });
+    return;
+  }
+
+  const parsed = InviteMemberBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  // Check member cap
+  const [memberCountResult] = await db.select({ count: sql<number>`count(*)` })
+    .from(groupMembersTable).where(eq(groupMembersTable.groupId, groupId));
+  const currentCount = Number(memberCountResult?.count ?? 0);
+  if (currentCount >= group.maxMembers) {
+    res.status(400).json({ error: `Group is full (max ${group.maxMembers} members)` });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, parsed.data.email)).limit(1);
+  if (!user) {
+    res.status(404).json({ error: "User with that email not found" });
+    return;
+  }
+
+  const [existing] = await db.select().from(groupMembersTable)
+    .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, user.id)))
+    .limit(1);
+  if (existing) {
+    res.status(409).json({ error: "User is already a member" });
+    return;
+  }
+
+  const order = parsed.data.rotationOrder ?? currentCount;
+
+  await db.insert(groupMembersTable).values({
+    userId: user.id,
+    groupId,
+    rotationOrder: order,
+    hasReceivedPayout: false,
+  });
+
+  await createAuditLog({
+    action: "group.invite_member",
+    performedBy: req.session!.userId!,
+    targetType: "group",
+    targetId: groupId,
+    details: user.email,
+  });
+
+  res.json({ success: true, message: `${user.name} has been added to the group` });
+});
+
+router.delete("/groups/:groupId/members/:userId", requireAuth, async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId, 10);
+  const targetUserId = parseInt(req.params.userId, 10);
+
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
+  if (!group) {
+    res.status(404).json({ error: "Group not found" });
+    return;
+  }
+
+  // Only group admin, super admin, or the member themselves can remove
+  const sessionUserId = req.session!.userId!;
+  if (!isGroupAdmin(req.session?.userId, req.session?.userRole, group) && sessionUserId !== targetUserId) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+
+  // Cannot remove the group admin
+  if (targetUserId === group.adminId) {
+    res.status(400).json({ error: "Cannot remove the group admin" });
+    return;
+  }
+
+  const deleted = await db.delete(groupMembersTable)
+    .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, targetUserId)))
+    .returning();
+
+  if (deleted.length === 0) {
+    res.status(404).json({ error: "Member not found in this group" });
+    return;
+  }
+
+  await createAuditLog({
+    action: "group.remove_member",
+    performedBy: sessionUserId,
+    targetType: "group",
+    targetId: groupId,
+    details: `Removed user ${targetUserId}`,
+  });
+
+  res.json({ success: true });
+});
+
+router.post("/groups/:groupId/pause", requireAuth, async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId, 10);
+
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
+  if (!group) {
+    res.status(404).json({ error: "Group not found" });
+    return;
+  }
+
+  if (!isGroupAdmin(req.session?.userId, req.session?.userRole, group)) {
+    res.status(403).json({ error: "Only the group admin can pause the group" });
+    return;
+  }
+
+  const [updated] = await db.update(groupsTable).set({ status: "paused" }).where(eq(groupsTable.id, groupId)).returning();
   await createAuditLog({ action: "group.pause", performedBy: req.session!.userId!, targetType: "group", targetId: groupId });
-  res.json(await getGroupWithCounts(group));
+  res.json(await getGroupWithCounts(updated));
 });
 
 router.post("/groups/:groupId/resume", requireAuth, async (req, res): Promise<void> => {
-  const raw = Array.isArray(req.params.groupId) ? req.params.groupId[0] : req.params.groupId;
-  const groupId = parseInt(raw, 10);
+  const groupId = parseInt(req.params.groupId, 10);
 
-  const [group] = await db.update(groupsTable).set({ status: "active" }).where(eq(groupsTable.id, groupId)).returning();
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
   if (!group) {
     res.status(404).json({ error: "Group not found" });
     return;
   }
 
+  if (!isGroupAdmin(req.session?.userId, req.session?.userRole, group)) {
+    res.status(403).json({ error: "Only the group admin can resume the group" });
+    return;
+  }
+
+  const [updated] = await db.update(groupsTable).set({ status: "active" }).where(eq(groupsTable.id, groupId)).returning();
   await createAuditLog({ action: "group.resume", performedBy: req.session!.userId!, targetType: "group", targetId: groupId });
-  res.json(await getGroupWithCounts(group));
+  res.json(await getGroupWithCounts(updated));
 });
 
+export { getGroupWithCounts };
 export default router;

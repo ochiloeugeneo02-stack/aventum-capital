@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, auditLogsTable, usersTable, groupsTable, groupMembersTable, contributionCyclesTable, contributionsTable, payoutsTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import { requireRole } from "../lib/auth";
 import { TriggerPayoutBody } from "@workspace/api-zod";
 import { createAuditLog } from "../lib/auditLog";
@@ -19,18 +19,22 @@ router.get("/admin/audit-logs", requireRole("super_admin"), async (req, res): Pr
     db.select({ count: sql<number>`count(*)` }).from(auditLogsTable),
   ]);
 
-  const formattedLogs = await Promise.all(logs.map(async (log) => {
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, log.performedBy)).limit(1);
-    return {
-      id: log.id,
-      action: log.action,
-      performedBy: log.performedBy,
-      targetType: log.targetType,
-      targetId: log.targetId ?? null,
-      details: log.details ?? null,
-      createdAt: log.createdAt.toISOString(),
-      user: user ? formatUser(user) : null,
-    };
+  // Batch user fetch — avoid N+1
+  const performerIds = [...new Set(logs.map((l) => l.performedBy))];
+  const performers = performerIds.length > 0
+    ? await db.select().from(usersTable).where(inArray(usersTable.id, performerIds))
+    : [];
+  const userMap = new Map(performers.map((u) => [u.id, u]));
+
+  const formattedLogs = logs.map((log) => ({
+    id: log.id,
+    action: log.action,
+    performedBy: log.performedBy,
+    targetType: log.targetType,
+    targetId: log.targetId ?? null,
+    details: log.details ?? null,
+    createdAt: log.createdAt.toISOString(),
+    user: userMap.has(log.performedBy) ? formatUser(userMap.get(log.performedBy)!) : null,
   }));
 
   res.json({
@@ -56,11 +60,20 @@ router.post("/admin/payout-trigger", requireRole("super_admin", "group_admin"), 
     return;
   }
 
+  // Prevent duplicate payouts for the same cycle
+  const [existingPayout] = await db.select().from(payoutsTable)
+    .where(and(eq(payoutsTable.groupId, groupId), eq(payoutsTable.cycleId, cycleId)))
+    .limit(1);
+  if (existingPayout) {
+    res.status(409).json({ error: "A payout already exists for this cycle", payoutId: existingPayout.id });
+    return;
+  }
+
   const members = await db.select().from(groupMembersTable).where(eq(groupMembersTable.groupId, groupId));
   const rotationMember = members.find((m) => m.rotationOrder === group.currentRotationIndex);
 
   if (!rotationMember) {
-    res.status(400).json({ error: "No eligible recipient found" });
+    res.status(400).json({ error: "No eligible recipient found for current rotation index" });
     return;
   }
 
@@ -79,7 +92,7 @@ router.post("/admin/payout-trigger", requireRole("super_admin", "group_admin"), 
     performedBy: req.session!.userId!,
     targetType: "payout",
     targetId: payout.id,
-    details: `Manual trigger for group ${groupId}`,
+    details: `Manual trigger for group ${groupId}, cycle ${cycleId}`,
   });
 
   res.json(await formatPayout(payout));
