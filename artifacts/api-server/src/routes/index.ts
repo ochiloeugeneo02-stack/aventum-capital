@@ -8,6 +8,7 @@ import contributionsRouter from "./contributions";
 import payoutsRouter from "./payouts";
 import dashboardRouter from "./dashboard";
 import adminRouter from "./admin";
+import stripeRouter from "./stripe";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(contributionsRouter);
 router.use(payoutsRouter);
 router.use(dashboardRouter);
 router.use(adminRouter);
+router.use(stripeRouter);
 
 export default router;

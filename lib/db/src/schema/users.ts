@@ -13,6 +13,7 @@ export const usersTable = pgTable("users", {
   notificationEmail: boolean("notification_email").notNull().default(true),
   notificationSms: boolean("notification_sms").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
+  stripeCustomerId: text("stripe_customer_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
