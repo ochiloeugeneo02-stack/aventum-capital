@@ -43,7 +43,7 @@ function GroupMembersList({ groupId }: { groupId: number }) {
 }
 
 export default function AdminGroup() {
-  const { formatCurrency } = useRegion();
+  const { formatCurrency, region, convertToKES } = useRegion();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -107,15 +107,25 @@ export default function AdminGroup() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
+    const localAmount = parseFloat(createForm.contributionAmount);
+    const amountKES = region.code === "KE" ? localAmount : convertToKES(localAmount);
     createMutation.mutate({
       data: {
         name: createForm.name,
-        contributionAmount: parseFloat(createForm.contributionAmount),
+        contributionAmount: amountKES,
         schedule: createForm.schedule as any,
         maxMembers: parseInt(createForm.maxMembers, 10),
       },
     });
   };
+
+  const contributionPreview = (() => {
+    const local = parseFloat(createForm.contributionAmount);
+    if (!local || isNaN(local)) return null;
+    if (region.code === "KE") return null;
+    const kes = convertToKES(local);
+    return `≈ KES ${kes.toLocaleString()}`;
+  })();
 
   return (
     <DashboardLayout>
@@ -140,8 +150,20 @@ export default function AdminGroup() {
                 <Input placeholder="Nairobi Savings Circle" value={createForm.name} onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))} required />
               </div>
               <div className="space-y-2">
-                <Label>Contribution amount (KES)</Label>
-                <Input type="number" placeholder="5000" value={createForm.contributionAmount} onChange={e => setCreateForm(f => ({ ...f, contributionAmount: e.target.value }))} required min="100" />
+                <Label>
+                  Contribution amount ({region.currency})
+                </Label>
+                <Input
+                  type="number"
+                  placeholder={region.code === "KE" ? "5000" : region.code === "US" ? "38" : "50"}
+                  value={createForm.contributionAmount}
+                  onChange={e => setCreateForm(f => ({ ...f, contributionAmount: e.target.value }))}
+                  required
+                  min="1"
+                />
+                {contributionPreview && (
+                  <p className="text-xs text-muted-foreground">{contributionPreview} stored as base currency</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Schedule</Label>

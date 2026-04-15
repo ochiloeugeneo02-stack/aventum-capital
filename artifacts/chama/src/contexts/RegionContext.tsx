@@ -154,6 +154,7 @@ interface RegionContextValue {
   formatCurrency: (amountKES: number) => string;
   formatDate: (dateStr: string | null | undefined) => string;
   formatDateTime: (dateStr: string | null | undefined) => string;
+  convertToKES: (amountLocal: number) => number;
 }
 
 const RegionContext = createContext<RegionContextValue | null>(null);
@@ -210,9 +211,17 @@ export function RegionProvider({ children }: { children: ReactNode }) {
     [region]
   );
 
+  const convertToKES = useCallback(
+    (amountLocal: number): number => {
+      if (region.kesRate === 0) return amountLocal;
+      return Math.round(amountLocal / region.kesRate);
+    },
+    [region]
+  );
+
   return (
     <RegionContext.Provider
-      value={{ region, setRegion: handleSetRegion, formatCurrency, formatDate, formatDateTime }}
+      value={{ region, setRegion: handleSetRegion, formatCurrency, formatDate, formatDateTime, convertToKES }}
     >
       {children}
     </RegionContext.Provider>
