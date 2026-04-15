@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRegion, REGIONS } from "@/contexts/RegionContext";
 import { apiRequest } from "@/lib/api";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, XCircle, Clock, Users, Repeat2, TrendingUp } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Clock, Users, Repeat2, TrendingUp, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type InviteStatus = "loading" | "valid" | "accepting" | "accepted" | "error";
@@ -26,18 +27,39 @@ interface InviteData {
   inviter: { name: string; email: string } | null;
 }
 
-function formatGroupAmount(amount: number, currency: string): string {
+// Build a reverse lookup: currency code → kesRate
+const CURRENCY_TO_KESRATE: Record<string, number> = Object.fromEntries(
+  Object.values(REGIONS).map((r) => [r.currency, r.kesRate])
+);
+
+/**
+ * Convert an amount from one currency to another using KES as the pivot.
+ * kesRate = "1 KES = x of this currency", so:
+ *   amountInKES = amount / fromKesRate
+ *   result      = amountInKES * toKesRate
+ */
+function convertCurrency(amount: number, fromCurrency: string, toKesRate: number): number {
+  const fromKesRate = CURRENCY_TO_KESRATE[fromCurrency] ?? 1;
+  return amount * (toKesRate / fromKesRate);
+}
+
+function formatAmount(amount: number, currency: string, fractionDigits = 0): string {
   try {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: fractionDigits,
+      minimumFractionDigits: fractionDigits,
+    }).format(amount);
   } catch {
     return `${currency} ${amount.toLocaleString()}`;
   }
 }
 
 function scheduleLabel(s: string): string {
-  if (s === "weekly") return "Weekly";
-  if (s === "bi-weekly") return "Every two weeks";
-  if (s === "monthly") return "Monthly";
+  if (s === "weekly") return "weekly";
+  if (s === "bi-weekly") return "every two weeks";
+  if (s === "monthly") return "monthly";
   return s;
 }
 
@@ -45,6 +67,7 @@ export default function InviteAccept() {
   const { token } = useParams<{ token: string }>();
   const [, navigate] = useLocation();
   const { isAuthenticated } = useAuth();
+  const { region } = useRegion();
 
   const [status, setStatus] = useState<InviteStatus>("loading");
   const [invite, setInvite] = useState<InviteData | null>(null);
@@ -81,8 +104,28 @@ export default function InviteAccept() {
   };
 
   const g = invite?.group;
-  const poolSize = g ? formatGroupAmount(g.contributionAmount * g.maxMembers, g.currency) : "";
-  const contribution = g ? formatGroupAmount(g.contributionAmount, g.currency) : "";
+
+  // Convert group amounts to viewer's region currency
+  const viewerCurrency = region.currency;
+  const viewerFraction = region.fractionDigits;
+  const viewerKesRate = region.kesRate;
+  const groupCurrency = g?.currency ?? "KES";
+  const samesCurrency = viewerCurrency === groupCurrency;
+
+  const displayContribution = g
+    ? formatAmount(
+        convertCurrency(g.contributionAmount, groupCurrency, viewerKesRate),
+        viewerCurrency,
+        viewerFraction
+      )
+    : "";
+  const displayPool = g
+    ? formatAmount(
+        convertCurrency(g.contributionAmount * g.maxMembers, groupCurrency, viewerKesRate),
+        viewerCurrency,
+        viewerFraction
+      )
+    : "";
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(160deg, #f9f8f5 0%, #eef2ec 100%)" }}>
@@ -92,10 +135,10 @@ export default function InviteAccept() {
         {!isAuthenticated && (
           <div className="flex gap-3">
             <a href="/login">
-              <Button variant="ghost" size="sm" className="text-sm">Sign in</Button>
+              <Button variant="ghost" size="sm">Sign in</Button>
             </a>
             <a href="/signup">
-              <Button size="sm" className="bg-[#3A5A40] hover:bg-[#344E41] text-sm">Create account</Button>
+              <Button size="sm" className="bg-[#3A5A40] hover:bg-[#344E41]">Create account</Button>
             </a>
           </div>
         )}
@@ -176,14 +219,22 @@ export default function InviteAccept() {
                   </div>
                 </div>
 
+                {/* Currency note if converting */}
+                {!samesCurrency && (
+                  <div className="px-6 py-2.5 bg-amber-50 border-b border-amber-100 flex items-center gap-2 text-xs text-amber-700">
+                    <Globe className="w-3.5 h-3.5 shrink-0" />
+                    Amounts shown in {viewerCurrency} based on your location. Group currency is {groupCurrency}.
+                  </div>
+                )}
+
                 {/* Stats */}
                 <div className="grid grid-cols-2 divide-x divide-border border-b border-border">
                   <div className="p-5 text-center">
-                    <div className="text-2xl font-bold text-[#344E41]">{contribution}</div>
+                    <div className="text-2xl font-bold text-[#344E41]">{displayContribution}</div>
                     <div className="text-xs text-muted-foreground mt-1">Your contribution per cycle</div>
                   </div>
                   <div className="p-5 text-center">
-                    <div className="text-2xl font-bold text-[#344E41]">{poolSize}</div>
+                    <div className="text-2xl font-bold text-[#344E41]">{displayPool}</div>
                     <div className="text-xs text-muted-foreground mt-1">Pool size at full capacity</div>
                   </div>
                 </div>
@@ -197,7 +248,7 @@ export default function InviteAccept() {
                     <div>
                       <div className="font-medium text-sm mb-0.5">How rotating savings work</div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        Everyone contributes {contribution} {scheduleLabel(g.schedule).toLowerCase()}. Each cycle, the full pool ({poolSize} when full) is paid out to one member in rotation — until everyone has received their share.
+                        Everyone contributes {displayContribution} {scheduleLabel(g.schedule)}. The full pool ({displayPool} when full) is paid out to one member each cycle — rotating until everyone has received their share.
                       </p>
                     </div>
                   </div>
@@ -212,7 +263,7 @@ export default function InviteAccept() {
 
               {/* CTA */}
               <Button
-                className={cn("w-full text-base font-semibold py-6 rounded-xl bg-[#3A5A40] hover:bg-[#344E41] transition-all", status === "accepting" && "opacity-80")}
+                className={cn("w-full text-base font-semibold py-6 rounded-xl bg-[#3A5A40] hover:bg-[#344E41]", status === "accepting" && "opacity-80")}
                 onClick={handleAccept}
                 disabled={status === "accepting"}
               >
