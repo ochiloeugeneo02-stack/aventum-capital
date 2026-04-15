@@ -6,7 +6,7 @@ import { useRegion } from "@/contexts/RegionContext";
 import { Loader2, Users, ArrowRight } from "lucide-react";
 
 export default function Groups() {
-  const { formatCurrency, formatDate } = useRegion();
+  const { formatGroupAmount, formatDate } = useRegion();
   const { data, isLoading } = useListGroups({ query: { queryKey: getListGroupsQueryKey() } });
 
   return (
@@ -43,7 +43,7 @@ export default function Groups() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Contribution</span>
-                      <span className="font-medium">{formatCurrency(group.contributionAmount)}</span>
+                      <span className="font-medium">{formatGroupAmount(group.contributionAmount, group.currency ?? "KES")}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Members</span>

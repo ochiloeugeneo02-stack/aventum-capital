@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Users } from "lucide-react";
 
 export default function GroupDetail() {
-  const { formatCurrency, formatDate } = useRegion();
+  const { formatGroupAmount, formatDate } = useRegion();
   const [, params] = useRoute("/groups/:id");
   const groupId = parseInt(params?.id ?? "0", 10);
   const { user } = useAuth();
@@ -83,8 +83,8 @@ export default function GroupDetail() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: "Contribution", value: formatCurrency(g.contributionAmount) },
-            { label: "Pool size", value: formatCurrency(totalPayout) },
+            { label: "Contribution", value: formatGroupAmount(g.contributionAmount, g.currency ?? "KES") },
+            { label: "Pool size", value: formatGroupAmount(totalPayout, g.currency ?? "KES") },
             { label: "Members", value: `${g.totalMembers}/${g.maxMembers}` },
             { label: "Paid this cycle", value: `${g.paidCount}/${g.totalMembers}` },
           ].map(stat => (
@@ -124,7 +124,7 @@ export default function GroupDetail() {
             {myStatus !== "paid" ? (
               <Button className="w-full" onClick={handlePay} disabled={payMutation.isPending || g.status !== "active"}>
                 {payMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Pay {formatCurrency(g.contributionAmount)}
+                Pay {formatGroupAmount(g.contributionAmount, g.currency ?? "KES")}
               </Button>
             ) : (
               <Button variant="outline" className="w-full" disabled>Paid for this cycle</Button>

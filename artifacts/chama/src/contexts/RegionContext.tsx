@@ -148,10 +148,15 @@ function detectRegionCode(): string {
   return "US";
 }
 
+export const CURRENCY_TO_KESRATE: Record<string, number> = Object.fromEntries(
+  Object.values(REGIONS).map((r) => [r.currency, r.kesRate])
+);
+
 interface RegionContextValue {
   region: RegionInfo;
   setRegion: (code: string) => void;
   formatCurrency: (amountKES: number) => string;
+  formatGroupAmount: (amount: number, fromCurrency: string) => string;
   formatDate: (dateStr: string | null | undefined) => string;
   formatDateTime: (dateStr: string | null | undefined) => string;
   convertToKES: (amountLocal: number) => number;
@@ -219,9 +224,24 @@ export function RegionProvider({ children }: { children: ReactNode }) {
     [region]
   );
 
+  const formatGroupAmount = useCallback(
+    (amount: number, fromCurrency: string): string => {
+      const fromRate = CURRENCY_TO_KESRATE[fromCurrency] ?? region.kesRate;
+      const amountKES = amount / fromRate;
+      const converted = amountKES * region.kesRate;
+      return new Intl.NumberFormat(region.locale, {
+        style: "currency",
+        currency: region.currency,
+        minimumFractionDigits: region.fractionDigits,
+        maximumFractionDigits: region.fractionDigits,
+      }).format(converted);
+    },
+    [region]
+  );
+
   return (
     <RegionContext.Provider
-      value={{ region, setRegion: handleSetRegion, formatCurrency, formatDate, formatDateTime, convertToKES }}
+      value={{ region, setRegion: handleSetRegion, formatCurrency, formatGroupAmount, formatDate, formatDateTime, convertToKES }}
     >
       {children}
     </RegionContext.Provider>

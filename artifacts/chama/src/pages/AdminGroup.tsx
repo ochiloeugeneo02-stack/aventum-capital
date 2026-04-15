@@ -20,18 +20,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Users, Copy, Check, Mail, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-function formatGroupAmount(amount: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  } catch {
-    return `${currency} ${amount.toLocaleString()}`;
-  }
-}
-
 function StatusBadgeSmall({ status }: { status: string }) {
   const map: Record<string, string> = {
     active: "bg-green-100 text-green-700",
@@ -102,7 +90,7 @@ function GroupMembersList({ groupId }: { groupId: number }) {
 }
 
 export default function AdminGroup() {
-  const { region } = useRegion();
+  const { region, formatGroupAmount } = useRegion();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -276,7 +264,7 @@ export default function AdminGroup() {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-lg">{g.name}</h3>
-                        <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{groupCurrency}</span>
+                        <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{region.currency}</span>
                       </div>
                       <p className="text-sm text-muted-foreground capitalize">{g.schedule} • {g.totalMembers}/{g.maxMembers} members • Cycle {g.currentCycle}</p>
                     </div>
