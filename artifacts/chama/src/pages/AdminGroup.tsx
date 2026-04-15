@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/StatusBadge";
-import { formatCurrency } from "@/lib/api";
+import { useRegion } from "@/contexts/RegionContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Users } from "lucide-react";
 
@@ -43,6 +43,7 @@ function GroupMembersList({ groupId }: { groupId: number }) {
 }
 
 export default function AdminGroup() {
+  const { formatCurrency } = useRegion();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 

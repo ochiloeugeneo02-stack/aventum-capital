@@ -7,11 +7,12 @@ import {
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
-import { formatCurrency, formatDate } from "@/lib/api";
+import { useRegion } from "@/contexts/RegionContext";
 import { useToast } from "@/hooks/use-toast";
 import { CreditCard, DollarSign, TrendingUp, Clock, Loader2, Users } from "lucide-react";
 
 export default function Dashboard() {
+  const { formatCurrency, formatDate } = useRegion();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 

@@ -1,10 +1,11 @@
 import { useListPayouts, getListPayoutsQueryKey } from "@workspace/api-client-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { StatusBadge } from "@/components/StatusBadge";
-import { formatCurrency, formatDate } from "@/lib/api";
+import { useRegion } from "@/contexts/RegionContext";
 import { Loader2, DollarSign } from "lucide-react";
 
 export default function Payouts() {
+  const { formatCurrency, formatDate } = useRegion();
   const { data, isLoading } = useListPayouts({}, { query: { queryKey: getListPayoutsQueryKey() } });
 
   return (

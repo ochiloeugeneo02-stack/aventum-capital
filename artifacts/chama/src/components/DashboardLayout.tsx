@@ -17,6 +17,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
+import { RegionSelector } from "@/components/RegionSelector";
+import { useRegion } from "@/contexts/RegionContext";
 
 interface NavItem {
   label: string;
@@ -38,6 +40,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
+  const { region } = useRegion();
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -141,13 +144,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <Menu className="w-5 h-5" />
           </Button>
           <div className="flex-1" />
-          <div className="text-sm text-muted-foreground capitalize">
+          <RegionSelector />
+          <div className="text-sm text-muted-foreground capitalize hidden sm:block">
             {user?.role.replace("_", " ")}
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-auto p-6">
+        {/* Page content — key forces re-render on region switch so all formatCurrency calls refresh */}
+        <main key={region.code} className="flex-1 overflow-auto p-6">
           {children}
         </main>
       </div>

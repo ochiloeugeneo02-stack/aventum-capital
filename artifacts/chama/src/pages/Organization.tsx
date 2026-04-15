@@ -1,9 +1,10 @@
 import { useListOrganizations, getListOrganizationsQueryKey } from "@workspace/api-client-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { formatCurrency } from "@/lib/api";
+import { useRegion } from "@/contexts/RegionContext";
 import { Loader2, Building } from "lucide-react";
 
 export default function Organization() {
+  const { formatCurrency } = useRegion();
   const { data, isLoading } = useListOrganizations({ query: { queryKey: getListOrganizationsQueryKey() } });
   const orgs = (data as any[]) ?? [];
 

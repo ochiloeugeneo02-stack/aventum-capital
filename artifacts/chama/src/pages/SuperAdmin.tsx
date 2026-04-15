@@ -17,7 +17,7 @@ import {
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
-import { formatCurrency, formatDate, formatDateTime } from "@/lib/api";
+import { useRegion } from "@/contexts/RegionContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Users, CreditCard, DollarSign, Activity, Shield } from "lucide-react";
 
@@ -25,6 +25,7 @@ const TABS = ["Overview", "Users", "Contributions", "Payouts", "Audit Logs"] as 
 type Tab = typeof TABS[number];
 
 export default function SuperAdmin() {
+  const { formatCurrency, formatDate, formatDateTime } = useRegion();
   const [tab, setTab] = useState<Tab>("Overview");
   const { toast } = useToast();
   const queryClient = useQueryClient();

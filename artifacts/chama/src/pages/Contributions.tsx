@@ -1,11 +1,12 @@
 import { useListContributions, getListContributionsQueryKey } from "@workspace/api-client-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { StatusBadge } from "@/components/StatusBadge";
-import { formatCurrency, formatDate } from "@/lib/api";
+import { useRegion } from "@/contexts/RegionContext";
 import { Loader2, CreditCard } from "lucide-react";
 import { useState } from "react";
 
 export default function Contributions() {
+  const { formatCurrency, formatDate } = useRegion();
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
 
   const { data, isLoading } = useListContributions(

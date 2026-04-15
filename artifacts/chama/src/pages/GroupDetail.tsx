@@ -9,12 +9,13 @@ import {
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, formatDate } from "@/lib/api";
+import { useRegion } from "@/contexts/RegionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Users } from "lucide-react";
 
 export default function GroupDetail() {
+  const { formatCurrency, formatDate } = useRegion();
   const [, params] = useRoute("/groups/:id");
   const groupId = parseInt(params?.id ?? "0", 10);
   const { user } = useAuth();

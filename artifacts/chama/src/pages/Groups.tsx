@@ -2,10 +2,11 @@ import { Link } from "wouter";
 import { useListGroups, getListGroupsQueryKey } from "@workspace/api-client-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { StatusBadge } from "@/components/StatusBadge";
-import { formatCurrency, formatDate } from "@/lib/api";
+import { useRegion } from "@/contexts/RegionContext";
 import { Loader2, Users, ArrowRight } from "lucide-react";
 
 export default function Groups() {
+  const { formatCurrency, formatDate } = useRegion();
   const { data, isLoading } = useListGroups({ query: { queryKey: getListGroupsQueryKey() } });
 
   return (

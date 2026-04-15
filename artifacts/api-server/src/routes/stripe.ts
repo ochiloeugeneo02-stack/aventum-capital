@@ -61,8 +61,25 @@ router.get("/stripe/config", async (_req, res): Promise<void> => {
  * 3. Creates a PaymentIntent for the contribution amount
  * 4. Returns the clientSecret for the frontend to confirm payment
  */
+/**
+ * Supported Stripe currencies with conversion config.
+ * KES is the canonical DB currency. All amounts are stored as KES.
+ * For display/charging in other currencies, we convert at the approximate rate.
+ */
+const STRIPE_CURRENCY_CONFIG: Record<string, { rate: number; zeroDecimal: boolean; sandboxSafe: boolean }> = {
+  kes: { rate: 1,        zeroDecimal: true,  sandboxSafe: false },
+  usd: { rate: 1/130,    zeroDecimal: false, sandboxSafe: true  },
+  eur: { rate: 1/142,    zeroDecimal: false, sandboxSafe: true  },
+  gbp: { rate: 1/165,    zeroDecimal: false, sandboxSafe: true  },
+  cad: { rate: 1/96,     zeroDecimal: false, sandboxSafe: true  },
+  aud: { rate: 1/85,     zeroDecimal: false, sandboxSafe: true  },
+  ngn: { rate: 8.27,     zeroDecimal: true,  sandboxSafe: false },
+  tzs: { rate: 34.48,    zeroDecimal: true,  sandboxSafe: false },
+  ugx: { rate: 29.41,    zeroDecimal: true,  sandboxSafe: false },
+};
+
 router.post("/stripe/create-payment-intent", requireAuth, async (req, res): Promise<void> => {
-  const { groupId, cycleId } = req.body;
+  const { groupId, cycleId, currency: requestedCurrency } = req.body;
   const userId = req.session!.userId!;
 
   if (!groupId || !cycleId) {
@@ -113,18 +130,26 @@ router.post("/stripe/create-payment-intent", requireAuth, async (req, res): Prom
 
   const amountKES = parseFloat(group.contributionAmount as unknown as string);
 
-  // KES is a zero-decimal currency in Stripe (amounts in whole shillings).
-  // In Stripe sandbox/test mode, KES may not be available or may have exchange-rate minimums.
-  // We use KES in production and fall back to USD (in cents) for sandbox testing.
+  // Determine which currency to charge in.
+  // Frontend passes the user's regional currency preference (e.g. "USD", "KES", "GBP").
+  // In sandbox mode, only sandbox-safe currencies (USD, EUR, GBP, CAD, AUD) work reliably.
   const isProduction = process.env.REPLIT_DEPLOYMENT === "1";
-  const currency = isProduction ? "kes" : "usd";
+  const preferred = (requestedCurrency ?? "KES").toLowerCase();
+  const currencyConfig = STRIPE_CURRENCY_CONFIG[preferred];
 
-  // For KES (zero-decimal): amount = KES value directly
-  // For USD (two-decimal): convert KES to USD cents (approx KES 130 = $1 USD = 100 cents)
-  const KES_TO_USD_RATE = 130;
-  const amountInt = isProduction
-    ? Math.round(amountKES)
-    : Math.round((amountKES / KES_TO_USD_RATE) * 100); // USD cents
+  // Fall back to USD in sandbox if the preferred currency isn't sandbox-safe
+  const activeCurrency = (!isProduction && currencyConfig && !currencyConfig.sandboxSafe)
+    ? "usd"
+    : (currencyConfig ? preferred : "usd");
+  const config = STRIPE_CURRENCY_CONFIG[activeCurrency] ?? STRIPE_CURRENCY_CONFIG.usd;
+
+  // Convert from KES to the target currency.
+  // Zero-decimal currencies: amount is in whole units (e.g., KES, NGN)
+  // Two-decimal currencies: amount is in cents (e.g., USD → multiply by 100)
+  const convertedAmount = amountKES * config.rate;
+  const amountInt = config.zeroDecimal
+    ? Math.round(convertedAmount)
+    : Math.round(convertedAmount * 100);
 
   const platformFee = Math.floor(amountInt * PLATFORM_FEE_RATE);
 
@@ -135,7 +160,7 @@ router.post("/stripe/create-payment-intent", requireAuth, async (req, res): Prom
   try {
     paymentIntent = await stripe.paymentIntents.create({
       amount: amountInt,
-      currency,
+      currency: activeCurrency,
       customer: customerId,
       metadata: {
         aventum_user_id: String(userId),
@@ -157,7 +182,7 @@ router.post("/stripe/create-payment-intent", requireAuth, async (req, res): Prom
     amountKES,
     amountCharged: amountInt,
     platformFee,
-    currency: currency.toUpperCase(),
+    currency: activeCurrency.toUpperCase(),
     paymentIntentId: paymentIntent.id,
   });
 });
