@@ -45,11 +45,11 @@ export default function Signup() {
       {/* Left brand panel */}
       <div
         className="hidden lg:flex w-1/2 flex-col justify-center px-16"
-        style={{ background: "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 60%, #1e4a30 100%)" }}
+        style={{ background: "linear-gradient(135deg, #344E41 0%, #3A5A40 60%, #3A5A40 100%)" }}
       >
         <div className="max-w-md">
           <a href="/" className="inline-flex mb-12">
-            <Logo variant="white" className="h-10 w-auto" />
+            <Logo variant="white" />
           </a>
           <h2 className="text-3xl font-bold text-white mb-4">
             Start saving with your community
@@ -64,7 +64,7 @@ export default function Signup() {
       <div className="flex-1 flex items-center justify-center px-6">
         <div className="w-full max-w-md">
           <a href="/" className="inline-flex lg:hidden mb-8">
-            <Logo variant="dark" className="h-8 w-auto" />
+            <Logo variant="dark" />
           </a>
 
           <div className="mb-8">
@@ -101,7 +101,7 @@ export default function Signup() {
                     key={opt.value}
                     type="button"
                     onClick={() => setForm(f => ({ ...f, role: opt.value }))}
-                    className={`p-3 rounded-xl border-2 text-left transition-colors ${form.role === opt.value ? "border-[#2E6B4A] bg-[#2E6B4A]/5 text-[#2E6B4A]" : "border-border hover:border-[#2E6B4A]/30"}`}
+                    className={`p-3 rounded-xl border-2 text-left transition-colors ${form.role === opt.value ? "border-[#3A5A40] bg-[#3A5A40]/5 text-[#3A5A40]" : "border-border hover:border-[#3A5A40]/30"}`}
                   >
                     <div className="font-medium text-sm">{opt.label}</div>
                     <div className="text-xs text-muted-foreground">{opt.desc}</div>
@@ -109,7 +109,7 @@ export default function Signup() {
                 ))}
               </div>
             </div>
-            <Button type="submit" className="w-full bg-[#2E6B4A] hover:bg-[#245a3c]" disabled={registerMutation.isPending}>
+            <Button type="submit" className="w-full bg-[#3A5A40] hover:bg-[#344E41]" disabled={registerMutation.isPending}>
               {registerMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Create account
             </Button>
@@ -117,7 +117,7 @@ export default function Signup() {
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <a href="/login" className="text-[#2E6B4A] font-medium hover:underline">Sign in</a>
+            <a href="/login" className="text-[#3A5A40] font-medium hover:underline">Sign in</a>
           </p>
         </div>
       </div>

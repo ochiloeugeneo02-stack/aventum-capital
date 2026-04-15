@@ -2,6 +2,36 @@
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
+/* ── Neue Haas Display (official Aventum Capital typeface) ─────────────── */
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplay-Light.woff') format('woff');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplay-Roman.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplay-Mediu.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'NeueHaasDisplay';
+  src: url('/fonts/NeueHaasDisplay-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -73,53 +103,65 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  /* Deep forest green palette with warm amber accents */
-  --background: 150 20% 97%;
-  --foreground: 158 30% 12%;
+  /*
+    Official Aventum Capital palette
+    #344E41 → hsl(150, 20%, 25%)  — deep forest  (darkest)
+    #3A5A40 → hsl(131, 22%, 29%)  — forest green
+    #588157 → hsl(119, 20%, 42%)  — mid green
+    #A3B18A → hsl(82,  20%, 62%)  — sage
+    #DAD7CD → hsl(46,  15%, 83%)  — warm sand    (lightest)
+  */
+  --background: 46 10% 98%;
+  --foreground: 150 20% 15%;
 
-  --border: 152 15% 85%;
-  --input: 152 15% 80%;
-  --ring: 154 60% 35%;
+  --border: 82 12% 83%;
+  --input: 82 12% 78%;
+  --ring: 131 22% 35%;
 
   --card: 0 0% 100%;
-  --card-foreground: 158 30% 12%;
-  --card-border: 152 15% 88%;
+  --card-foreground: 150 20% 15%;
+  --card-border: 82 12% 87%;
 
-  --sidebar: 158 35% 16%;
-  --sidebar-foreground: 150 30% 90%;
-  --sidebar-border: 158 30% 22%;
-  --sidebar-primary: 142 65% 42%;
-  --sidebar-primary-foreground: 158 35% 10%;
-  --sidebar-accent: 158 30% 22%;
-  --sidebar-accent-foreground: 150 30% 92%;
-  --sidebar-ring: 142 65% 42%;
+  /* Sidebar — deep forest #344E41 */
+  --sidebar: 150 20% 25%;
+  --sidebar-foreground: 46 15% 92%;
+  --sidebar-border: 150 18% 31%;
+  --sidebar-primary: 82 20% 56%;
+  --sidebar-primary-foreground: 150 20% 12%;
+  --sidebar-accent: 150 18% 32%;
+  --sidebar-accent-foreground: 46 15% 92%;
+  --sidebar-ring: 82 20% 56%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 158 30% 12%;
-  --popover-border: 152 15% 85%;
+  --popover-foreground: 150 20% 15%;
+  --popover-border: 82 12% 83%;
 
-  --primary: 154 60% 35%;
+  /* Primary buttons — forest green #3A5A40 */
+  --primary: 131 22% 29%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 150 20% 93%;
-  --secondary-foreground: 158 30% 18%;
+  /* Secondary — warm sand tint */
+  --secondary: 46 12% 92%;
+  --secondary-foreground: 150 20% 20%;
 
-  --muted: 150 15% 94%;
-  --muted-foreground: 155 15% 45%;
+  /* Muted — light warm */
+  --muted: 46 10% 94%;
+  --muted-foreground: 150 12% 45%;
 
-  --accent: 39 95% 55%;
-  --accent-foreground: 158 30% 12%;
+  /* Accent — sage #A3B18A */
+  --accent: 82 20% 62%;
+  --accent-foreground: 150 20% 15%;
 
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
 
-  --chart-1: 154 60% 35%;
-  --chart-2: 39 95% 55%;
-  --chart-3: 199 80% 50%;
-  --chart-4: 280 65% 55%;
-  --chart-5: 340 75% 55%;
+  --chart-1: 131 22% 29%;
+  --chart-2: 119 20% 42%;
+  --chart-3: 82 20% 62%;
+  --chart-4: 46 15% 60%;
+  --chart-5: 340 65% 55%;
 
-  --app-font-sans: 'Inter', sans-serif;
+  --app-font-sans: 'NeueHaasDisplay', 'Inter', sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: Menlo, monospace;
   --radius: .625rem;
@@ -159,50 +201,50 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: 158 25% 8%;
-  --foreground: 150 20% 92%;
+  --background: 150 20% 8%;
+  --foreground: 46 15% 92%;
 
-  --border: 155 15% 22%;
-  --input: 155 15% 25%;
-  --ring: 142 55% 45%;
+  --border: 150 18% 22%;
+  --input: 150 18% 25%;
+  --ring: 82 20% 55%;
 
-  --card: 158 25% 11%;
-  --card-foreground: 150 20% 92%;
-  --card-border: 155 15% 20%;
+  --card: 150 20% 11%;
+  --card-foreground: 46 15% 92%;
+  --card-border: 150 18% 20%;
 
-  --sidebar: 158 30% 6%;
-  --sidebar-foreground: 150 20% 88%;
-  --sidebar-border: 155 20% 14%;
-  --sidebar-primary: 142 60% 45%;
-  --sidebar-primary-foreground: 158 30% 8%;
-  --sidebar-accent: 158 25% 14%;
-  --sidebar-accent-foreground: 150 20% 90%;
-  --sidebar-ring: 142 60% 45%;
+  --sidebar: 150 20% 14%;
+  --sidebar-foreground: 46 15% 88%;
+  --sidebar-border: 150 18% 20%;
+  --sidebar-primary: 82 18% 55%;
+  --sidebar-primary-foreground: 150 20% 10%;
+  --sidebar-accent: 150 18% 22%;
+  --sidebar-accent-foreground: 46 15% 90%;
+  --sidebar-ring: 82 18% 55%;
 
-  --popover: 158 25% 11%;
-  --popover-foreground: 150 20% 92%;
-  --popover-border: 155 15% 20%;
+  --popover: 150 20% 11%;
+  --popover-foreground: 46 15% 92%;
+  --popover-border: 150 18% 20%;
 
-  --primary: 142 60% 45%;
-  --primary-foreground: 158 30% 6%;
+  --primary: 131 22% 40%;
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 158 20% 18%;
-  --secondary-foreground: 150 20% 88%;
+  --secondary: 150 18% 18%;
+  --secondary-foreground: 46 15% 88%;
 
-  --muted: 158 18% 16%;
-  --muted-foreground: 152 15% 55%;
+  --muted: 150 16% 16%;
+  --muted-foreground: 82 12% 55%;
 
-  --accent: 39 90% 52%;
-  --accent-foreground: 158 30% 6%;
+  --accent: 82 18% 55%;
+  --accent-foreground: 150 20% 8%;
 
   --destructive: 0 65% 50%;
   --destructive-foreground: 0 0% 100%;
 
-  --chart-1: 142 60% 45%;
-  --chart-2: 39 90% 52%;
-  --chart-3: 199 75% 52%;
-  --chart-4: 280 60% 58%;
-  --chart-5: 340 70% 58%;
+  --chart-1: 131 22% 40%;
+  --chart-2: 119 20% 50%;
+  --chart-3: 82 20% 62%;
+  --chart-4: 46 15% 65%;
+  --chart-5: 340 65% 60%;
 
   --shadow-2xs: 0 1px 2px rgba(0,0,0,0.2);
   --shadow-xs: 0 1px 3px rgba(0,0,0,0.25);

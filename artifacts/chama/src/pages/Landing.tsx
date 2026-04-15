@@ -45,7 +45,7 @@ function HeroLoginPanel() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2E6B4A] focus:border-transparent"
+            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#3A5A40] focus:border-transparent"
           />
         </div>
         <div>
@@ -57,7 +57,7 @@ function HeroLoginPanel() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2E6B4A] focus:border-transparent pr-10"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#3A5A40] focus:border-transparent pr-10"
             />
             <button
               type="button"
@@ -71,17 +71,17 @@ function HeroLoginPanel() {
         <button
           type="submit"
           disabled={loginMutation.isPending}
-          className="w-full bg-[#2E6B4A] hover:bg-[#245a3c] text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+          className="w-full bg-[#3A5A40] hover:bg-[#344E41] text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
         >
           {loginMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
           Login
         </button>
       </form>
       <div className="mt-4 space-y-1 text-xs text-gray-500">
-        <p className="cursor-pointer hover:text-[#2E6B4A] transition-colors">Forgot password?</p>
+        <p className="cursor-pointer hover:text-[#3A5A40] transition-colors">Forgot password?</p>
         <p>
           Don't have an account?{" "}
-          <a href="/signup" className="text-[#2E6B4A] font-medium hover:underline">
+          <a href="/signup" className="text-[#3A5A40] font-medium hover:underline">
             Sign up
           </a>
         </p>
@@ -119,25 +119,25 @@ export default function Landing() {
       <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <a href="/" className="flex items-center">
-            <Logo variant="dark" className="h-8 w-auto" />
+            <Logo variant="dark" />
           </a>
 
           <div className="hidden md:flex items-center gap-8 text-sm text-gray-600">
-            <a href="#how" className="hover:text-[#2E6B4A] transition-colors">Home</a>
-            <a href="#why" className="hover:text-[#2E6B4A] transition-colors">Services</a>
-            <a href="#faq" className="hover:text-[#2E6B4A] transition-colors">FAQ</a>
-            <a href="#footer" className="hover:text-[#2E6B4A] transition-colors">Contact</a>
+            <a href="#how" className="hover:text-[#3A5A40] transition-colors">Home</a>
+            <a href="#why" className="hover:text-[#3A5A40] transition-colors">Services</a>
+            <a href="#faq" className="hover:text-[#3A5A40] transition-colors">FAQ</a>
+            <a href="#footer" className="hover:text-[#3A5A40] transition-colors">Contact</a>
           </div>
 
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
-              <a href="/dashboard" className="bg-[#2E6B4A] text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-[#245a3c] transition-colors">
+              <a href="/dashboard" className="bg-[#3A5A40] text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-[#344E41] transition-colors">
                 Dashboard
               </a>
             ) : (
               <>
                 <a href="#hero-login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Login</a>
-                <a href="/signup" className="bg-[#2E6B4A] text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-[#245a3c] transition-colors">
+                <a href="/signup" className="bg-[#3A5A40] text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-[#344E41] transition-colors">
                   Get Started
                 </a>
               </>
@@ -150,7 +150,7 @@ export default function Landing() {
       <section
         id="hero-login"
         className="relative min-h-[520px] flex items-center"
-        style={{ background: "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 40%, #1e4a30 70%, #152e1e 100%)" }}
+        style={{ background: "linear-gradient(135deg, #344E41 0%, #3A5A40 40%, #3A5A40 70%, #2B3E35 100%)" }}
       >
         <div
           className="absolute inset-0 opacity-10"
@@ -187,7 +187,7 @@ export default function Landing() {
                 <div className="w-14 h-14 mx-auto mb-4 bg-white rounded-full border border-gray-200 flex items-center justify-center text-2xl shadow-sm">
                   {item.emoji}
                 </div>
-                <div className="text-xs font-semibold text-[#2E6B4A] mb-1">{item.num}.</div>
+                <div className="text-xs font-semibold text-[#3A5A40] mb-1">{item.num}.</div>
                 <h3 className="font-semibold text-gray-900 mb-2">{item.title}</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
               </div>
@@ -211,8 +211,8 @@ export default function Landing() {
               { icon: <Zap className="w-7 h-7" />, title: "Automated Payments", desc: "Never miss a contribution" },
               { icon: <Settings className="w-7 h-7" />, title: "Group Management", desc: "Efficient group coordination" },
             ].map((item) => (
-              <div key={item.title} className="text-center p-6 rounded-xl border border-gray-100 hover:border-[#2E6B4A]/30 hover:shadow-sm transition-all">
-                <div className="text-[#2E6B4A] flex justify-center mb-3">{item.icon}</div>
+              <div key={item.title} className="text-center p-6 rounded-xl border border-gray-100 hover:border-[#3A5A40]/30 hover:shadow-sm transition-all">
+                <div className="text-[#3A5A40] flex justify-center mb-3">{item.icon}</div>
                 <h3 className="font-semibold text-gray-900 text-sm mb-1">{item.title}</h3>
                 <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
               </div>
@@ -224,7 +224,7 @@ export default function Landing() {
       {/* ── What We Do Best ─────────────────────────────────── */}
       <section
         className="relative py-20"
-        style={{ background: "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 60%, #1e4a30 100%)" }}
+        style={{ background: "linear-gradient(135deg, #344E41 0%, #3A5A40 60%, #3A5A40 100%)" }}
       >
         <div className="max-w-6xl mx-auto px-6 flex flex-col lg:flex-row items-center gap-12">
           <div className="w-full lg:w-1/2 aspect-video rounded-2xl overflow-hidden relative shadow-2xl">
@@ -239,7 +239,7 @@ export default function Landing() {
             />
           </div>
           <div className="w-full lg:w-1/2">
-            <p className="text-[#7ec8a0] text-sm font-semibold uppercase tracking-wider mb-4">What we do best</p>
+            <p className="text-[#A3B18A] text-sm font-semibold uppercase tracking-wider mb-4">What we do best</p>
             <blockquote className="text-white text-base leading-relaxed">
               "At Aventum Capital, we make saving simple, powerful, and collaborative. Our platform connects individuals who contribute to a shared cycle, where each member takes a turn receiving the full group payout. It's a trusted, transparent way to access funds — one turn at a time.
               <br /><br />
@@ -262,32 +262,32 @@ export default function Landing() {
                 <p className="text-xs text-gray-500 mb-4">For motivated individuals who want to manage their own group with full control</p>
                 <div className="text-3xl font-bold text-gray-900 mb-6">$0</div>
               </div>
-              <a href="/signup" className="block w-full text-center border border-[#2E6B4A] text-[#2E6B4A] font-medium py-2.5 rounded-lg text-sm hover:bg-[#2E6B4A] hover:text-white transition-colors mb-6">
+              <a href="/signup" className="block w-full text-center border border-[#3A5A40] text-[#3A5A40] font-medium py-2.5 rounded-lg text-sm hover:bg-[#3A5A40] hover:text-white transition-colors mb-6">
                 Get Started Now
               </a>
               <ul className="space-y-2.5 text-xs text-gray-600">
                 {["Personalized contribution", "Custom group", "Group info", "Keep analytics", "Access to community", "Purchase add-ons for pending savings"].map(f => (
-                  <li key={f} className="flex items-start gap-2"><span className="text-[#2E6B4A] shrink-0 mt-0.5">✓</span>{f}</li>
+                  <li key={f} className="flex items-start gap-2"><span className="text-[#3A5A40] shrink-0 mt-0.5">✓</span>{f}</li>
                 ))}
               </ul>
             </div>
 
             {/* Featured */}
-            <div className="border-2 border-[#2E6B4A] rounded-2xl p-6 relative shadow-lg flex flex-col">
+            <div className="border-2 border-[#3A5A40] rounded-2xl p-6 relative shadow-lg flex flex-col">
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <span className="bg-[#2E6B4A] text-white text-xs font-semibold px-3 py-1 rounded-full">Most Popular</span>
+                <span className="bg-[#3A5A40] text-white text-xs font-semibold px-3 py-1 rounded-full">Most Popular</span>
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-gray-900 mb-1">Group of 1</h3>
                 <p className="text-xs text-gray-500 mb-4">Ideal for individuals looking for a solo savings group</p>
                 <div className="text-3xl font-bold text-gray-900 mb-6">$50 <span className="text-sm font-normal text-gray-400">/ month</span></div>
               </div>
-              <a href="/signup" className="block w-full text-center bg-[#2E6B4A] text-white font-medium py-2.5 rounded-lg text-sm hover:bg-[#245a3c] transition-colors mb-6">
+              <a href="/signup" className="block w-full text-center bg-[#3A5A40] text-white font-medium py-2.5 rounded-lg text-sm hover:bg-[#344E41] transition-colors mb-6">
                 Get Started Now
               </a>
               <ul className="space-y-2.5 text-xs text-gray-600">
                 {["Get $1,250 at your turn", "Group info", "Group chat", "Keep analytics", "Milestone done in 3 months"].map(f => (
-                  <li key={f} className="flex items-start gap-2"><span className="text-[#2E6B4A] shrink-0 mt-0.5">✓</span>{f}</li>
+                  <li key={f} className="flex items-start gap-2"><span className="text-[#3A5A40] shrink-0 mt-0.5">✓</span>{f}</li>
                 ))}
               </ul>
             </div>
@@ -299,12 +299,12 @@ export default function Landing() {
                 <p className="text-xs text-gray-500 mb-4">For individuals looking to maximize their group savings</p>
                 <div className="text-3xl font-bold text-gray-900 mb-6">$100 <span className="text-sm font-normal text-gray-400">/ month</span></div>
               </div>
-              <a href="/signup" className="block w-full text-center border border-[#2E6B4A] text-[#2E6B4A] font-medium py-2.5 rounded-lg text-sm hover:bg-[#2E6B4A] hover:text-white transition-colors mb-6">
+              <a href="/signup" className="block w-full text-center border border-[#3A5A40] text-[#3A5A40] font-medium py-2.5 rounded-lg text-sm hover:bg-[#3A5A40] hover:text-white transition-colors mb-6">
                 Get Started Now
               </a>
               <ul className="space-y-2.5 text-xs text-gray-600">
                 {["Get $2,500 at your turn", "Group info", "Group chat", "Keep analytics", "Milestone done in 5 months"].map(f => (
-                  <li key={f} className="flex items-start gap-2"><span className="text-[#2E6B4A] shrink-0 mt-0.5">✓</span>{f}</li>
+                  <li key={f} className="flex items-start gap-2"><span className="text-[#3A5A40] shrink-0 mt-0.5">✓</span>{f}</li>
                 ))}
               </ul>
             </div>
@@ -328,27 +328,27 @@ export default function Landing() {
       </section>
 
       {/* ── CTA Banner ──────────────────────────────────────── */}
-      <section className="bg-[#1a3a2a] py-10">
+      <section className="bg-[#344E41] py-10">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-white font-semibold text-lg">Ready to get started?</p>
-          <a href="/signup" className="bg-white text-[#1a3a2a] font-semibold px-6 py-2.5 rounded-lg text-sm hover:bg-gray-100 transition-colors">
+          <a href="/signup" className="bg-white text-[#344E41] font-semibold px-6 py-2.5 rounded-lg text-sm hover:bg-gray-100 transition-colors">
             Get started
           </a>
         </div>
       </section>
 
       {/* ── Footer ──────────────────────────────────────────── */}
-      <footer id="footer" className="bg-[#1a3a2a] border-t border-white/10 py-12">
+      <footer id="footer" className="bg-[#344E41] border-t border-white/10 py-12">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
             <div className="col-span-2 md:col-span-1">
               <div className="mb-4">
-                <Logo variant="white" className="h-8 w-auto" />
+                <Logo variant="white" />
               </div>
               <p className="text-white/50 text-xs mb-4 leading-relaxed">Subscribe to our newsletter</p>
               <div className="flex gap-2">
                 <input type="email" placeholder="your@email.com" className="flex-1 bg-white/10 border border-white/20 text-white placeholder-white/30 text-xs px-3 py-2 rounded-lg focus:outline-none focus:border-white/40 min-w-0" />
-                <button className="bg-[#2E6B4A] text-white px-3 py-2 rounded-lg hover:bg-[#245a3c] transition-colors">
+                <button className="bg-[#3A5A40] text-white px-3 py-2 rounded-lg hover:bg-[#344E41] transition-colors">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                 </button>
               </div>

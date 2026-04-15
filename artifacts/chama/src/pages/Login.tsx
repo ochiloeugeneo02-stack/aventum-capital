@@ -45,11 +45,11 @@ export default function Login() {
       {/* Left brand panel */}
       <div
         className="hidden lg:flex w-1/2 flex-col justify-center px-16"
-        style={{ background: "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 60%, #1e4a30 100%)" }}
+        style={{ background: "linear-gradient(135deg, #344E41 0%, #3A5A40 60%, #3A5A40 100%)" }}
       >
         <div className="max-w-md">
           <a href="/" className="inline-flex mb-12">
-            <Logo variant="white" className="h-10 w-auto" />
+            <Logo variant="white" />
           </a>
           <h2 className="text-3xl font-bold text-white mb-4">
             Welcome back to your savings circle
@@ -60,7 +60,7 @@ export default function Login() {
           <div className="space-y-3">
             {["Real-time contribution tracking", "Transparent rotation schedule", "Instant payout notifications"].map(item => (
               <div key={item} className="flex items-center gap-3 text-white/70 text-sm">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#7ec8a0]" />
+                <div className="w-1.5 h-1.5 rounded-full bg-[#A3B18A]" />
                 {item}
               </div>
             ))}
@@ -72,7 +72,7 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center px-6">
         <div className="w-full max-w-md">
           <a href="/" className="inline-flex lg:hidden mb-8">
-            <Logo variant="dark" className="h-8 w-auto" />
+            <Logo variant="dark" />
           </a>
 
           <div className="mb-8">
@@ -94,7 +94,7 @@ export default function Login() {
                 </button>
               </div>
             </div>
-            <Button type="submit" className="w-full bg-[#2E6B4A] hover:bg-[#245a3c]" disabled={loginMutation.isPending}>
+            <Button type="submit" className="w-full bg-[#3A5A40] hover:bg-[#344E41]" disabled={loginMutation.isPending}>
               {loginMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Sign in
             </Button>
@@ -109,7 +109,7 @@ export default function Login() {
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Don't have an account?{" "}
-            <a href="/signup" className="text-[#2E6B4A] font-medium hover:underline">Sign up</a>
+            <a href="/signup" className="text-[#3A5A40] font-medium hover:underline">Sign up</a>
           </p>
         </div>
       </div>

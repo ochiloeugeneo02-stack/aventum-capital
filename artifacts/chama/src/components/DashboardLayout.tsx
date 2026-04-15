@@ -71,7 +71,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       >
         {/* Brand */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-sidebar-border">
-          <Logo variant="white" className="h-7 w-auto flex-1 min-w-0" />
+          <Logo variant="white" />
           <button
             className="lg:hidden text-sidebar-foreground/60 hover:text-sidebar-foreground shrink-0"
             onClick={() => setSidebarOpen(false)}
