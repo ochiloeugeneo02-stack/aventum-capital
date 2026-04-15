@@ -72,7 +72,7 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center px-6">
         <div className="w-full max-w-md">
           <a href="/" className="inline-flex lg:hidden mb-8">
-            <Logo variant="dark" />
+            <Logo variant="dark" iconOnly className="h-10 w-10" />
           </a>
 
           <div className="mb-8">

@@ -4,28 +4,32 @@ interface LogoProps {
   iconOnly?: boolean;
 }
 
+/**
+ * Logo component:
+ *
+ * <Logo />                   → Forest-green "Aventum capital" wordmark badge (for white navbar)
+ * <Logo variant="white" />   → AC monogram on sage green tile (for dark panels / sidebar)
+ * <Logo iconOnly />          → AC monogram on sage green tile (small usage on dark bg)
+ * <Logo variant="dark" iconOnly /> → same, suitable on any bg as an accent
+ */
 export function Logo({ variant = "dark", className = "", iconOnly = false }: LogoProps) {
-  const color = variant === "white" ? "text-white" : "text-[#344E41]";
-
-  if (iconOnly) {
+  // AC monogram — sage green tile reads beautifully on dark forest-green surfaces
+  if (iconOnly || variant === "white") {
     return (
       <img
-        src="/logo-icon.png"
-        alt="Aventum Capital"
-        className={className || "h-9 w-9"}
-        style={variant === "white" ? { filter: "brightness(0) invert(1)" } : undefined}
+        src="/logo-icon-sage.png"
+        alt="AC — Aventum Capital"
+        className={`rounded-xl ${className || "h-12 w-12"}`}
       />
     );
   }
 
+  // Main wordmark — forest-green square PNG, cropped to text area
   return (
-    <div className={`inline-flex flex-col leading-none select-none ${className}`}>
-      <span className={`text-xl font-light tracking-wide ${color}`}>
-        Aventum
-      </span>
-      <span className={`text-[9px] font-light tracking-[0.18em] uppercase mt-0.5 ${color} opacity-75`}>
-        capital
-      </span>
-    </div>
+    <img
+      src="/logo-wordmark.png"
+      alt="Aventum Capital"
+      className={`object-cover object-left-top rounded-sm ${className || "w-28 h-10"}`}
+    />
   );
 }
