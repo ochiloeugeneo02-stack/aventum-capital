@@ -9,6 +9,7 @@ import payoutsRouter from "./payouts";
 import dashboardRouter from "./dashboard";
 import adminRouter from "./admin";
 import stripeRouter from "./stripe";
+import invitationsRouter from "./invitations";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(payoutsRouter);
 router.use(dashboardRouter);
 router.use(adminRouter);
 router.use(stripeRouter);
+router.use(invitationsRouter);
 
 export default router;

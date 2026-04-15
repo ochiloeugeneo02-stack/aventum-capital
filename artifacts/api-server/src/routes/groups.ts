@@ -5,6 +5,7 @@ import { requireAuth } from "../lib/auth";
 import { CreateGroupBody, UpdateGroupBody, InviteMemberBody } from "@workspace/api-zod";
 import { createAuditLog } from "../lib/auditLog";
 import { formatUser } from "./users";
+import { createGroupInvitation } from "./invitations";
 
 const router: IRouter = Router();
 
@@ -33,6 +34,7 @@ async function getGroupWithCounts(g: typeof groupsTable.$inferSelect) {
     name: g.name,
     adminId: g.adminId,
     organizationId: g.organizationId ?? null,
+    currency: g.currency ?? "KES",
     contributionAmount: parseFloat(g.contributionAmount as unknown as string),
     schedule: g.schedule,
     maxMembers: g.maxMembers,
@@ -90,13 +92,14 @@ router.post("/groups", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const { name, contributionAmount, schedule, maxMembers, organizationId } = parsed.data;
+  const { name, contributionAmount, schedule, maxMembers, organizationId, currency } = parsed.data;
   const userId = req.session!.userId!;
 
   const [group] = await db.insert(groupsTable).values({
     name,
     adminId: userId,
     organizationId: organizationId ?? null,
+    currency: (currency ?? "KES").toUpperCase(),
     contributionAmount: String(contributionAmount),
     schedule: schedule ?? "bi-weekly",
     maxMembers: maxMembers ?? 5,
@@ -311,38 +314,70 @@ router.post("/groups/:groupId/invite", requireAuth, async (req, res): Promise<vo
     return;
   }
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, parsed.data.email)).limit(1);
-  if (!user) {
-    res.status(404).json({ error: "User with that email not found" });
+  const invitedByUserId = req.session!.userId!;
+  const [inviter] = await db.select().from(usersTable).where(eq(usersTable.id, invitedByUserId)).limit(1);
+
+  // If the user already has an account, add them directly (existing behaviour)
+  const [existingUser] = await db.select().from(usersTable)
+    .where(eq(usersTable.email, parsed.data.email)).limit(1);
+
+  if (existingUser) {
+    const [alreadyMember] = await db.select().from(groupMembersTable)
+      .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, existingUser.id)))
+      .limit(1);
+    if (alreadyMember) {
+      res.status(409).json({ error: "User is already a member" });
+      return;
+    }
+
+    const order = parsed.data.rotationOrder ?? currentCount;
+    await db.insert(groupMembersTable).values({
+      userId: existingUser.id,
+      groupId,
+      rotationOrder: order,
+      hasReceivedPayout: false,
+    });
+
+    await createAuditLog({
+      action: "group.invite_member",
+      performedBy: invitedByUserId,
+      targetType: "group",
+      targetId: groupId,
+      details: existingUser.email,
+    });
+
+    res.json({ success: true, type: "direct", message: `${existingUser.name} has been added to the group` });
     return;
   }
 
-  const [existing] = await db.select().from(groupMembersTable)
-    .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, user.id)))
-    .limit(1);
-  if (existing) {
-    res.status(409).json({ error: "User is already a member" });
-    return;
-  }
-
-  const order = parsed.data.rotationOrder ?? currentCount;
-
-  await db.insert(groupMembersTable).values({
-    userId: user.id,
+  // No account yet — create a pending invitation with a shareable link
+  const { inviteUrl, emailSent } = await createGroupInvitation({
+    req,
     groupId,
-    rotationOrder: order,
-    hasReceivedPayout: false,
+    email: parsed.data.email,
+    invitedBy: invitedByUserId,
+    group,
+    inviterName: inviter?.name ?? "A group admin",
+    totalMembers: currentCount,
   });
 
   await createAuditLog({
-    action: "group.invite_member",
-    performedBy: req.session!.userId!,
+    action: "group.invite_sent",
+    performedBy: invitedByUserId,
     targetType: "group",
     targetId: groupId,
-    details: user.email,
+    details: parsed.data.email,
   });
 
-  res.json({ success: true, message: `${user.name} has been added to the group` });
+  res.json({
+    success: true,
+    type: "invitation",
+    message: emailSent
+      ? `Invitation email sent to ${parsed.data.email}`
+      : `Invite link created for ${parsed.data.email}`,
+    inviteUrl,
+    emailSent,
+  });
 });
 
 router.delete("/groups/:groupId/members/:userId", requireAuth, async (req, res): Promise<void> => {

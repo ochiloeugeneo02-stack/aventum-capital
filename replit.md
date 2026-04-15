@@ -1,3 +1,22 @@
+# Aventum Capital — Chama Platform
+
+## Project Summary
+Digital rotational savings (chama) platform. Members contribute on a rotating schedule and receive pool payouts. Multi-region/currency, Stripe payments, group management, admin panels.
+
+**Demo accounts:** admin@aventum.co/admin123, grace@aventum.co/grace123, amina/david/fatuma/james@aventum.co/member123
+
+## Architecture
+- **Currency:** Groups store amounts in their native currency (set by admin's region at creation). `currency` column on `groups` table.
+- **Invitations:** Token-based (`invitations` table). Admins enter any email — if user has an account they're added directly; if not, a shareable invite link is generated (and email sent if SMTP configured). Frontend invite accept page at `/invite/:token`.
+- **Email:** `artifacts/api-server/src/lib/email.ts` — styled HTML template. Requires `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` env vars to send; otherwise returns invite URL.
+- **Region system:** `RegionContext.tsx` — 9 regions auto-detected from timezone/language. Stored in `localStorage("aventum_region")`. Signup flow: Step 1 = region picker, Step 2 = account details.
+
+## Key Zod schemas (api-zod/src/generated/api.ts)
+- `CreateGroupBody` — includes `currency?: string`
+- `ListGroupsResponseItem` / `GetGroupResponse` — include `currency: string`
+
+---
+
 # Workspace
 
 ## Overview

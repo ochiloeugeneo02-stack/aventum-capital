@@ -13,6 +13,7 @@ export interface Group {
   name: string;
   adminId: number;
   organizationId?: number | null;
+  currency: string;
   contributionAmount: number;
   schedule: GroupSchedule;
   maxMembers: number;

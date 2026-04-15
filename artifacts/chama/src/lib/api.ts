@@ -49,6 +49,21 @@ export function formatDateTime(dateStr: string | null | undefined): string {
   });
 }
 
+export async function apiRequest<T = unknown>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(path, {
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    ...init,
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    const err: any = new Error(data?.error ?? `Request failed ${res.status}`);
+    err.data = data;
+    throw err;
+  }
+  return data as T;
+}
+
 export function getStatusColor(status: string): string {
   switch (status) {
     case "paid":

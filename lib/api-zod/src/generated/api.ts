@@ -212,6 +212,7 @@ export const ListGroupsResponseItem = zod.object({
   name: zod.string(),
   adminId: zod.number(),
   organizationId: zod.number().nullish(),
+  currency: zod.string().default("KES"),
   contributionAmount: zod.number(),
   schedule: zod.enum(["weekly", "bi-weekly", "monthly"]),
   maxMembers: zod.number(),
@@ -232,6 +233,7 @@ export const createGroupBodyMaxMembersDefault = 5;
 
 export const CreateGroupBody = zod.object({
   name: zod.string(),
+  currency: zod.string().optional(),
   contributionAmount: zod.number(),
   schedule: zod
     .enum(["weekly", "bi-weekly", "monthly"])
@@ -252,6 +254,7 @@ export const GetGroupResponse = zod.object({
   name: zod.string(),
   adminId: zod.number(),
   organizationId: zod.number().nullish(),
+  currency: zod.string().default("KES"),
   contributionAmount: zod.number(),
   schedule: zod.string(),
   maxMembers: zod.number(),
