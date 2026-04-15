@@ -31,10 +31,24 @@ export default function Signup() {
 
   const registerMutation = useRegisterUser({
     mutation: {
-      onSuccess: (data) => {
+      onSuccess: async (data) => {
         setUser(data.user as any);
         toast({ title: "Account created!", description: `Welcome, ${data.user.name}` });
-        navigate("/dashboard");
+        const pendingToken = localStorage.getItem("aventum_pending_invite");
+        if (pendingToken) {
+          try {
+            const { apiRequest } = await import("@/lib/api");
+            await apiRequest(`/api/invitations/${pendingToken}/accept`, { method: "POST" });
+            localStorage.removeItem("aventum_pending_invite");
+            toast({ title: "You've joined the group!", description: "Your invitation was accepted." });
+            navigate("/dashboard");
+          } catch {
+            localStorage.removeItem("aventum_pending_invite");
+            navigate("/dashboard");
+          }
+        } else {
+          navigate("/dashboard");
+        }
       },
       onError: (error: any) => {
         const message = error?.data?.error ?? "Registration failed";

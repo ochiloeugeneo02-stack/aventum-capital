@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRegion, REGIONS } from "@/contexts/RegionContext";
+import { REGIONS } from "@/contexts/RegionContext";
 import { apiRequest } from "@/lib/api";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, XCircle, Clock, Users, Repeat2, TrendingUp, Globe } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Clock, Users, Repeat2, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type InviteStatus = "loading" | "valid" | "accepting" | "accepted" | "error";
@@ -27,21 +27,6 @@ interface InviteData {
   inviter: { name: string; email: string } | null;
 }
 
-// Build a reverse lookup: currency code → kesRate
-const CURRENCY_TO_KESRATE: Record<string, number> = Object.fromEntries(
-  Object.values(REGIONS).map((r) => [r.currency, r.kesRate])
-);
-
-/**
- * Convert an amount from one currency to another using KES as the pivot.
- * kesRate = "1 KES = x of this currency", so:
- *   amountInKES = amount / fromKesRate
- *   result      = amountInKES * toKesRate
- */
-function convertCurrency(amount: number, fromCurrency: string, toKesRate: number): number {
-  const fromKesRate = CURRENCY_TO_KESRATE[fromCurrency] ?? 1;
-  return amount * (toKesRate / fromKesRate);
-}
 
 function formatAmount(amount: number, currency: string, fractionDigits = 0): string {
   try {
@@ -67,7 +52,6 @@ export default function InviteAccept() {
   const { token } = useParams<{ token: string }>();
   const [, navigate] = useLocation();
   const { isAuthenticated } = useAuth();
-  const { region } = useRegion();
 
   const [status, setStatus] = useState<InviteStatus>("loading");
   const [invite, setInvite] = useState<InviteData | null>(null);
@@ -105,27 +89,11 @@ export default function InviteAccept() {
 
   const g = invite?.group;
 
-  // Convert group amounts to viewer's region currency
-  const viewerCurrency = region.currency;
-  const viewerFraction = region.fractionDigits;
-  const viewerKesRate = region.kesRate;
   const groupCurrency = g?.currency ?? "KES";
-  const samesCurrency = viewerCurrency === groupCurrency;
+  const groupFractionDigits = REGIONS[Object.keys(REGIONS).find(k => REGIONS[k].currency === groupCurrency) ?? ""]?.fractionDigits ?? 0;
 
-  const displayContribution = g
-    ? formatAmount(
-        convertCurrency(g.contributionAmount, groupCurrency, viewerKesRate),
-        viewerCurrency,
-        viewerFraction
-      )
-    : "";
-  const displayPool = g
-    ? formatAmount(
-        convertCurrency(g.contributionAmount * g.maxMembers, groupCurrency, viewerKesRate),
-        viewerCurrency,
-        viewerFraction
-      )
-    : "";
+  const displayContribution = g ? formatAmount(g.contributionAmount, groupCurrency, groupFractionDigits) : "";
+  const displayPool = g ? formatAmount(g.contributionAmount * g.maxMembers, groupCurrency, groupFractionDigits) : "";
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(160deg, #f9f8f5 0%, #eef2ec 100%)" }}>
@@ -134,12 +102,14 @@ export default function InviteAccept() {
         <a href="/"><Logo variant="dark" /></a>
         {!isAuthenticated && (
           <div className="flex gap-3">
-            <a href="/login">
-              <Button variant="ghost" size="sm">Sign in</Button>
-            </a>
-            <a href="/signup">
-              <Button size="sm" className="bg-[#3A5A40] hover:bg-[#344E41]">Create account</Button>
-            </a>
+            <Button variant="ghost" size="sm" onClick={() => {
+              if (token) localStorage.setItem("aventum_pending_invite", token);
+              navigate("/login");
+            }}>Sign in</Button>
+            <Button size="sm" className="bg-[#3A5A40] hover:bg-[#344E41]" onClick={() => {
+              if (token) localStorage.setItem("aventum_pending_invite", token);
+              navigate("/signup");
+            }}>Create account</Button>
           </div>
         )}
       </nav>
@@ -218,14 +188,6 @@ export default function InviteAccept() {
                     </span>
                   </div>
                 </div>
-
-                {/* Currency note if converting */}
-                {!samesCurrency && (
-                  <div className="px-6 py-2.5 bg-amber-50 border-b border-amber-100 flex items-center gap-2 text-xs text-amber-700">
-                    <Globe className="w-3.5 h-3.5 shrink-0" />
-                    Amounts shown in {viewerCurrency} based on your location. Group currency is {groupCurrency}.
-                  </div>
-                )}
 
                 {/* Stats */}
                 <div className="grid grid-cols-2 divide-x divide-border border-b border-border">

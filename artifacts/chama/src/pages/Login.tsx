@@ -24,9 +24,20 @@ export default function Login() {
 
   const loginMutation = useLoginUser({
     mutation: {
-      onSuccess: (data) => {
+      onSuccess: async (data) => {
         setUser(data.user as any);
         toast({ title: "Welcome back!", description: `Signed in as ${data.user.name}` });
+        const pendingToken = localStorage.getItem("aventum_pending_invite");
+        if (pendingToken) {
+          try {
+            const { apiRequest } = await import("@/lib/api");
+            await apiRequest(`/api/invitations/${pendingToken}/accept`, { method: "POST" });
+            localStorage.removeItem("aventum_pending_invite");
+            toast({ title: "You've joined the group!", description: "Your invitation was accepted." });
+          } catch {
+            localStorage.removeItem("aventum_pending_invite");
+          }
+        }
         navigate("/dashboard");
       },
       onError: () => {

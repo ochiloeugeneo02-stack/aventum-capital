@@ -225,18 +225,20 @@ export function RegionProvider({ children }: { children: ReactNode }) {
   );
 
   const formatGroupAmount = useCallback(
-    (amount: number, fromCurrency: string): string => {
-      const fromRate = CURRENCY_TO_KESRATE[fromCurrency] ?? region.kesRate;
-      const amountKES = amount / fromRate;
-      const converted = amountKES * region.kesRate;
-      return new Intl.NumberFormat(region.locale, {
-        style: "currency",
-        currency: region.currency,
-        minimumFractionDigits: region.fractionDigits,
-        maximumFractionDigits: region.fractionDigits,
-      }).format(converted);
+    (amount: number, groupCurrency: string): string => {
+      try {
+        const digits = REGIONS[Object.keys(REGIONS).find(k => REGIONS[k].currency === groupCurrency) ?? ""]?.fractionDigits ?? 0;
+        return new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: groupCurrency,
+          minimumFractionDigits: digits,
+          maximumFractionDigits: digits,
+        }).format(amount);
+      } catch {
+        return `${groupCurrency} ${amount.toLocaleString()}`;
+      }
     },
-    [region]
+    []
   );
 
   return (
