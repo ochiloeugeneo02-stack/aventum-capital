@@ -5,15 +5,14 @@ interface LogoProps {
 }
 
 /**
- * Logo component:
+ * Logo placement guide:
  *
- * <Logo />                   → Forest-green "Aventum capital" wordmark badge (for white navbar)
- * <Logo variant="white" />   → AC monogram on sage green tile (for dark panels / sidebar)
- * <Logo iconOnly />          → AC monogram on sage green tile (small usage on dark bg)
- * <Logo variant="dark" iconOnly /> → same, suitable on any bg as an accent
+ * <Logo />                   → Full lockup: AC monogram + "Aventum / capital" text (navbar, light bg)
+ * <Logo variant="white" />   → Sage-green AC monogram tile only (dark panels, sidebar, footer)
+ * <Logo iconOnly />          → Sage-green AC monogram tile only (compact / icon use)
  */
 export function Logo({ variant = "dark", className = "", iconOnly = false }: LogoProps) {
-  // AC monogram — sage green tile reads beautifully on dark forest-green surfaces
+  // Monogram-only — sage green tile on dark surfaces
   if (iconOnly || variant === "white") {
     return (
       <img
@@ -24,12 +23,25 @@ export function Logo({ variant = "dark", className = "", iconOnly = false }: Log
     );
   }
 
-  // Main wordmark — forest-green square PNG, cropped to text area
+  // Full navbar lockup — AC badge + wordmark text side-by-side
   return (
-    <img
-      src="/logo-wordmark.png"
-      alt="Aventum Capital"
-      className={`object-cover object-left-top rounded-sm ${className || "w-28 h-10"}`}
-    />
+    <div className={`inline-flex items-center gap-2.5 ${className}`}>
+      {/* AC monogram badge */}
+      <img
+        src="/logo-icon-sage.png"
+        alt=""
+        aria-hidden="true"
+        className="h-8 w-8 rounded-lg shrink-0"
+      />
+      {/* Wordmark in brand typeface */}
+      <div className="flex flex-col leading-none">
+        <span className="text-[17px] font-light tracking-wide text-[#344E41]">
+          Aventum
+        </span>
+        <span className="text-[9px] font-light tracking-[0.22em] uppercase text-[#344E41]/60 mt-0.5">
+          capital
+        </span>
+      </div>
+    </div>
   );
 }
