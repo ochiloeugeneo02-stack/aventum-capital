@@ -26,9 +26,9 @@ export function Logo({ variant = "dark", className = "", iconOnly = false }: Log
   // Full navbar lockup — AC badge + wordmark text side-by-side
   return (
     <div className={`inline-flex items-center gap-2.5 ${className}`}>
-      {/* AC monogram badge */}
+      {/* AC monogram badge — forest green tile */}
       <img
-        src="/logo-icon-sage.png"
+        src="/logo-icon-dark-green.png"
         alt=""
         aria-hidden="true"
         className="h-8 w-8 rounded-lg shrink-0"
