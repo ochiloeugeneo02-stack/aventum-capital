@@ -3,20 +3,36 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Chama by Aventum - Digital Rotational Savings Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: users
+    description: User management
+  - name: organizations
+    description: Organization management
+  - name: groups
+    description: Group management
+  - name: contributions
+    description: Contribution management
+  - name: payouts
+    description: Payout management
+  - name: dashboard
+    description: Dashboard summary data
+  - name: admin
+    description: Admin operations
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +40,613 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # AUTH
+  /auth/register:
+    post:
+      operationId: registerUser
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: loginUser
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logoutUser
+      tags: [auth]
+      summary: Logout current user
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # USERS
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users (admin only)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserListResponse"
+
+  /users/{userId}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get a user by ID
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateUser
+      tags: [users]
+      summary: Update a user
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  # ORGANIZATIONS
+  /organizations:
+    get:
+      operationId: listOrganizations
+      tags: [organizations]
+      summary: List organizations
+      responses:
+        "200":
+          description: List of organizations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Organization"
+    post:
+      operationId: createOrganization
+      tags: [organizations]
+      summary: Create a new organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrganizationBody"
+      responses:
+        "201":
+          description: Organization created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+
+  /organizations/{orgId}:
+    get:
+      operationId: getOrganization
+      tags: [organizations]
+      summary: Get organization details
+      parameters:
+        - in: path
+          name: orgId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Organization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationDetails"
+
+  # GROUPS
+  /groups:
+    get:
+      operationId: listGroups
+      tags: [groups]
+      summary: List groups for current user
+      responses:
+        "200":
+          description: List of groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Group"
+    post:
+      operationId: createGroup
+      tags: [groups]
+      summary: Create a new group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGroupBody"
+      responses:
+        "201":
+          description: Group created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+
+  /groups/{groupId}:
+    get:
+      operationId: getGroup
+      tags: [groups]
+      summary: Get group details with members
+      parameters:
+        - in: path
+          name: groupId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Group details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupDetails"
+    put:
+      operationId: updateGroup
+      tags: [groups]
+      summary: Update group settings
+      parameters:
+        - in: path
+          name: groupId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateGroupBody"
+      responses:
+        "200":
+          description: Updated group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+
+  /groups/{groupId}/invite:
+    post:
+      operationId: inviteMember
+      tags: [groups]
+      summary: Invite a member to a group
+      parameters:
+        - in: path
+          name: groupId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteMemberBody"
+      responses:
+        "200":
+          description: Invitation sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /groups/{groupId}/members:
+    get:
+      operationId: getGroupMembers
+      tags: [groups]
+      summary: Get members of a group
+      parameters:
+        - in: path
+          name: groupId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Group members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GroupMember"
+
+  /groups/{groupId}/pause:
+    post:
+      operationId: pauseGroup
+      tags: [groups]
+      summary: Pause a group
+      parameters:
+        - in: path
+          name: groupId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Group paused
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+
+  /groups/{groupId}/resume:
+    post:
+      operationId: resumeGroup
+      tags: [groups]
+      summary: Resume a paused group
+      parameters:
+        - in: path
+          name: groupId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Group resumed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+
+  # CONTRIBUTIONS
+  /contributions:
+    get:
+      operationId: listContributions
+      tags: [contributions]
+      summary: List contributions for current user
+      parameters:
+        - in: query
+          name: groupId
+          schema:
+            type: integer
+        - in: query
+          name: cycleId
+          schema:
+            type: integer
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [paid, pending, failed]
+      responses:
+        "200":
+          description: List of contributions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Contribution"
+
+  /contributions/pay:
+    post:
+      operationId: payContribution
+      tags: [contributions]
+      summary: Submit a contribution payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PayContributionBody"
+      responses:
+        "201":
+          description: Contribution recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contribution"
+        "400":
+          description: Already paid or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /contributions/all:
+    get:
+      operationId: listAllContributions
+      tags: [contributions]
+      summary: List all contributions (admin)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: All contributions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContributionListResponse"
+
+  # PAYOUTS
+  /payouts:
+    get:
+      operationId: listPayouts
+      tags: [payouts]
+      summary: List payouts for current user
+      parameters:
+        - in: query
+          name: groupId
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of payouts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payout"
+
+  /payouts/all:
+    get:
+      operationId: listAllPayouts
+      tags: [payouts]
+      summary: List all payouts (admin)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: All payouts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayoutListResponse"
+
+  /payouts/{payoutId}/complete:
+    post:
+      operationId: completePayout
+      tags: [payouts]
+      summary: Mark a payout as completed (admin)
+      parameters:
+        - in: path
+          name: payoutId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Payout completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payout"
+
+  # DASHBOARD
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get member dashboard summary data
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/admin-stats:
+    get:
+      operationId: getAdminStats
+      tags: [dashboard]
+      summary: Get admin-level platform statistics
+      responses:
+        "200":
+          description: Admin stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
+  /dashboard/activity:
+    get:
+      operationId: getRecentActivity
+      tags: [dashboard]
+      summary: Get recent activity feed
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+  # AUDIT LOGS
+  /admin/audit-logs:
+    get:
+      operationId: listAuditLogs
+      tags: [admin]
+      summary: List audit logs (admin)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogListResponse"
+
+  /admin/payout-trigger:
+    post:
+      operationId: triggerPayout
+      tags: [admin]
+      summary: Manually trigger payout for a group cycle (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TriggerPayoutBody"
+      responses:
+        "200":
+          description: Payout triggered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payout"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +657,660 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+
+    # AUTH
+    RegisterBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        role:
+          type: string
+          enum: [member, group_admin, org_admin, super_admin]
+          default: member
+      required:
+        - name
+        - email
+        - password
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        message:
+          type: string
+      required:
+        - user
+
+    # USER
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [member, group_admin, org_admin, super_admin]
+        organizationId:
+          type: integer
+          nullable: true
+        phoneNumber:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - email
+        - role
+        - isActive
+        - createdAt
+
+    UserListResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - users
+        - total
+        - page
+        - limit
+
+    UpdateUserBody:
+      type: object
+      properties:
+        name:
+          type: string
+        phoneNumber:
+          type: string
+        notificationEmail:
+          type: boolean
+        notificationSms:
+          type: boolean
+
+    # ORGANIZATION
+    Organization:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        adminId:
+          type: integer
+        totalMembers:
+          type: integer
+        totalGroups:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - adminId
+        - totalMembers
+        - totalGroups
+        - createdAt
+
+    OrganizationDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        adminId:
+          type: integer
+        totalMembers:
+          type: integer
+        totalGroups:
+          type: integer
+        totalContributed:
+          type: number
+        totalPaidOut:
+          type: number
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/Group"
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - adminId
+        - totalMembers
+        - totalGroups
+        - totalContributed
+        - totalPaidOut
+        - groups
+        - createdAt
+
+    CreateOrganizationBody:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+
+    # GROUP
+    Group:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        adminId:
+          type: integer
+        organizationId:
+          type: integer
+          nullable: true
+        contributionAmount:
+          type: number
+        schedule:
+          type: string
+          enum: [weekly, bi-weekly, monthly]
+        maxMembers:
+          type: integer
+        currentCycle:
+          type: integer
+        currentRotationIndex:
+          type: integer
+        status:
+          type: string
+          enum: [active, paused, completed]
+        totalMembers:
+          type: integer
+        paidCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - adminId
+        - contributionAmount
+        - schedule
+        - maxMembers
+        - currentCycle
+        - currentRotationIndex
+        - status
+        - totalMembers
+        - paidCount
+        - createdAt
+
+    GroupDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        adminId:
+          type: integer
+        organizationId:
+          type: integer
+          nullable: true
+        contributionAmount:
+          type: number
+        schedule:
+          type: string
+        maxMembers:
+          type: integer
+        currentCycle:
+          type: integer
+        currentRotationIndex:
+          type: integer
+        status:
+          type: string
+        totalMembers:
+          type: integer
+        paidCount:
+          type: integer
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/GroupMember"
+        currentRecipient:
+          $ref: "#/components/schemas/User"
+          nullable: true
+        nextDueDate:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - adminId
+        - contributionAmount
+        - schedule
+        - maxMembers
+        - currentCycle
+        - currentRotationIndex
+        - status
+        - totalMembers
+        - paidCount
+        - members
+        - createdAt
+
+    GroupMember:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        groupId:
+          type: integer
+        rotationOrder:
+          type: integer
+        hasReceivedPayout:
+          type: boolean
+        user:
+          $ref: "#/components/schemas/User"
+        contributionStatus:
+          type: string
+          enum: [paid, pending, none]
+          description: Status in current cycle
+        joinedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - groupId
+        - rotationOrder
+        - hasReceivedPayout
+        - user
+        - contributionStatus
+        - joinedAt
+
+    CreateGroupBody:
+      type: object
+      properties:
+        name:
+          type: string
+        contributionAmount:
+          type: number
+        schedule:
+          type: string
+          enum: [weekly, bi-weekly, monthly]
+          default: bi-weekly
+        maxMembers:
+          type: integer
+          default: 5
+        organizationId:
+          type: integer
+          nullable: true
+      required:
+        - name
+        - contributionAmount
+
+    UpdateGroupBody:
+      type: object
+      properties:
+        name:
+          type: string
+        contributionAmount:
+          type: number
+        schedule:
+          type: string
+          enum: [weekly, bi-weekly, monthly]
+
+    InviteMemberBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        rotationOrder:
+          type: integer
+          nullable: true
+      required:
+        - email
+
+    # CONTRIBUTION
+    Contribution:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        groupId:
+          type: integer
+        cycleId:
+          type: integer
+        amount:
+          type: number
+        status:
+          type: string
+          enum: [paid, pending, failed]
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        user:
+          $ref: "#/components/schemas/User"
+          nullable: true
+        group:
+          $ref: "#/components/schemas/Group"
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - groupId
+        - cycleId
+        - amount
+        - status
+        - createdAt
+
+    PayContributionBody:
+      type: object
+      properties:
+        groupId:
+          type: integer
+        cycleId:
+          type: integer
+      required:
+        - groupId
+        - cycleId
+
+    ContributionListResponse:
+      type: object
+      properties:
+        contributions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Contribution"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - contributions
+        - total
+        - page
+        - limit
+
+    # PAYOUT
+    Payout:
+      type: object
+      properties:
+        id:
+          type: integer
+        groupId:
+          type: integer
+        cycleId:
+          type: integer
+        recipientId:
+          type: integer
+        amount:
+          type: number
+        status:
+          type: string
+          enum: [pending, paid, failed]
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        recipient:
+          $ref: "#/components/schemas/User"
+          nullable: true
+        group:
+          $ref: "#/components/schemas/Group"
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - groupId
+        - cycleId
+        - recipientId
+        - amount
+        - status
+        - createdAt
+
+    PayoutListResponse:
+      type: object
+      properties:
+        payouts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Payout"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - payouts
+        - total
+        - page
+        - limit
+
+    TriggerPayoutBody:
+      type: object
+      properties:
+        groupId:
+          type: integer
+        cycleId:
+          type: integer
+      required:
+        - groupId
+        - cycleId
+
+    # DASHBOARD
+    DashboardSummary:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        currentGroup:
+          $ref: "#/components/schemas/Group"
+          nullable: true
+        contributionStatus:
+          type: string
+          enum: [paid, pending, none]
+        totalContributed:
+          type: number
+        nextDueDate:
+          type: string
+          format: date-time
+          nullable: true
+        upcomingRecipient:
+          $ref: "#/components/schemas/User"
+          nullable: true
+        cycleId:
+          type: integer
+          nullable: true
+        recentPayouts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Payout"
+        recentContributions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Contribution"
+      required:
+        - user
+        - contributionStatus
+        - totalContributed
+        - recentPayouts
+        - recentContributions
+
+    AdminStats:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        totalGroups:
+          type: integer
+        totalOrganizations:
+          type: integer
+        activeGroups:
+          type: integer
+        totalContributed:
+          type: number
+        totalPaidOut:
+          type: number
+        pendingPayouts:
+          type: integer
+        failedTransactions:
+          type: integer
+      required:
+        - totalUsers
+        - totalGroups
+        - totalOrganizations
+        - activeGroups
+        - totalContributed
+        - totalPaidOut
+        - pendingPayouts
+        - failedTransactions
+
+    ActivityItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [contribution, payout, member_joined, group_created, group_paused]
+        description:
+          type: string
+        userId:
+          type: integer
+          nullable: true
+        groupId:
+          type: integer
+          nullable: true
+        amount:
+          type: number
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - description
+        - createdAt
+
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        action:
+          type: string
+        performedBy:
+          type: integer
+        targetType:
+          type: string
+        targetId:
+          type: integer
+          nullable: true
+        details:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        user:
+          $ref: "#/components/schemas/User"
+          nullable: true
+      required:
+        - id
+        - action
+        - performedBy
+        - targetType
+        - createdAt
+
+    AuditLogListResponse:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLog"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - logs
+        - total
+        - page
+        - limit

@@ -1,0 +1,320 @@
+Build a production-style MVP web app for my startup idea called **Chama by Aventum**.
+
+This is a digital rotational savings platform (chama) where users contribute money on a schedule and receive payouts in a rotating order.
+
+I want a FULL working MVP inside Replit with real pages, navigation, and backend logic.
+
+---
+
+## 🔥 CORE REQUIREMENT
+Do NOT just generate components.
+
+Build:
+- real pages
+- routing
+- navigation
+- working flows between pages
+- backend-connected UI
+
+---
+
+## TECH STACK
+- Next.js 14+ (App Router)
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- Supabase (Auth + Database)
+- Server Actions or API routes
+
+---
+
+## 📄 REQUIRED PAGES & ROUTES
+
+### 🌐 PUBLIC PAGES
+
+#### 1. Landing Page `/`
+Sections:
+- Hero (headline + CTA “Get Started”)
+- How It Works (3 steps: Join → Contribute → Receive)
+- Why Aventum Chama (trust, automation, structure)
+- For Individuals
+- For Organizations
+- FAQ
+- Footer
+
+---
+
+#### 2. Sign Up `/signup`
+- Email + password
+- Name input
+- Role selection (member, group admin)
+- Create account button
+
+---
+
+#### 3. Login `/login`
+- Email + password
+- Login button
+- Redirect to dashboard after login
+
+---
+
+## 🔐 PROTECTED APP PAGES
+
+Use a **dashboard layout with sidebar navigation**
+
+---
+
+### 🧑 MEMBER DASHBOARD `/dashboard`
+
+Show:
+- Welcome message
+- Current group
+- Contribution amount
+- Next due date
+- “Pay Contribution” button
+- Contribution status (Paid / Pending)
+- Upcoming payout recipient
+- Total contributed
+- Payout history
+
+---
+
+### 👥 GROUP PAGE `/groups/[id]`
+
+Show:
+- Group name
+- Members list (with status Paid / Pending)
+- Contribution amount
+- Rotation order
+- Current cycle
+- Who gets paid next
+- Progress bar (how many paid)
+
+Actions:
+- Pay contribution
+- View history
+
+---
+
+### ⚙️ GROUP ADMIN PAGE `/admin/group`
+
+Only for group_admin role.
+
+Features:
+- Create group
+- Set contribution amount
+- Set schedule (bi-weekly default)
+- Invite members (email input)
+- Assign payout order
+- View members payment status
+- Pause / resume group
+
+---
+
+### 🏢 ORGANIZATION PAGE `/org`
+
+For org_admin role.
+
+Show:
+- Organization name
+- Total users
+- Total groups
+- Contribution stats
+- Payout stats
+
+Actions:
+- Invite users
+- Create groups under org
+- Monitor activity
+
+---
+
+### 🛠️ SUPER ADMIN PANEL `/admin`
+
+For super_admin / finance_ops.
+
+Sections:
+- Users table
+- Groups table
+- Contributions table
+- Payouts table
+- Audit logs
+- Failed transactions (mock)
+
+Actions:
+- View/edit users
+- View/edit groups
+- Manually trigger payout
+- Flag users/groups
+
+---
+
+### 💳 CONTRIBUTIONS PAGE `/contributions`
+
+Show:
+- List of all contributions
+- Status (Paid / Pending)
+- Date
+- Amount
+
+---
+
+### 💰 PAYOUTS PAGE `/payouts`
+
+Show:
+- Payout history
+- Amount received
+- Date
+- Status
+
+---
+
+### ⚙️ SETTINGS PAGE `/settings`
+
+- Update profile
+- Notification preferences
+- Payment methods (mock UI for now)
+
+---
+
+## 🧠 BACKEND LOGIC
+
+### Core Rules
+- Each group has 5 members
+- Each member contributes a fixed amount per cycle
+- When ALL members have paid → payout is triggered
+- Payout goes to the next user in rotation
+- Rotation continues until all members receive payout
+
+---
+
+### Contribution Flow
+- User clicks “Pay Contribution”
+- Simulate successful payment
+- Save to database
+- Update group progress
+
+---
+
+### Payout Flow
+- When all contributions are paid:
+  - create payout record
+  - assign to correct user
+  - mark as “pending”
+- Admin or system can mark as “paid”
+- Move rotation index forward
+
+---
+
+## 🗄️ DATABASE (SUPABASE)
+
+Create tables:
+
+- users
+- organizations
+- groups
+- group_members
+- contribution_cycles
+- contributions
+- payouts
+- notifications
+- audit_logs
+
+Ensure relationships between:
+- users ↔ groups
+- groups ↔ contributions
+- groups ↔ payouts
+
+---
+
+## 🔐 AUTH & SECURITY
+
+- Use Supabase Auth
+- Protect all dashboard routes
+- Redirect unauthenticated users to /login
+- Role-based access control:
+  - members cannot access admin pages
+  - group_admin can only manage their groups
+  - super_admin can access everything
+
+---
+
+## 🎨 UI REQUIREMENTS
+
+- Sidebar navigation for logged-in users
+- Clean fintech design
+- Responsive layout
+- Cards for stats
+- Tables for data
+- Buttons for actions
+- Toast notifications for success/failure
+
+---
+
+## 🧪 SEED DATA
+
+Create demo accounts:
+
+- super admin
+- group admin
+- 5 members
+
+Create:
+- 1 group
+- 1 active contribution cycle
+
+So I can test:
+login → dashboard → pay → payout flow
+
+---
+
+## 📦 PROJECT STRUCTURE
+
+Organize code like:
+
+/app
+/components
+/lib
+/services
+/types
+/supabase
+/utils
+
+Separate logic into services:
+- groupService
+- contributionService
+- payoutService
+- authService
+
+---
+
+## 🚀 BUILD ORDER
+
+1. Setup project + Supabase
+2. Auth (signup/login)
+3. Landing page
+4. Dashboard layout
+5. Member dashboard
+6. Group system
+7. Contributions logic
+8. Payout logic
+9. Admin panels
+10. UI polish
+
+---
+
+## IMPORTANT
+
+- Focus on working MVP first
+- Use mock payments
+- Write clean, modular code
+- Add TODO comments for future Stripe/M-Pesa integration
+- Make everything easy to run inside Replit
+
+Start by building:
+1. project structure
+2. Supabase schema
+3. authentication
+4. landing page
+5. basic dashboard layout
