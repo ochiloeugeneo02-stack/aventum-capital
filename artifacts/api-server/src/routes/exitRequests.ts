@@ -72,8 +72,8 @@ router.post("/groups/:groupId/exit-request", requireAuth, async (req, res): Prom
     status: request.status,
     autoApproveAfterCycle: request.autoApproveAfterCycle,
     message: membership.hasReceivedPayout
-      ? "Your exit request has been submitted. It will be auto-approved once the current cycle completes."
-      : "Your exit request has been submitted and is pending admin review.",
+      ? "Your exit request has been submitted. It will be reviewed by Aventum Capital support."
+      : "Your exit request has been submitted and is under review by Aventum Capital.",
   });
 });
 
@@ -100,11 +100,43 @@ router.get("/exit-requests/mine", requireAuth, async (req, res): Promise<void> =
   res.json(requests);
 });
 
-// Group admin views exit requests for their group
+// Super admin — view ALL exit requests across the platform
+router.get("/exit-requests/all", requireAuth, async (req, res): Promise<void> => {
+  const userRole = (req.session as any).userRole ?? (req.session as any).role;
+  if (userRole !== "super_admin") {
+    res.status(403).json({ error: "Only super admins can view all exit requests" });
+    return;
+  }
+
+  const requests = await db.select({
+    id: exitRequestsTable.id,
+    groupId: exitRequestsTable.groupId,
+    groupName: groupsTable.name,
+    userId: exitRequestsTable.userId,
+    userName: usersTable.name,
+    userEmail: usersTable.email,
+    status: exitRequestsTable.status,
+    reason: exitRequestsTable.reason,
+    reviewNote: exitRequestsTable.reviewNote,
+    termsAccepted: exitRequestsTable.termsAccepted,
+    termsAcceptedAt: exitRequestsTable.termsAcceptedAt,
+    autoApproveAfterCycle: exitRequestsTable.autoApproveAfterCycle,
+    createdAt: exitRequestsTable.createdAt,
+    reviewedAt: exitRequestsTable.reviewedAt,
+  })
+    .from(exitRequestsTable)
+    .leftJoin(groupsTable, eq(groupsTable.id, exitRequestsTable.groupId))
+    .leftJoin(usersTable, eq(usersTable.id, exitRequestsTable.userId))
+    .orderBy(sql`${exitRequestsTable.createdAt} DESC`);
+
+  res.json(requests);
+});
+
+// Group admin — view exit requests for their specific group (read-only)
 router.get("/groups/:groupId/exit-requests", requireAuth, async (req, res): Promise<void> => {
   const groupId = parseInt(req.params.groupId, 10);
   const userId = req.session!.userId!;
-  const userRole = (req.session as any).role;
+  const userRole = (req.session as any).userRole ?? (req.session as any).role;
 
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
   if (!group) {
@@ -126,8 +158,6 @@ router.get("/groups/:groupId/exit-requests", requireAuth, async (req, res): Prom
     status: exitRequestsTable.status,
     reason: exitRequestsTable.reason,
     reviewNote: exitRequestsTable.reviewNote,
-    termsAccepted: exitRequestsTable.termsAccepted,
-    termsAcceptedAt: exitRequestsTable.termsAcceptedAt,
     autoApproveAfterCycle: exitRequestsTable.autoApproveAfterCycle,
     createdAt: exitRequestsTable.createdAt,
     reviewedAt: exitRequestsTable.reviewedAt,
@@ -140,12 +170,17 @@ router.get("/groups/:groupId/exit-requests", requireAuth, async (req, res): Prom
   res.json(requests);
 });
 
-// Admin approves an exit request
+// Super admin approves an exit request
 router.post("/exit-requests/:id/approve", requireAuth, async (req, res): Promise<void> => {
   const requestId = parseInt(req.params.id, 10);
   const adminId = req.session!.userId!;
-  const userRole = (req.session as any).role;
+  const userRole = (req.session as any).userRole ?? (req.session as any).role;
   const { note } = req.body as { note?: string };
+
+  if (userRole !== "super_admin") {
+    res.status(403).json({ error: "Only Aventum Capital super admins can approve exit requests" });
+    return;
+  }
 
   const [request] = await db.select()
     .from(exitRequestsTable)
@@ -162,22 +197,10 @@ router.post("/exit-requests/:id/approve", requireAuth, async (req, res): Promise
     return;
   }
 
-  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, request.groupId)).limit(1);
-  if (!group) {
-    res.status(404).json({ error: "Group not found" });
-    return;
-  }
-
-  if (group.adminId !== adminId && userRole !== "super_admin") {
-    res.status(403).json({ error: "Only the group admin can approve exit requests" });
-    return;
-  }
-
   await db.update(exitRequestsTable)
     .set({ status: "approved", reviewedBy: adminId, reviewedAt: new Date(), reviewNote: note ?? null })
     .where(eq(exitRequestsTable.id, requestId));
 
-  // Remove the member from the group
   await db.delete(groupMembersTable)
     .where(and(
       eq(groupMembersTable.groupId, request.groupId),
@@ -189,18 +212,23 @@ router.post("/exit-requests/:id/approve", requireAuth, async (req, res): Promise
     performedBy: adminId,
     targetType: "group",
     targetId: request.groupId,
-    details: `User ${request.userId} exit approved`,
+    details: `User ${request.userId} exit approved by super admin`,
   });
 
   res.json({ success: true, message: "Exit request approved. Member has been removed from the group." });
 });
 
-// Admin denies an exit request
+// Super admin denies an exit request
 router.post("/exit-requests/:id/deny", requireAuth, async (req, res): Promise<void> => {
   const requestId = parseInt(req.params.id, 10);
   const adminId = req.session!.userId!;
-  const userRole = (req.session as any).role;
+  const userRole = (req.session as any).userRole ?? (req.session as any).role;
   const { note } = req.body as { note?: string };
+
+  if (userRole !== "super_admin") {
+    res.status(403).json({ error: "Only Aventum Capital super admins can deny exit requests" });
+    return;
+  }
 
   const [request] = await db.select()
     .from(exitRequestsTable)
@@ -214,17 +242,6 @@ router.post("/exit-requests/:id/deny", requireAuth, async (req, res): Promise<vo
 
   if (request.status !== "pending") {
     res.status(409).json({ error: `Request is already ${request.status}` });
-    return;
-  }
-
-  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, request.groupId)).limit(1);
-  if (!group) {
-    res.status(404).json({ error: "Group not found" });
-    return;
-  }
-
-  if (group.adminId !== adminId && userRole !== "super_admin") {
-    res.status(403).json({ error: "Only the group admin can deny exit requests" });
     return;
   }
 
@@ -237,13 +254,13 @@ router.post("/exit-requests/:id/deny", requireAuth, async (req, res): Promise<vo
     performedBy: adminId,
     targetType: "group",
     targetId: request.groupId,
-    details: `User ${request.userId} exit denied. Note: ${note ?? "none"}`,
+    details: `User ${request.userId} exit denied by super admin. Note: ${note ?? "none"}`,
   });
 
   res.json({ success: true, message: "Exit request denied." });
 });
 
-// Internal: auto-approve eligible exit requests (call after cycle completion)
+// Internal: auto-approve eligible exit requests after cycle completion
 export async function processAutoApprovals(groupId: number, completedCycle: number): Promise<void> {
   const pending = await db.select()
     .from(exitRequestsTable)

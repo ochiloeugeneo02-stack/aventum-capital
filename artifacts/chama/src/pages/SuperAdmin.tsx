@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetAdminStats,
@@ -19,10 +19,27 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useRegion } from "@/contexts/RegionContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Users, CreditCard, DollarSign, Activity, Shield } from "lucide-react";
+import { apiRequest } from "@/lib/api";
+import { Loader2, Users, CreditCard, DollarSign, Activity, Shield, LogOut, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const TABS = ["Overview", "Users", "Contributions", "Payouts", "Audit Logs"] as const;
+const TABS = ["Overview", "Users", "Contributions", "Payouts", "Exit Requests", "Audit Logs"] as const;
 type Tab = typeof TABS[number];
+
+interface ExitReq {
+  id: number;
+  groupId: number;
+  groupName: string | null;
+  userId: number;
+  userName: string | null;
+  userEmail: string | null;
+  status: string;
+  reason: string | null;
+  reviewNote: string | null;
+  autoApproveAfterCycle: number | null;
+  createdAt: string;
+  reviewedAt: string | null;
+}
 
 export default function SuperAdmin() {
   const { formatCurrency, formatDate, formatDateTime } = useRegion();
@@ -30,11 +47,46 @@ export default function SuperAdmin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const [exitRequests, setExitRequests] = useState<ExitReq[]>([]);
+  const [exitLoading, setExitLoading] = useState(false);
+  const [exitActionLoading, setExitActionLoading] = useState<number | null>(null);
+  const [exitNotes, setExitNotes] = useState<Record<number, string>>({});
+
   const { data: stats, isLoading: statsLoading } = useGetAdminStats({ query: { queryKey: getGetAdminStatsQueryKey() } });
   const { data: users, isLoading: usersLoading } = useListUsers({}, { query: { queryKey: getListUsersQueryKey() }, enabled: tab === "Users" });
   const { data: contribs } = useListAllContributions({}, { query: { queryKey: getListAllContributionsQueryKey() }, enabled: tab === "Contributions" });
   const { data: payouts } = useListAllPayouts({}, { query: { queryKey: getListAllPayoutsQueryKey() }, enabled: tab === "Payouts" });
   const { data: auditLogs } = useListAuditLogs({}, { query: { queryKey: getListAuditLogsQueryKey() }, enabled: tab === "Audit Logs" });
+
+  const loadExitRequests = useCallback(async () => {
+    setExitLoading(true);
+    try {
+      const data = await apiRequest<ExitReq[]>("/api/exit-requests/all");
+      setExitRequests(data);
+    } catch {}
+    setExitLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (tab === "Exit Requests") loadExitRequests();
+  }, [tab, loadExitRequests]);
+
+  const handleExitAction = async (reqId: number, action: "approve" | "deny") => {
+    setExitActionLoading(reqId);
+    try {
+      const res = await apiRequest<{ message: string }>(`/api/exit-requests/${reqId}/${action}`, {
+        method: "POST",
+        body: JSON.stringify({ note: exitNotes[reqId] ?? "" }),
+        headers: { "Content-Type": "application/json" },
+      });
+      toast({ title: action === "approve" ? "Exit approved" : "Exit denied", description: res.message });
+      await loadExitRequests();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Action failed", variant: "destructive" });
+    } finally {
+      setExitActionLoading(null);
+    }
+  };
 
   const completePayout = useCompletePayout({
     mutation: {
@@ -218,6 +270,148 @@ export default function SuperAdmin() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* EXIT REQUESTS */}
+        {tab === "Exit Requests" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold">Member Exit Requests</h3>
+                <p className="text-sm text-muted-foreground mt-0.5">Review and action group exit requests across the platform</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={loadExitRequests} disabled={exitLoading}>
+                {exitLoading && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
+                Refresh
+              </Button>
+            </div>
+
+            {exitLoading ? (
+              <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+            ) : exitRequests.length === 0 ? (
+              <div className="bg-card border border-border rounded-xl p-12 text-center">
+                <LogOut className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground font-medium">No exit requests</p>
+                <p className="text-muted-foreground text-sm mt-1">Members' exit requests will appear here for review</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* Pending first */}
+                {exitRequests.filter(r => r.status === "pending").length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Pending Review</h4>
+                    <div className="space-y-3">
+                      {exitRequests.filter(r => r.status === "pending").map(req => (
+                        <div key={req.id} className="bg-card border border-amber-200 rounded-xl p-5">
+                          <div className="flex items-start justify-between gap-4 mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center">
+                                <Clock className="w-4 h-4 text-amber-600" />
+                              </div>
+                              <div>
+                                <div className="font-medium text-sm">{req.userName ?? "Unknown Member"}</div>
+                                <div className="text-xs text-muted-foreground">{req.userEmail}</div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-xs font-medium text-muted-foreground">{req.groupName ?? `Group #${req.groupId}`}</div>
+                              <div className="text-xs text-muted-foreground mt-0.5">{formatDate(req.createdAt)}</div>
+                            </div>
+                          </div>
+
+                          {req.reason && (
+                            <div className="mb-3 px-3 py-2 bg-muted/40 rounded-lg">
+                              <p className="text-xs text-muted-foreground italic">"{req.reason}"</p>
+                            </div>
+                          )}
+
+                          {req.autoApproveAfterCycle && (
+                            <p className="text-xs text-blue-600 mb-3">
+                              Member has received payout — eligible for auto-approval after cycle {req.autoApproveAfterCycle}
+                            </p>
+                          )}
+
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              placeholder="Add a note to the member (optional)..."
+                              className="w-full px-3 py-2 text-xs border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                              value={exitNotes[req.id] ?? ""}
+                              onChange={e => setExitNotes(n => ({ ...n, [req.id]: e.target.value }))}
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                className="flex-1 bg-[#3A5A40] hover:bg-[#344E41] text-xs"
+                                onClick={() => handleExitAction(req.id, "approve")}
+                                disabled={exitActionLoading === req.id}
+                              >
+                                {exitActionLoading === req.id && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}
+                                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                                Approve & Remove Member
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="flex-1 text-xs border-destructive text-destructive hover:bg-destructive/5"
+                                onClick={() => handleExitAction(req.id, "deny")}
+                                disabled={exitActionLoading === req.id}
+                              >
+                                {exitActionLoading === req.id && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}
+                                <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />
+                                Deny Request
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Resolved */}
+                {exitRequests.filter(r => r.status !== "pending").length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 mt-4">Resolved</h4>
+                    <div className="bg-card border border-border rounded-xl overflow-hidden">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/20">
+                            <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Member</th>
+                            <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Group</th>
+                            <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Status</th>
+                            <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Note</th>
+                            <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Resolved</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {exitRequests.filter(r => r.status !== "pending").map(req => (
+                            <tr key={req.id} className="hover:bg-muted/20 transition-colors">
+                              <td className="px-4 py-3">
+                                <div className="text-sm font-medium">{req.userName}</div>
+                                <div className="text-xs text-muted-foreground">{req.userEmail}</div>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-muted-foreground">{req.groupName ?? `Group #${req.groupId}`}</td>
+                              <td className="px-4 py-3">
+                                <span className={cn("text-[11px] font-medium px-2 py-0.5 rounded-full capitalize", {
+                                  "bg-green-100 text-green-700": req.status === "approved" || req.status === "auto_approved",
+                                  "bg-red-100 text-red-700": req.status === "denied",
+                                })}>
+                                  {req.status.replace("_", " ")}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-xs text-muted-foreground">{req.reviewNote ?? "—"}</td>
+                              <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(req.reviewedAt)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

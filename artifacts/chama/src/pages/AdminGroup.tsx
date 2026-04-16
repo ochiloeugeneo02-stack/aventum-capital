@@ -103,11 +103,8 @@ interface ExitReq {
 }
 
 function GroupExitRequests({ groupId }: { groupId: number }) {
-  const { toast } = useToast();
   const [requests, setRequests] = useState<ExitReq[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState<number | null>(null);
-  const [noteMap, setNoteMap] = useState<Record<number, string>>({});
   const [expanded, setExpanded] = useState(false);
 
   const loadRequests = useCallback(async () => {
@@ -120,25 +117,7 @@ function GroupExitRequests({ groupId }: { groupId: number }) {
 
   useEffect(() => { loadRequests(); }, [loadRequests]);
 
-  const handleAction = async (reqId: number, action: "approve" | "deny") => {
-    setActionLoading(reqId);
-    try {
-      const res = await apiRequest<{ message: string }>(`/api/exit-requests/${reqId}/${action}`, {
-        method: "POST",
-        body: JSON.stringify({ note: noteMap[reqId] ?? "" }),
-        headers: { "Content-Type": "application/json" },
-      });
-      toast({ title: action === "approve" ? "Request approved" : "Request denied", description: res.message });
-      await loadRequests();
-    } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error ?? "Action failed", variant: "destructive" });
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
   const pending = requests.filter(r => r.status === "pending");
-  const resolved = requests.filter(r => r.status !== "pending");
 
   if (loading) return null;
   if (requests.length === 0) return null;
@@ -167,11 +146,17 @@ function GroupExitRequests({ groupId }: { groupId: number }) {
 
       {expanded && (
         <div className="mt-3 space-y-3">
-          {pending.length === 0 && resolved.length === 0 && (
-            <p className="text-xs text-muted-foreground">No exit requests.</p>
-          )}
-          {[...pending, ...resolved].map(req => (
-            <div key={req.id} className={cn("rounded-xl border p-4 space-y-3", req.status === "pending" ? "border-amber-200 bg-amber-50/40" : "border-border bg-muted/20")}>
+          {/* Info banner */}
+          <div className="flex items-start gap-2.5 p-3 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-700">
+            <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-medium">Approval handled by Aventum Capital</p>
+              <p className="opacity-80 mt-0.5">Exit requests are reviewed by the platform team. Contact support if a member needs urgent assistance.</p>
+            </div>
+          </div>
+
+          {[...pending, ...requests.filter(r => r.status !== "pending")].map(req => (
+            <div key={req.id} className={cn("rounded-xl border p-4 space-y-2", req.status === "pending" ? "border-amber-200 bg-amber-50/40" : "border-border bg-muted/20")}>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
                   {statusIcon(req.status)}
@@ -194,43 +179,21 @@ function GroupExitRequests({ groupId }: { groupId: number }) {
               )}
 
               {req.autoApproveAfterCycle && req.status === "pending" && (
-                <p className="text-xs text-blue-600">Will auto-approve after cycle {req.autoApproveAfterCycle}</p>
+                <p className="text-xs text-blue-600">Eligible for auto-approval after cycle {req.autoApproveAfterCycle}</p>
               )}
 
               {req.reviewNote && (
-                <p className="text-xs text-muted-foreground">Admin note: {req.reviewNote}</p>
+                <p className="text-xs text-muted-foreground">Note: {req.reviewNote}</p>
               )}
 
               {req.status === "pending" && (
-                <div className="space-y-2 pt-1">
-                  <Input
-                    placeholder="Optional note to member..."
-                    className="text-xs h-8"
-                    value={noteMap[req.id] ?? ""}
-                    onChange={e => setNoteMap(m => ({ ...m, [req.id]: e.target.value }))}
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      className="flex-1 bg-[#3A5A40] hover:bg-[#344E41] h-8 text-xs"
-                      onClick={() => handleAction(req.id, "approve")}
-                      disabled={actionLoading === req.id}
-                    >
-                      {actionLoading === req.id && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
-                      Approve & Remove
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 h-8 text-xs border-destructive text-destructive hover:bg-destructive/5"
-                      onClick={() => handleAction(req.id, "deny")}
-                      disabled={actionLoading === req.id}
-                    >
-                      {actionLoading === req.id && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
-                      Deny
-                    </Button>
-                  </div>
-                </div>
+                <a
+                  href="mailto:support@aventum.co?subject=Exit Request Support"
+                  className="inline-flex items-center gap-1.5 text-xs text-[#3A5A40] font-medium hover:underline mt-1"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  Contact Aventum support about this request
+                </a>
               )}
             </div>
           ))}
