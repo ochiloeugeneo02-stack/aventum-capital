@@ -264,7 +264,7 @@ export default function AdminGroup() {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-lg">{g.name}</h3>
-                        <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{region.currency}</span>
+                        <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{groupCurrency}</span>
                       </div>
                       <p className="text-sm text-muted-foreground capitalize">{g.schedule} • {g.totalMembers}/{g.maxMembers} members • Cycle {g.currentCycle}</p>
                     </div>
