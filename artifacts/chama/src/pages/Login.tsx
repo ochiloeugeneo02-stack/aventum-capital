@@ -111,11 +111,25 @@ export default function Login() {
             </Button>
           </form>
 
-          <div className="mt-6 p-4 bg-muted/50 rounded-xl text-xs text-muted-foreground">
-            <p className="font-medium mb-1">Demo accounts:</p>
-            <p>admin@aventum.co / admin123 (Super Admin)</p>
-            <p>grace@aventum.co / grace123 (Group Admin)</p>
-            <p>amina@aventum.co / member123 (Member)</p>
+          <div className="mt-6 p-3 bg-muted/50 rounded-xl text-xs text-muted-foreground">
+            <p className="font-medium mb-2">Demo accounts — click to fill:</p>
+            <div className="space-y-1.5">
+              {[
+                { label: "Super Admin", email: "admin@aventum.co", password: "admin123", color: "bg-purple-100 text-purple-700 hover:bg-purple-200" },
+                { label: "Group Admin", email: "grace@aventum.co", password: "grace123", color: "bg-[#3A5A40]/10 text-[#3A5A40] hover:bg-[#3A5A40]/20" },
+                { label: "Member", email: "amina@aventum.co", password: "member123", color: "bg-blue-100 text-blue-700 hover:bg-blue-200" },
+              ].map(({ label, email, password, color }) => (
+                <button
+                  key={email}
+                  type="button"
+                  onClick={() => { setEmail(email); setPassword(password); }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors text-left ${color}`}
+                >
+                  <span className="font-medium">{label}</span>
+                  <span className="opacity-70">{email}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
