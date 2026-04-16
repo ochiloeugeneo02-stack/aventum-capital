@@ -100,6 +100,40 @@ router.get("/exit-requests/mine", requireAuth, async (req, res): Promise<void> =
   res.json(requests);
 });
 
+// Member cancels their own pending exit request
+router.post("/groups/:groupId/exit-request/cancel", requireAuth, async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId, 10);
+  const userId = req.session!.userId!;
+
+  const [request] = await db.select()
+    .from(exitRequestsTable)
+    .where(and(
+      eq(exitRequestsTable.groupId, groupId),
+      eq(exitRequestsTable.userId, userId),
+      eq(exitRequestsTable.status, "pending")
+    ))
+    .limit(1);
+
+  if (!request) {
+    res.status(404).json({ error: "No pending exit request found for this group" });
+    return;
+  }
+
+  await db.update(exitRequestsTable)
+    .set({ status: "cancelled" })
+    .where(eq(exitRequestsTable.id, request.id));
+
+  await createAuditLog({
+    action: "group.exit_cancelled",
+    performedBy: userId,
+    targetType: "group",
+    targetId: groupId,
+    details: "Member cancelled their exit request",
+  });
+
+  res.json({ success: true, message: "Your exit request has been cancelled." });
+});
+
 // Super admin — view ALL exit requests across the platform
 router.get("/exit-requests/all", requireAuth, async (req, res): Promise<void> => {
   const userRole = (req.session as any).userRole ?? (req.session as any).role;

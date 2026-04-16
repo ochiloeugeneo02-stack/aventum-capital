@@ -47,6 +47,7 @@ export default function GroupDetail() {
   const [exitReason, setExitReason] = useState("");
   const [termsChecked, setTermsChecked] = useState(false);
   const [submittingExit, setSubmittingExit] = useState(false);
+  const [cancellingExit, setCancellingExit] = useState(false);
   const [myExitRequest, setMyExitRequest] = useState<MyExitRequest | null>(null);
   const [exitRequestLoaded, setExitRequestLoaded] = useState(false);
 
@@ -78,6 +79,22 @@ export default function GroupDetail() {
       setExitRequestLoaded(true);
     })();
   }, [groupId, user]);
+
+  const handleCancelExit = async () => {
+    setCancellingExit(true);
+    try {
+      const result = await apiRequest<{ message: string }>(`/api/groups/${groupId}/exit-request/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      setMyExitRequest(null);
+      toast({ title: "Request cancelled", description: result.message });
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Could not cancel request", variant: "destructive" });
+    } finally {
+      setCancellingExit(false);
+    }
+  };
 
   const handleSubmitExit = async () => {
     if (!termsChecked) return;
@@ -130,10 +147,11 @@ export default function GroupDetail() {
   };
 
   const exitStatusConfig: Record<string, { label: string; color: string; icon: any }> = {
-    pending: { label: "Exit request pending admin review", color: "text-amber-700 bg-amber-50 border-amber-200", icon: Clock },
+    pending: { label: "Exit request submitted — pending Aventum Capital review", color: "text-amber-700 bg-amber-50 border-amber-200", icon: Clock },
     approved: { label: "Your exit request was approved", color: "text-green-700 bg-green-50 border-green-200", icon: CheckCircle2 },
     denied: { label: "Your exit request was denied", color: "text-red-700 bg-red-50 border-red-200", icon: AlertTriangle },
     auto_approved: { label: "Your exit was auto-approved after cycle completion", color: "text-blue-700 bg-blue-50 border-blue-200", icon: CheckCircle2 },
+    cancelled: { label: "Your exit request was cancelled", color: "text-muted-foreground bg-muted/40 border-border", icon: AlertTriangle },
   };
 
   return (
@@ -152,15 +170,25 @@ export default function GroupDetail() {
         {exitRequestLoaded && myExitRequest && myExitRequest.status !== "none" && (
           <div className={cn("flex items-start gap-3 p-4 rounded-xl border text-sm", exitStatusConfig[myExitRequest.status]?.color)}>
             {(() => { const Icon = exitStatusConfig[myExitRequest.status]?.icon; return Icon ? <Icon className="w-4 h-4 mt-0.5 shrink-0" /> : null; })()}
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="font-medium">{exitStatusConfig[myExitRequest.status]?.label}</p>
               {myExitRequest.autoApproveAfterCycle && myExitRequest.status === "pending" && (
-                <p className="text-xs mt-0.5 opacity-80">Will auto-approve after cycle {myExitRequest.autoApproveAfterCycle} completes</p>
+                <p className="text-xs mt-0.5 opacity-80">Eligible for auto-approval after cycle {myExitRequest.autoApproveAfterCycle} completes</p>
               )}
               {myExitRequest.reviewNote && (
                 <p className="text-xs mt-0.5 opacity-80">Note: {myExitRequest.reviewNote}</p>
               )}
             </div>
+            {myExitRequest.status === "pending" && (
+              <button
+                onClick={handleCancelExit}
+                disabled={cancellingExit}
+                className="shrink-0 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-current opacity-80 hover:opacity-100 transition-opacity"
+              >
+                {cancellingExit ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                Cancel request
+              </button>
+            )}
           </div>
         )}
 
@@ -273,8 +301,8 @@ export default function GroupDetail() {
           </div>
         </div>
 
-        {/* Leave group — only non-admin members with no active exit request */}
-        {!isAdmin && myMembership && exitRequestLoaded && !myExitRequest && (
+        {/* Leave group — only non-admin members with no pending/approved exit request */}
+        {!isAdmin && myMembership && exitRequestLoaded && (!myExitRequest || myExitRequest.status === "cancelled" || myExitRequest.status === "denied") && (
           <div className="bg-card border border-border rounded-xl p-5">
             <div className="flex items-start justify-between">
               <div>
