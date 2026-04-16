@@ -7,3 +7,4 @@ export * from "./contributions";
 export * from "./payouts";
 export * from "./auditLogs";
 export * from "./invitations";
+export * from "./exitRequests";

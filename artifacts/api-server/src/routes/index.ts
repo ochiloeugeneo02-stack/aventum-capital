@@ -10,6 +10,7 @@ import dashboardRouter from "./dashboard";
 import adminRouter from "./admin";
 import stripeRouter from "./stripe";
 import invitationsRouter from "./invitations";
+import exitRequestsRouter from "./exitRequests";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(dashboardRouter);
 router.use(adminRouter);
 router.use(stripeRouter);
 router.use(invitationsRouter);
+router.use(exitRequestsRouter);
 
 export default router;

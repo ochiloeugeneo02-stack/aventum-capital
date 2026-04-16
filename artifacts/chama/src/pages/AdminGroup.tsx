@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListGroups,
@@ -17,7 +17,8 @@ import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useRegion } from "@/contexts/RegionContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Users, Copy, Check, Mail, Link2 } from "lucide-react";
+import { apiRequest } from "@/lib/api";
+import { Loader2, Plus, Users, Copy, Check, Mail, Link2, LogOut, Clock, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function StatusBadgeSmall({ status }: { status: string }) {
@@ -85,6 +86,156 @@ function GroupMembersList({ groupId }: { groupId: number }) {
           <StatusBadge status={m.contributionStatus} />
         </div>
       ))}
+    </div>
+  );
+}
+
+interface ExitReq {
+  id: number;
+  userId: number;
+  userName: string | null;
+  userEmail: string | null;
+  status: string;
+  reason: string | null;
+  reviewNote: string | null;
+  autoApproveAfterCycle: number | null;
+  createdAt: string;
+}
+
+function GroupExitRequests({ groupId }: { groupId: number }) {
+  const { toast } = useToast();
+  const [requests, setRequests] = useState<ExitReq[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [noteMap, setNoteMap] = useState<Record<number, string>>({});
+  const [expanded, setExpanded] = useState(false);
+
+  const loadRequests = useCallback(async () => {
+    try {
+      const data = await apiRequest<ExitReq[]>(`/api/groups/${groupId}/exit-requests`);
+      setRequests(data);
+    } catch {}
+    setLoading(false);
+  }, [groupId]);
+
+  useEffect(() => { loadRequests(); }, [loadRequests]);
+
+  const handleAction = async (reqId: number, action: "approve" | "deny") => {
+    setActionLoading(reqId);
+    try {
+      const res = await apiRequest<{ message: string }>(`/api/exit-requests/${reqId}/${action}`, {
+        method: "POST",
+        body: JSON.stringify({ note: noteMap[reqId] ?? "" }),
+        headers: { "Content-Type": "application/json" },
+      });
+      toast({ title: action === "approve" ? "Request approved" : "Request denied", description: res.message });
+      await loadRequests();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Action failed", variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const pending = requests.filter(r => r.status === "pending");
+  const resolved = requests.filter(r => r.status !== "pending");
+
+  if (loading) return null;
+  if (requests.length === 0) return null;
+
+  const statusIcon = (s: string) => {
+    if (s === "pending") return <Clock className="w-3.5 h-3.5 text-amber-500" />;
+    if (s === "approved" || s === "auto_approved") return <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />;
+    return <AlertTriangle className="w-3.5 h-3.5 text-red-500" />;
+  };
+
+  return (
+    <div className="border-t border-border pt-4 mt-4">
+      <button
+        className="flex items-center gap-2 w-full text-left"
+        onClick={() => setExpanded(e => !e)}
+      >
+        <LogOut className="w-4 h-4 text-destructive" />
+        <span className="text-sm font-medium">Exit Requests</span>
+        {pending.length > 0 && (
+          <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">{pending.length} pending</span>
+        )}
+        <span className="ml-auto text-muted-foreground">
+          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="mt-3 space-y-3">
+          {pending.length === 0 && resolved.length === 0 && (
+            <p className="text-xs text-muted-foreground">No exit requests.</p>
+          )}
+          {[...pending, ...resolved].map(req => (
+            <div key={req.id} className={cn("rounded-xl border p-4 space-y-3", req.status === "pending" ? "border-amber-200 bg-amber-50/40" : "border-border bg-muted/20")}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  {statusIcon(req.status)}
+                  <div>
+                    <div className="text-sm font-medium">{req.userName ?? "Unknown"}</div>
+                    <div className="text-xs text-muted-foreground">{req.userEmail}</div>
+                  </div>
+                </div>
+                <span className={cn("text-[11px] font-medium px-2 py-0.5 rounded-full capitalize", {
+                  "bg-amber-100 text-amber-700": req.status === "pending",
+                  "bg-green-100 text-green-700": req.status === "approved" || req.status === "auto_approved",
+                  "bg-red-100 text-red-700": req.status === "denied",
+                })}>
+                  {req.status.replace("_", " ")}
+                </span>
+              </div>
+
+              {req.reason && (
+                <p className="text-xs text-muted-foreground italic">"{req.reason}"</p>
+              )}
+
+              {req.autoApproveAfterCycle && req.status === "pending" && (
+                <p className="text-xs text-blue-600">Will auto-approve after cycle {req.autoApproveAfterCycle}</p>
+              )}
+
+              {req.reviewNote && (
+                <p className="text-xs text-muted-foreground">Admin note: {req.reviewNote}</p>
+              )}
+
+              {req.status === "pending" && (
+                <div className="space-y-2 pt-1">
+                  <Input
+                    placeholder="Optional note to member..."
+                    className="text-xs h-8"
+                    value={noteMap[req.id] ?? ""}
+                    onChange={e => setNoteMap(m => ({ ...m, [req.id]: e.target.value }))}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-[#3A5A40] hover:bg-[#344E41] h-8 text-xs"
+                      onClick={() => handleAction(req.id, "approve")}
+                      disabled={actionLoading === req.id}
+                    >
+                      {actionLoading === req.id && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                      Approve & Remove
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 h-8 text-xs border-destructive text-destructive hover:bg-destructive/5"
+                      onClick={() => handleAction(req.id, "deny")}
+                      disabled={actionLoading === req.id}
+                    >
+                      {actionLoading === req.id && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                      Deny
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -341,6 +492,8 @@ export default function AdminGroup() {
 
                     <GroupMembersList groupId={g.id} />
                   </div>
+
+                  <GroupExitRequests groupId={g.id} />
                 </div>
               );
             })}
