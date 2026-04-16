@@ -141,7 +141,7 @@ export default function GroupDetail() {
                 </div>
                 <div>
                   <div className="font-medium">{g.currentRecipient.name}</div>
-                  <div className="text-sm text-muted-foreground">Will receive {formatCurrency(totalPayout)}</div>
+                  <div className="text-sm text-muted-foreground">Will receive {formatGroupAmount(totalPayout, g.currency ?? "KES")}</div>
                 </div>
               </div>
             ) : (
