@@ -188,7 +188,7 @@ function GroupExitRequests({ groupId }: { groupId: number }) {
 
               {req.status === "pending" && (
                 <a
-                  href="mailto:support@aventum.co?subject=Exit Request Support"
+                  href="mailto:info@aventumcapital.com?subject=Exit Request Support"
                   className="inline-flex items-center gap-1.5 text-xs text-[#3A5A40] font-medium hover:underline mt-1"
                 >
                   <Mail className="w-3.5 h-3.5" />
