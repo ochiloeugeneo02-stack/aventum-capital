@@ -1,4 +1,5 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { type ReactNode } from "react";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -32,8 +33,18 @@ const queryClient = new QueryClient({
   },
 });
 
+function PageWrapper({ children }: { children: ReactNode }) {
+  const [location] = useLocation();
+  return (
+    <div key={location} className="page-enter">
+      {children}
+    </div>
+  );
+}
+
 function Router() {
   return (
+    <PageWrapper>
     <Switch>
       <Route path="/" component={Landing} />
       <Route path="/login" component={Login} />
@@ -96,6 +107,7 @@ function Router() {
 
       <Route component={NotFound} />
     </Switch>
+    </PageWrapper>
   );
 }
 

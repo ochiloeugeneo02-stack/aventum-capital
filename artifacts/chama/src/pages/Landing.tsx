@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useLoginUser } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -112,6 +112,23 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 export default function Landing() {
   const { isAuthenticated } = useAuth();
 
+  useEffect(() => {
+    const els = document.querySelectorAll(".reveal");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("in-view");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.08, rootMargin: "0px 0px -40px 0px" }
+    );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="min-h-screen bg-white font-sans">
 
@@ -158,7 +175,7 @@ export default function Landing() {
           }}
         />
         <div className="relative max-w-7xl mx-auto px-6 py-20 w-full flex flex-col lg:flex-row items-center justify-between gap-12">
-          <div className="flex-1 max-w-xl">
+          <div className="flex-1 max-w-xl hero-copy">
             <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-4">
               Simple, Transparent,<br />and Affordable savings
             </h1>
@@ -166,7 +183,7 @@ export default function Landing() {
               Join trusted rotational savings groups and achieve your financial goals together with like-minded individuals.
             </p>
           </div>
-          <div className="w-full lg:w-auto lg:min-w-[340px]">
+          <div className="w-full lg:w-auto lg:min-w-[340px] hero-panel">
             <HeroLoginPanel />
           </div>
         </div>
@@ -175,14 +192,14 @@ export default function Landing() {
       {/* ── How Aventum Works ───────────────────────────────── */}
       <section id="how" className="bg-gray-50 py-16">
         <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-12">How Aventum Works</h2>
+          <h2 className="text-2xl font-bold text-center text-gray-900 mb-12 reveal">How Aventum Works</h2>
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { num: "1", emoji: "👥", title: "Join a Group", desc: "Create or join a Chama group with 5 trusted members." },
               { num: "2", emoji: "💳", title: "Contribute Regularly", desc: "Make weekly contributions of $250." },
               { num: "3", emoji: "💰", title: "Receive Payouts", desc: "Get your turn to receive the full group collection." },
-            ].map((item) => (
-              <div key={item.num} className="text-center">
+            ].map((item, i) => (
+              <div key={item.num} className={`text-center reveal reveal-d${i + 1}`}>
                 <div className="w-14 h-14 mx-auto mb-4 bg-white rounded-full border border-gray-200 flex items-center justify-center text-2xl shadow-sm">
                   {item.emoji}
                 </div>
@@ -198,7 +215,7 @@ export default function Landing() {
       {/* ── Why Choose ──────────────────────────────────────── */}
       <section id="why" className="bg-white py-16">
         <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-12">Why Choose Aventum Capital</h2>
+          <h2 className="text-2xl font-bold text-center text-gray-900 mb-12 reveal">Why Choose Aventum Capital</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
               {
@@ -209,8 +226,8 @@ export default function Landing() {
               { icon: <Smartphone className="w-7 h-7" />, title: "Easy Mobile Access", desc: "Manage your groups on the go" },
               { icon: <Zap className="w-7 h-7" />, title: "Automated Payments", desc: "Never miss a contribution" },
               { icon: <Settings className="w-7 h-7" />, title: "Group Management", desc: "Efficient group coordination" },
-            ].map((item) => (
-              <div key={item.title} className="text-center p-6 rounded-xl border border-gray-100 hover:border-[#3A5A40]/30 hover:shadow-sm transition-all">
+            ].map((item, i) => (
+              <div key={item.title} className={`text-center p-6 rounded-xl border border-gray-100 hover:border-[#3A5A40]/30 hover:shadow-sm transition-all reveal reveal-d${i + 1}`}>
                 <div className="text-[#3A5A40] flex justify-center mb-3">{item.icon}</div>
                 <h3 className="font-semibold text-gray-900 text-sm mb-1">{item.title}</h3>
                 <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
@@ -225,7 +242,7 @@ export default function Landing() {
         className="relative py-20"
         style={{ background: "linear-gradient(135deg, #344E41 0%, #3A5A40 60%, #3A5A40 100%)" }}
       >
-        <div className="max-w-6xl mx-auto px-6 flex flex-col lg:flex-row items-center gap-12">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col lg:flex-row items-center gap-12 reveal">
           <div className="w-full lg:w-1/2 aspect-video rounded-2xl overflow-hidden relative shadow-2xl">
             <img
               src="/community.jpg"
@@ -251,11 +268,11 @@ export default function Landing() {
       {/* ── Pricing ─────────────────────────────────────────── */}
       <section className="bg-white py-16">
         <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">Powerful features for powerful people</h2>
-          <p className="text-center text-gray-500 text-sm mb-12">Choose the plan that fits your savings goals</p>
+          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2 reveal">Powerful features for powerful people</h2>
+          <p className="text-center text-gray-500 text-sm mb-12 reveal reveal-d1">Choose the plan that fits your savings goals</p>
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {/* Free */}
-            <div className="border border-gray-200 rounded-2xl p-6 flex flex-col">
+            <div className="border border-gray-200 rounded-2xl p-6 flex flex-col reveal reveal-d1">
               <div className="flex-1">
                 <h3 className="font-semibold text-gray-900 mb-1">Custom</h3>
                 <p className="text-xs text-gray-500 mb-4">For motivated individuals who want to manage their own group with full control</p>
@@ -272,7 +289,7 @@ export default function Landing() {
             </div>
 
             {/* Featured */}
-            <div className="border-2 border-[#3A5A40] rounded-2xl p-6 relative shadow-lg flex flex-col">
+            <div className="border-2 border-[#3A5A40] rounded-2xl p-6 relative shadow-lg flex flex-col reveal reveal-d2">
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                 <span className="bg-[#3A5A40] text-white text-xs font-semibold px-3 py-1 rounded-full">Most Popular</span>
               </div>
@@ -292,7 +309,7 @@ export default function Landing() {
             </div>
 
             {/* Group 2 */}
-            <div className="border border-gray-200 rounded-2xl p-6 flex flex-col">
+            <div className="border border-gray-200 rounded-2xl p-6 flex flex-col reveal reveal-d3">
               <div className="flex-1">
                 <h3 className="font-semibold text-gray-900 mb-1">Group 2</h3>
                 <p className="text-xs text-gray-500 mb-4">For individuals looking to maximize their group savings</p>
@@ -314,7 +331,7 @@ export default function Landing() {
       {/* ── FAQ ─────────────────────────────────────────────── */}
       <section id="faq" className="bg-gray-50 py-16">
         <div className="max-w-3xl mx-auto px-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8">Frequently Asked Questions</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-8 reveal">Frequently Asked Questions</h2>
           {[
             { q: "What Are The Benefits Of Using Aventum Capital?", a: "Aventum Capital helps you save consistently through structured rotational groups, giving you access to a lump sum payout when it's your turn. You benefit from community accountability, automated tracking, and a transparent system." },
             { q: "What Is Aventum Capital?", a: "Aventum Capital is a digital savings platform that modernizes the traditional chama (rotating savings group) model. Members contribute regularly and take turns receiving the full group pool." },
@@ -328,7 +345,7 @@ export default function Landing() {
 
       {/* ── CTA Banner ──────────────────────────────────────── */}
       <section className="bg-[#344E41] py-10">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 reveal">
           <p className="text-white font-semibold text-lg">Ready to get started?</p>
           <a href="/signup" className="bg-white text-[#344E41] font-semibold px-6 py-2.5 rounded-lg text-sm hover:bg-gray-100 transition-colors">
             Get started
