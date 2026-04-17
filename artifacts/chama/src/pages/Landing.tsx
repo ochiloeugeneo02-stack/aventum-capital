@@ -124,7 +124,6 @@ export default function Landing() {
 
           <div className="hidden md:flex items-center gap-8 text-sm text-gray-600">
             <a href="#how" className="hover:text-[#3A5A40] transition-colors">Home</a>
-            <a href="#why" className="hover:text-[#3A5A40] transition-colors">Services</a>
             <a href="#faq" className="hover:text-[#3A5A40] transition-colors">FAQ</a>
             <a href="#footer" className="hover:text-[#3A5A40] transition-colors">Contact</a>
           </div>
