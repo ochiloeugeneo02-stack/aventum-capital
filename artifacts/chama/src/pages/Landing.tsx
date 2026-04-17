@@ -373,7 +373,7 @@ export default function Landing() {
             <div>
               <h4 className="text-white text-sm font-semibold mb-4">Contact Us</h4>
               <ul className="space-y-2 text-xs text-white/50">
-                {["hello@aventumcapital.com", "+254 700 000 000", "Nairobi, Kenya"].map(l => <li key={l}>{l}</li>)}
+                {["info@aventum.com", "United States, Arizona"].map(l => <li key={l}>{l}</li>)}
               </ul>
             </div>
           </div>
