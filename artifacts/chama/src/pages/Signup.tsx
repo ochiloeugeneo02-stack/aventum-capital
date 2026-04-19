@@ -52,7 +52,7 @@ export default function Signup() {
   const { toast } = useToast();
 
   const [step, setStep] = useState<"region" | "motivation" | "account">("region");
-  const [form, setForm] = useState({ name: "", email: "", username: "", password: "", role: "member", phoneNumber: "", emailMarketing: false });
+  const [form, setForm] = useState({ name: "", email: "", username: "", password: "", role: "group_admin", phoneNumber: "", emailMarketing: false });
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState(region.code);
   const [selectedMotivation, setSelectedMotivation] = useState<string | null>(null);
@@ -406,32 +406,6 @@ export default function Signup() {
                       {locationLoading ? "Detecting location…" : "Allow location access"}
                     </button>
                   )}
-                </div>
-
-                {/* Account type */}
-                <div className="space-y-2">
-                  <Label>Account type</Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { value: "member", label: "Member", desc: "Join existing groups" },
-                      { value: "group_admin", label: "Group Admin", desc: "Create and manage groups" },
-                    ].map(opt => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setForm(f => ({ ...f, role: opt.value }))}
-                        className={cn(
-                          "p-3 rounded-xl border-2 text-left transition-colors",
-                          form.role === opt.value
-                            ? "border-[#3A5A40] bg-[#3A5A40]/5 text-[#3A5A40]"
-                            : "border-border hover:border-[#3A5A40]/30"
-                        )}
-                      >
-                        <div className="font-medium text-sm">{opt.label}</div>
-                        <div className="text-xs text-muted-foreground">{opt.desc}</div>
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
                 {/* Email marketing consent */}
