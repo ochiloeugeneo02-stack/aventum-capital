@@ -52,7 +52,7 @@ export default function Signup() {
   const { toast } = useToast();
 
   const [step, setStep] = useState<"region" | "motivation" | "account">("region");
-  const [form, setForm] = useState({ name: "", email: "", username: "", password: "", role: "group_admin", phoneNumber: "", emailMarketing: false });
+  const [form, setForm] = useState({ name: "", email: "", username: "", password: "", role: "group_admin", phoneNumber: "", emailMarketing: true });
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState(region.code);
   const [selectedMotivation, setSelectedMotivation] = useState<string | null>(null);
