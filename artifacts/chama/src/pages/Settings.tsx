@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUpdateUser, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, MapPin, CheckSquare, Square } from "lucide-react";
+import { Loader2, MapPin, ShieldCheck, ShieldOff, Copy, Check } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 
 async function reverseGeocode(lat: number, lon: number): Promise<string> {
@@ -42,6 +42,77 @@ export default function Settings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pwLoading, setPwLoading] = useState(false);
+
+  const twoFactorEnabled = !!(user as any)?.twoFactorEnabled;
+  const [tfaStep, setTfaStep] = useState<"idle" | "setup" | "verify" | "backup" | "disable">("idle");
+  const [tfaQr, setTfaQr] = useState("");
+  const [tfaSecret, setTfaSecret] = useState("");
+  const [tfaCode, setTfaCode] = useState("");
+  const [tfaBackupCodes, setTfaBackupCodes] = useState<string[]>([]);
+  const [tfaDisablePassword, setTfaDisablePassword] = useState("");
+  const [tfaLoading, setTfaLoading] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  const copyBackupCode = useCallback((code: string, idx: number) => {
+    navigator.clipboard.writeText(code);
+    setCopiedIndex(idx);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  }, []);
+
+  const handleSetup2fa = async () => {
+    setTfaLoading(true);
+    try {
+      const data: any = await apiRequest("/api/auth/2fa/setup", { method: "GET" });
+      setTfaQr(data.qrDataUrl);
+      setTfaSecret(data.secret);
+      setTfaBackupCodes(data.backupCodes);
+      setTfaStep("setup");
+    } catch {
+      toast({ title: "Error", description: "Could not start 2FA setup.", variant: "destructive" });
+    } finally {
+      setTfaLoading(false);
+    }
+  };
+
+  const handleEnable2fa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTfaLoading(true);
+    try {
+      await apiRequest("/api/auth/2fa/enable", {
+        method: "POST",
+        body: JSON.stringify({ code: tfaCode.replace(/\s/g, ""), backupCodes: tfaBackupCodes }),
+        headers: { "Content-Type": "application/json" },
+      });
+      setTfaStep("backup");
+      queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+      toast({ title: "2FA enabled", description: "Your account is now protected." });
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Invalid code.", variant: "destructive" });
+    } finally {
+      setTfaLoading(false);
+      setTfaCode("");
+    }
+  };
+
+  const handleDisable2fa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTfaLoading(true);
+    try {
+      await apiRequest("/api/auth/2fa/disable", {
+        method: "POST",
+        body: JSON.stringify({ password: tfaDisablePassword }),
+        headers: { "Content-Type": "application/json" },
+      });
+      setTfaStep("idle");
+      setTfaDisablePassword("");
+      queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+      toast({ title: "2FA disabled", description: "Two-factor authentication has been turned off." });
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Could not disable 2FA.", variant: "destructive" });
+    } finally {
+      setTfaLoading(false);
+    }
+  };
 
   const updateMutation = useUpdateUser({
     mutation: {
@@ -265,6 +336,127 @@ export default function Settings() {
               Change password
             </Button>
           </form>
+        </div>
+
+        {/* Two-Factor Authentication */}
+        <div className="bg-card border border-border rounded-xl p-6">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="font-semibold">Two-factor authentication</h3>
+            {twoFactorEnabled && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#3A5A40] bg-[#3A5A40]/10 px-2.5 py-1 rounded-full">
+                <ShieldCheck className="w-3.5 h-3.5" /> Enabled
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Add an extra layer of security with a one-time code from an authenticator app
+          </p>
+
+          {/* Idle — not enabled */}
+          {!twoFactorEnabled && tfaStep === "idle" && (
+            <Button onClick={handleSetup2fa} disabled={tfaLoading} className="bg-[#3A5A40] hover:bg-[#344E41]">
+              {tfaLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
+              Set up authenticator app
+            </Button>
+          )}
+
+          {/* Step 1 — show QR code */}
+          {tfaStep === "setup" && (
+            <div className="space-y-5">
+              <div>
+                <p className="text-sm font-medium mb-3">1. Scan this QR code with your authenticator app</p>
+                <div className="inline-block p-3 bg-white border border-border rounded-xl">
+                  <img src={tfaQr} alt="2FA QR code" className="w-44 h-44" />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Can't scan? Enter this code manually: <code className="font-mono bg-muted px-1.5 py-0.5 rounded text-xs select-all">{tfaSecret}</code>
+                </p>
+              </div>
+              <form onSubmit={handleEnable2fa} className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="tfa-code">2. Enter the 6-digit code to verify</Label>
+                  <Input
+                    id="tfa-code"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="000 000"
+                    value={tfaCode}
+                    onChange={e => setTfaCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
+                    className="max-w-[160px] text-center font-mono text-lg tracking-widest"
+                    maxLength={6}
+                    autoFocus
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" className="bg-[#3A5A40] hover:bg-[#344E41]" disabled={tfaLoading || tfaCode.length < 6}>
+                    {tfaLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Verify and enable
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={() => setTfaStep("idle")}>Cancel</Button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Step 2 — show backup codes */}
+          {tfaStep === "backup" && (
+            <div className="space-y-4">
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <p className="text-sm font-semibold text-amber-800 mb-1">Save your backup codes</p>
+                <p className="text-xs text-amber-700">Store these somewhere safe. Each code can only be used once if you lose access to your authenticator app.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {tfaBackupCodes.map((code, idx) => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => copyBackupCode(code, idx)}
+                    className="flex items-center justify-between px-3 py-2 bg-muted rounded-lg font-mono text-sm hover:bg-muted/80 transition-colors"
+                  >
+                    <span>{code}</span>
+                    {copiedIndex === idx ? <Check className="w-3.5 h-3.5 text-[#3A5A40]" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
+                  </button>
+                ))}
+              </div>
+              <Button onClick={() => setTfaStep("idle")} className="bg-[#3A5A40] hover:bg-[#344E41]">
+                Done — I've saved my codes
+              </Button>
+            </div>
+          )}
+
+          {/* Enabled — show disable option */}
+          {twoFactorEnabled && tfaStep === "idle" && (
+            <Button
+              variant="outline"
+              className="border-red-200 text-red-600 hover:bg-red-50"
+              onClick={() => setTfaStep("disable")}
+            >
+              <ShieldOff className="w-4 h-4 mr-2" />
+              Disable two-factor authentication
+            </Button>
+          )}
+
+          {/* Disable confirmation */}
+          {tfaStep === "disable" && (
+            <form onSubmit={handleDisable2fa} className="space-y-3 max-w-sm">
+              <p className="text-sm text-muted-foreground">Enter your password to confirm disabling 2FA</p>
+              <Input
+                type="password"
+                placeholder="Your current password"
+                value={tfaDisablePassword}
+                onChange={e => setTfaDisablePassword(e.target.value)}
+                autoFocus
+                required
+              />
+              <div className="flex gap-2">
+                <Button type="submit" variant="destructive" disabled={tfaLoading || !tfaDisablePassword}>
+                  {tfaLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Disable 2FA
+                </Button>
+                <Button type="button" variant="ghost" onClick={() => { setTfaStep("idle"); setTfaDisablePassword(""); }}>Cancel</Button>
+              </div>
+            </form>
+          )}
         </div>
 
         {/* Payment methods */}

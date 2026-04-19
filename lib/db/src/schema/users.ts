@@ -20,6 +20,9 @@ export const usersTable = pgTable("users", {
   motivation: text("motivation"),
   passwordResetToken: text("password_reset_token"),
   passwordResetTokenExpiry: timestamp("password_reset_token_expiry", { withTimezone: true }),
+  twoFactorSecret: text("two_factor_secret"),
+  twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
+  twoFactorBackupCodes: text("two_factor_backup_codes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
