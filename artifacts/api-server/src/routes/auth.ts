@@ -16,6 +16,7 @@ function formatUser(u: typeof usersTable.$inferSelect) {
     organizationId: u.organizationId ?? null,
     phoneNumber: u.phoneNumber ?? null,
     isActive: u.isActive,
+    motivation: u.motivation ?? null,
     createdAt: u.createdAt.toISOString(),
   };
 }
@@ -27,7 +28,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     return;
   }
 
-  const { name, email, password, role } = parsed.data;
+  const { name, email, password, role, motivation } = parsed.data;
 
   const existing = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
   if (existing.length > 0) {
@@ -41,6 +42,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     email,
     passwordHash,
     role: role ?? "member",
+    motivation: motivation ?? null,
   }).returning();
 
   req.session.userId = user.id;

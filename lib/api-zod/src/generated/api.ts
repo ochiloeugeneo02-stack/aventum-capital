@@ -28,6 +28,7 @@ export const RegisterUserBody = zod.object({
   role: zod
     .enum(["member", "group_admin", "org_admin", "super_admin"])
     .default(registerUserBodyRoleDefault),
+  motivation: zod.string().optional(),
 });
 
 /**

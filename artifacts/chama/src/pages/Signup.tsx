@@ -21,6 +21,7 @@ const MOTIVATIONS = [
   { id: "concert",         emoji: "🎵", label: "Save for concert" },
   { id: "car_down",        emoji: "🚘", label: "Save for car down payment" },
   { id: "vacation",        emoji: "✈️", label: "Save for family vacation" },
+  { id: "other",           emoji: "✏️", label: "Other" },
 ];
 
 const LEFT_PANEL: Record<string, { heading: string; body: string }> = {
@@ -40,6 +41,7 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState(region.code);
   const [selectedMotivation, setSelectedMotivation] = useState<string | null>(null);
+  const [otherMotivation, setOtherMotivation] = useState("");
 
   if (isAuthenticated) {
     navigate("/dashboard");
@@ -50,9 +52,6 @@ export default function Signup() {
     mutation: {
       onSuccess: async (data) => {
         setUser(data.user as any);
-        if (selectedMotivation) {
-          localStorage.setItem("aventum_motivation", selectedMotivation);
-        }
         toast({ title: "Account created!", description: `Welcome, ${data.user.name}` });
         const pendingToken = localStorage.getItem("aventum_pending_invite");
         if (pendingToken) {
@@ -82,14 +81,19 @@ export default function Signup() {
     setStep("motivation");
   };
 
+  const resolvedMotivation = selectedMotivation === "other"
+    ? otherMotivation.trim()
+    : (MOTIVATIONS.find(m => m.id === selectedMotivation)?.label ?? null);
+
   const handleMotivationContinue = () => {
+    if (selectedMotivation === "other" && !otherMotivation.trim()) return;
     setStep("account");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setRegion(selectedRegion);
-    registerMutation.mutate({ data: form as any });
+    registerMutation.mutate({ data: { ...form, motivation: resolvedMotivation ?? undefined } as any });
   };
 
   const selectedInfo = REGIONS[selectedRegion];
@@ -200,7 +204,7 @@ export default function Signup() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="grid grid-cols-2 gap-3 mb-4">
                 {MOTIVATIONS.map(m => (
                   <button
                     key={m.id}
@@ -224,10 +228,22 @@ export default function Signup() {
                 ))}
               </div>
 
+              {selectedMotivation === "other" && (
+                <div className="mb-4">
+                  <Input
+                    autoFocus
+                    placeholder="Tell us what you're saving for…"
+                    value={otherMotivation}
+                    onChange={e => setOtherMotivation(e.target.value)}
+                    className="border-[#3A5A40]/40 focus-visible:ring-[#3A5A40]/30"
+                  />
+                </div>
+              )}
+
               <Button
                 className="w-full bg-[#3A5A40] hover:bg-[#344E41] gap-2"
                 onClick={handleMotivationContinue}
-                disabled={!selectedMotivation}
+                disabled={!selectedMotivation || (selectedMotivation === "other" && !otherMotivation.trim())}
               >
                 Continue
                 <ChevronRight className="w-4 h-4" />
