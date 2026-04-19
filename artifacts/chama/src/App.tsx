@@ -22,6 +22,7 @@ import SuperAdmin from "@/pages/SuperAdmin";
 import InviteAccept from "@/pages/InviteAccept";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
+import SetupTwoFactor from "@/pages/SetupTwoFactor";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -54,6 +55,11 @@ function Router() {
       <Route path="/invite/:token" component={InviteAccept} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/setup-2fa">
+        <ProtectedRoute>
+          <SetupTwoFactor />
+        </ProtectedRoute>
+      </Route>
 
       <Route path="/dashboard">
         <ProtectedRoute>

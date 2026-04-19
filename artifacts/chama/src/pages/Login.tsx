@@ -50,7 +50,11 @@ export default function Login() {
         localStorage.removeItem("aventum_pending_invite");
       }
     }
-    navigate("/dashboard");
+    if (!user.twoFactorEnabled) {
+      navigate("/setup-2fa");
+    } else {
+      navigate("/dashboard");
+    }
   }
 
   async function handle2faSubmit(e: React.FormEvent) {
