@@ -196,7 +196,7 @@ export default function Landing() {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { num: "1", emoji: "👥", title: "Join a Group", desc: "Create or join a Chama group with 5 trusted members." },
-              { num: "2", emoji: "💳", title: "Contribute Regularly", desc: "Make weekly contributions of $250." },
+              { num: "2", emoji: "💳", title: "Make Weekly Contributions", desc: "Set up your recurring contribution and never miss a cycle." },
               { num: "3", emoji: "💰", title: "Receive Payouts", desc: "Get your turn to receive the full group collection." },
             ].map((item, i) => (
               <div key={item.num} className={`text-center reveal reveal-d${i + 1}`}>
