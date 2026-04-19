@@ -11,9 +11,13 @@ function formatUser(u: typeof usersTable.$inferSelect) {
     id: u.id,
     name: u.name,
     email: u.email,
+    username: u.username ?? null,
     role: u.role,
     organizationId: u.organizationId ?? null,
     phoneNumber: u.phoneNumber ?? null,
+    location: u.location ?? null,
+    emailMarketing: u.emailMarketing,
+    motivation: u.motivation ?? null,
     isActive: u.isActive,
     createdAt: u.createdAt.toISOString(),
   };
@@ -76,7 +80,10 @@ router.put("/users/:userId", requireAuth, async (req, res): Promise<void> => {
 
   const updateData: Record<string, unknown> = {};
   if (parsed.data.name !== undefined) updateData.name = parsed.data.name;
+  if (parsed.data.username !== undefined) updateData.username = parsed.data.username;
   if (parsed.data.phoneNumber !== undefined) updateData.phoneNumber = parsed.data.phoneNumber;
+  if (parsed.data.location !== undefined) updateData.location = parsed.data.location;
+  if (parsed.data.emailMarketing !== undefined) updateData.emailMarketing = parsed.data.emailMarketing;
   if (parsed.data.notificationEmail !== undefined) updateData.notificationEmail = parsed.data.notificationEmail;
   if (parsed.data.notificationSms !== undefined) updateData.notificationSms = parsed.data.notificationSms;
 

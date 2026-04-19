@@ -9,7 +9,10 @@ Digital rotational savings (chama) platform. Members contribute on a rotating sc
 - **Currency:** Groups store amounts in their native currency (set by admin's region at creation). `currency` column on `groups` table.
 - **Invitations:** Token-based (`invitations` table). Admins enter any email — if user has an account they're added directly; if not, a shareable invite link is generated (and email sent if SMTP configured). Frontend invite accept page at `/invite/:token`.
 - **Email:** `artifacts/api-server/src/lib/email.ts` — styled HTML template. Requires `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` env vars to send; otherwise returns invite URL.
-- **Region system:** `RegionContext.tsx` — 9 regions auto-detected from timezone/language. Stored in `localStorage("aventum_region")`. Signup flow: Step 1 = region picker, Step 2 = account details.
+- **Region system:** `RegionContext.tsx` — 9 regions auto-detected from timezone/language. Stored in `localStorage("aventum_region")`. Signup flow: Step 1 = region picker, Step 2 = motivation, Step 3 = account details.
+- **Forgot/Reset password:** `/forgot-password` and `/reset-password` pages. Backend endpoints `/auth/forgot-password` and `/auth/reset-password` with crypto token + 1hr expiry. Email sent via Resend if `RESEND_API_KEY` is set, otherwise token URL logged. "Forgot password?" link on Login page.
+- **Change password:** Authenticated `/auth/change-password` endpoint. Form in Settings page.
+- **Extended user profile:** `users` table has `username` (unique), `location`, `emailMarketing`, `passwordResetToken`, `passwordResetTokenExpiry` columns. Signup step 3 collects username, phone, location (geolocation), email marketing consent. Settings page has full profile editor + change password form.
 
 ## Key Zod schemas (api-zod/src/generated/api.ts)
 - `CreateGroupBody` — includes `currency?: string`

@@ -24,7 +24,11 @@ export const registerUserBodyRoleDefault = `member`;
 export const RegisterUserBody = zod.object({
   name: zod.string(),
   email: zod.string().email(),
+  username: zod.string().optional(),
   password: zod.string().min(registerUserBodyPasswordMin),
+  phoneNumber: zod.string().optional(),
+  location: zod.string().optional(),
+  emailMarketing: zod.boolean().optional(),
   role: zod
     .enum(["member", "group_admin", "org_admin", "super_admin"])
     .default(registerUserBodyRoleDefault),
@@ -132,7 +136,10 @@ export const UpdateUserParams = zod.object({
 
 export const UpdateUserBody = zod.object({
   name: zod.string().optional(),
+  username: zod.string().optional(),
   phoneNumber: zod.string().optional(),
+  location: zod.string().optional(),
+  emailMarketing: zod.boolean().optional(),
   notificationEmail: zod.boolean().optional(),
   notificationSms: zod.boolean().optional(),
 });
@@ -141,9 +148,13 @@ export const UpdateUserResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   email: zod.string(),
+  username: zod.string().nullish(),
   role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
   organizationId: zod.number().nullish(),
   phoneNumber: zod.string().nullish(),
+  location: zod.string().nullish(),
+  emailMarketing: zod.boolean().optional(),
+  motivation: zod.string().nullish(),
   isActive: zod.boolean(),
   createdAt: zod.coerce.date(),
 });

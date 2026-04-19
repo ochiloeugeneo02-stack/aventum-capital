@@ -177,6 +177,70 @@ export function buildInviteEmailHtml(data: InviteEmailData): string {
 </html>`;
 }
 
+interface PasswordResetEmailData {
+  email: string;
+  name: string;
+  token: string;
+  appBaseUrl: string;
+}
+
+export async function sendPasswordResetEmail(data: PasswordResetEmailData): Promise<boolean> {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.EMAIL_FROM ?? "Aventum Capital <onboarding@resend.dev>";
+  const resetUrl = `${data.appBaseUrl}/reset-password?token=${data.token}`;
+  const year = new Date().getFullYear();
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="margin:0;padding:0;background:#f5f4f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f0;padding:40px 16px 64px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;margin:0 auto;">
+        <tr><td align="center" style="padding-bottom:24px;">
+          <div style="font-size:22px;font-weight:700;color:#344E41;">Aventum<span style="color:#588157;">.</span></div>
+          <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:2px;text-transform:uppercase;margin-top:2px;">Capital</div>
+        </td></tr>
+        <tr><td style="background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 32px rgba(0,0,0,0.08);">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="background:linear-gradient(135deg,#344E41 0%,#3A5A40 100%);padding:40px 40px 36px;text-align:center;">
+              <div style="font-size:26px;font-weight:700;color:#ffffff;line-height:1.3;margin-bottom:8px;">Reset your password</div>
+              <div style="font-size:15px;color:rgba(255,255,255,0.65);">Hi ${data.name}, we received your request</div>
+            </td></tr>
+            <tr><td style="padding:36px 40px 28px;">
+              <p style="font-size:16px;color:#374151;line-height:1.6;margin:0 0 24px;">Click the button below to reset your password. This link expires in <strong>1 hour</strong>.</p>
+              <a href="${resetUrl}" style="display:block;background:linear-gradient(135deg,#3A5A40 0%,#344E41 100%);color:#ffffff;text-decoration:none;text-align:center;padding:16px 32px;border-radius:12px;font-size:16px;font-weight:600;">Reset password →</a>
+              <p style="font-size:13px;color:#9ca3af;margin:20px 0 0;text-align:center;">Or copy this link: <a href="${resetUrl}" style="color:#588157;text-decoration:none;word-break:break-all;">${resetUrl}</a></p>
+              <p style="font-size:13px;color:#9ca3af;margin:16px 0 0;text-align:center;">If you didn't request this, you can safely ignore this email.</p>
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td align="center" style="padding-top:28px;">
+          <p style="font-size:12px;color:#9ca3af;margin:0;">© ${year} Aventum Capital. All rights reserved.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  if (resendApiKey) {
+    try {
+      const { Resend } = await import("resend");
+      const resend = new Resend(resendApiKey);
+      const { error } = await resend.emails.send({ from: fromEmail, to: data.email, subject: "Reset your Aventum password", html });
+      if (error) { logger.error({ error }, "Resend password reset error"); return false; }
+      logger.info({ email: data.email }, "Password reset email sent via Resend");
+      return true;
+    } catch (err) {
+      logger.error({ err }, "Resend password reset failed");
+      return false;
+    }
+  }
+
+  logger.info({ email: data.email, resetUrl }, "No email provider — password reset link generated only");
+  return false;
+}
+
 export async function sendInviteEmail(data: InviteEmailData): Promise<boolean> {
   const resendApiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.EMAIL_FROM ?? "Aventum Capital <onboarding@resend.dev>";

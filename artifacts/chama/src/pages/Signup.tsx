@@ -8,8 +8,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Loader2, ChevronRight, Globe } from "lucide-react";
+import { Eye, EyeOff, Loader2, ChevronRight, Globe, MapPin, CheckSquare, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+async function reverseGeocode(lat: number, lon: number): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
+      { headers: { "Accept-Language": "en" } }
+    );
+    const data = await res.json();
+    const city = data.address?.city ?? data.address?.town ?? data.address?.village ?? "";
+    const country = data.address?.country ?? "";
+    return [city, country].filter(Boolean).join(", ");
+  } catch {
+    return "";
+  }
+}
 
 const FEATURED_REGIONS = ["KE", "US", "GB", "EU", "NG", "CA", "AU", "TZ", "UG"];
 
@@ -37,11 +52,13 @@ export default function Signup() {
   const { toast } = useToast();
 
   const [step, setStep] = useState<"region" | "motivation" | "account">("region");
-  const [form, setForm] = useState({ name: "", email: "", password: "", role: "member" });
+  const [form, setForm] = useState({ name: "", email: "", username: "", password: "", role: "member", phoneNumber: "", emailMarketing: false });
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState(region.code);
   const [selectedMotivation, setSelectedMotivation] = useState<string | null>(null);
   const [otherMotivation, setOtherMotivation] = useState("");
+  const [location, setLocation] = useState("");
+  const [locationLoading, setLocationLoading] = useState(false);
 
   if (isAuthenticated) {
     navigate("/dashboard");
@@ -90,10 +107,35 @@ export default function Signup() {
     setStep("account");
   };
 
+  const handleRequestLocation = () => {
+    if (!navigator.geolocation) {
+      toast({ title: "Location not available", description: "Your browser doesn't support location services." });
+      return;
+    }
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const label = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+        setLocation(label || `${pos.coords.latitude.toFixed(2)}, ${pos.coords.longitude.toFixed(2)}`);
+        setLocationLoading(false);
+      },
+      () => {
+        setLocationLoading(false);
+        toast({ title: "Location denied", description: "You can still sign up — location is optional." });
+      }
+    );
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setRegion(selectedRegion);
-    registerMutation.mutate({ data: { ...form, motivation: resolvedMotivation ?? undefined } as any });
+    registerMutation.mutate({
+      data: {
+        ...form,
+        motivation: resolvedMotivation ?? undefined,
+        location: location || undefined,
+      } as any,
+    });
   };
 
   const selectedInfo = REGIONS[selectedRegion];
@@ -278,16 +320,27 @@ export default function Signup() {
                 <p className="text-muted-foreground mt-1">Step 3 of 3 — your account details</p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full name</Label>
-                  <Input
-                    id="name"
-                    placeholder="Grace Wanjiku"
-                    value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                    required
-                  />
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full name</Label>
+                    <Input
+                      id="name"
+                      placeholder="Grace Wanjiku"
+                      value={form.name}
+                      onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Username</Label>
+                    <Input
+                      id="username"
+                      placeholder="grace_w"
+                      value={form.username}
+                      onChange={e => setForm(f => ({ ...f, username: e.target.value.toLowerCase().replace(/\s/g, "_") }))}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -298,6 +351,16 @@ export default function Signup() {
                     value={form.email}
                     onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                     required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="+1 555 000 0000"
+                    value={form.phoneNumber}
+                    onChange={e => setForm(f => ({ ...f, phoneNumber: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -322,6 +385,30 @@ export default function Signup() {
                     </button>
                   </div>
                 </div>
+
+                {/* Location */}
+                <div className="space-y-2">
+                  <Label>Location <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                  {location ? (
+                    <div className="flex items-center gap-2 p-3 rounded-xl border-2 border-[#3A5A40] bg-[#3A5A40]/5">
+                      <MapPin className="w-4 h-4 text-[#3A5A40] shrink-0" />
+                      <span className="text-sm text-[#3A5A40] flex-1">{location}</span>
+                      <button type="button" onClick={() => setLocation("")} className="text-xs text-muted-foreground hover:text-foreground">Clear</button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleRequestLocation}
+                      disabled={locationLoading}
+                      className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-dashed border-border hover:border-[#3A5A40]/40 text-sm text-muted-foreground hover:text-foreground transition-all"
+                    >
+                      {locationLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+                      {locationLoading ? "Detecting location…" : "Allow location access"}
+                    </button>
+                  )}
+                </div>
+
+                {/* Account type */}
                 <div className="space-y-2">
                   <Label>Account type</Label>
                   <div className="grid grid-cols-2 gap-3">
@@ -346,6 +433,20 @@ export default function Signup() {
                     ))}
                   </div>
                 </div>
+
+                {/* Email marketing consent */}
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, emailMarketing: !f.emailMarketing }))}
+                  className="w-full flex items-start gap-3 p-3 rounded-xl border border-border hover:border-[#3A5A40]/30 text-left transition-colors"
+                >
+                  {form.emailMarketing
+                    ? <CheckSquare className="w-4 h-4 text-[#3A5A40] shrink-0 mt-0.5" />
+                    : <Square className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />}
+                  <span className="text-xs text-muted-foreground leading-relaxed">
+                    I'd like to receive savings tips, group updates, and promotional emails from Aventum Capital. You can unsubscribe any time.
+                  </span>
+                </button>
 
                 <Button
                   type="submit"

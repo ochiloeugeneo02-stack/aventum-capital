@@ -20,6 +20,8 @@ import AdminGroup from "@/pages/AdminGroup";
 import Organization from "@/pages/Organization";
 import SuperAdmin from "@/pages/SuperAdmin";
 import InviteAccept from "@/pages/InviteAccept";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -50,6 +52,8 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/invite/:token" component={InviteAccept} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
 
       <Route path="/dashboard">
         <ProtectedRoute>

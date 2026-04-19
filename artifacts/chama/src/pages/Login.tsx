@@ -137,7 +137,13 @@ export default function Login() {
             </div>
           </div>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
+          <div className="mt-5 text-center">
+            <a href="/forgot-password" className="text-sm text-[#3A5A40] hover:underline">
+              Forgot your password?
+            </a>
+          </div>
+
+          <p className="mt-4 text-center text-sm text-muted-foreground">
             Don't have an account?{" "}
             <a href="/signup" className="text-[#3A5A40] font-medium hover:underline">Sign up</a>
           </p>
