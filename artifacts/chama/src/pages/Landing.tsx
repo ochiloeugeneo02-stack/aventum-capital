@@ -266,7 +266,7 @@ export default function Landing() {
       </section>
 
       {/* ── Pricing ─────────────────────────────────────────── */}
-      <section className="bg-white py-16">
+      <section id="pricing" className="bg-white py-16">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-2xl font-bold text-center text-gray-900 mb-2 reveal">Powerful features for powerful people</h2>
           <p className="text-center text-gray-500 text-sm mb-12 reveal reveal-d1">Choose the plan that fits your savings goals</p>
@@ -294,7 +294,7 @@ export default function Landing() {
                 <span className="bg-[#3A5A40] text-white text-xs font-semibold px-3 py-1 rounded-full">Most Popular</span>
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 mb-1">Group of 1</h3>
+                <h3 className="font-semibold text-gray-900 mb-1">Group 1</h3>
                 <p className="text-xs text-gray-500 mb-4">Ideal for individuals looking for a solo savings group</p>
                 <div className="text-3xl font-bold text-gray-900 mb-6">$50 <span className="text-sm font-normal text-gray-400">/ month</span></div>
               </div>
@@ -385,7 +385,7 @@ export default function Landing() {
               <ul className="space-y-2 text-xs text-white/50">
                 {[
                   { label: "How it works", href: "#" },
-                  { label: "Pricing", href: "#" },
+                  { label: "Pricing", href: "#pricing" },
                   { label: "Security", href: "#" },
                   { label: "Support", href: "mailto:info@aventumcapital.com" },
                 ].map(l => <li key={l.label}><a href={l.href} className="hover:text-white transition-colors">{l.label}</a></li>)}
