@@ -13,16 +13,33 @@ import { cn } from "@/lib/utils";
 
 const FEATURED_REGIONS = ["KE", "US", "GB", "EU", "NG", "CA", "AU", "TZ", "UG"];
 
+const MOTIVATIONS = [
+  { id: "car_note",        emoji: "🚗", label: "Pay car note" },
+  { id: "rent",            emoji: "🏠", label: "Pay rent" },
+  { id: "school",          emoji: "🎓", label: "Pay for school" },
+  { id: "house_down",      emoji: "🏡", label: "Save for house down payment" },
+  { id: "concert",         emoji: "🎵", label: "Save for concert" },
+  { id: "car_down",        emoji: "🚘", label: "Save for car down payment" },
+  { id: "vacation",        emoji: "✈️", label: "Save for family vacation" },
+];
+
+const LEFT_PANEL: Record<string, { heading: string; body: string }> = {
+  region:     { heading: "Where are you based?",          body: "We'll show contribution amounts and payouts in your local currency, so everything feels familiar." },
+  motivation: { heading: "What's driving you?",           body: "Tell us your savings goal and we'll help you find the right group to get there faster." },
+  account:    { heading: "Almost there!",                  body: "Create your account and you'll be matched with a savings group that fits your goal." },
+};
+
 export default function Signup() {
   const [, navigate] = useLocation();
   const { setUser, isAuthenticated } = useAuth();
   const { region, setRegion } = useRegion();
   const { toast } = useToast();
 
-  const [step, setStep] = useState<"region" | "account">("region");
+  const [step, setStep] = useState<"region" | "motivation" | "account">("region");
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "member" });
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState(region.code);
+  const [selectedMotivation, setSelectedMotivation] = useState<string | null>(null);
 
   if (isAuthenticated) {
     navigate("/dashboard");
@@ -33,6 +50,9 @@ export default function Signup() {
     mutation: {
       onSuccess: async (data) => {
         setUser(data.user as any);
+        if (selectedMotivation) {
+          localStorage.setItem("aventum_motivation", selectedMotivation);
+        }
         toast({ title: "Account created!", description: `Welcome, ${data.user.name}` });
         const pendingToken = localStorage.getItem("aventum_pending_invite");
         if (pendingToken) {
@@ -59,6 +79,10 @@ export default function Signup() {
 
   const handleRegionContinue = () => {
     setRegion(selectedRegion);
+    setStep("motivation");
+  };
+
+  const handleMotivationContinue = () => {
     setStep("account");
   };
 
@@ -69,6 +93,8 @@ export default function Signup() {
   };
 
   const selectedInfo = REGIONS[selectedRegion];
+  const stepIndex = step === "region" ? 0 : step === "motivation" ? 1 : 2;
+  const panel = LEFT_PANEL[step];
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -81,21 +107,23 @@ export default function Signup() {
           <Logo variant="white" />
         </a>
         <div className="max-w-md">
-          <div className="text-5xl mb-6">{selectedInfo.flag}</div>
-          <h2 className="text-3xl font-bold text-white mb-4">
-            {step === "region"
-              ? "Where are you based?"
-              : `Welcome from ${selectedInfo.name}`}
-          </h2>
-          <p className="text-white/60 leading-relaxed">
-            {step === "region"
-              ? "We'll show contribution amounts and payouts in your local currency, so everything feels familiar."
-              : `You'll see all amounts in ${selectedInfo.currency}. You can change this anytime from the top menu.`}
-          </p>
+          <div className="text-5xl mb-6">
+            {step === "region" ? selectedInfo.flag : step === "motivation" ? "🎯" : "✅"}
+          </div>
+          <h2 className="text-3xl font-bold text-white mb-4">{panel.heading}</h2>
+          <p className="text-white/60 leading-relaxed">{panel.body}</p>
         </div>
+        {/* Step dots */}
         <div className="flex gap-2">
-          <div className={cn("h-1.5 rounded-full w-8 transition-colors", step === "region" ? "bg-white" : "bg-white/30")} />
-          <div className={cn("h-1.5 rounded-full w-8 transition-colors", step === "account" ? "bg-white" : "bg-white/30")} />
+          {[0, 1, 2].map(i => (
+            <div
+              key={i}
+              className={cn(
+                "h-1.5 rounded-full transition-all duration-300",
+                i === stepIndex ? "bg-white w-8" : i < stepIndex ? "bg-white/60 w-5" : "bg-white/30 w-5"
+              )}
+            />
+          ))}
         </div>
       </div>
 
@@ -112,7 +140,7 @@ export default function Signup() {
               <div className="mb-8">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                   <Globe className="w-3.5 h-3.5" />
-                  <span>Step 1 of 2</span>
+                  <span>Step 1 of 3</span>
                 </div>
                 <h1 className="text-2xl font-bold">Where are you based?</h1>
                 <p className="text-muted-foreground mt-1">
@@ -158,7 +186,64 @@ export default function Signup() {
             </div>
           )}
 
-          {/* Step 2: Account details */}
+          {/* Step 2: Motivation */}
+          {step === "motivation" && (
+            <div>
+              <div className="mb-8">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                  <span className="text-base">🎯</span>
+                  <span>Step 2 of 3</span>
+                </div>
+                <h1 className="text-2xl font-bold">What's your savings goal?</h1>
+                <p className="text-muted-foreground mt-1">
+                  Pick the one that best describes what you're saving towards.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                {MOTIVATIONS.map(m => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setSelectedMotivation(m.id)}
+                    className={cn(
+                      "flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all",
+                      selectedMotivation === m.id
+                        ? "border-[#3A5A40] bg-[#3A5A40]/5 shadow-sm"
+                        : "border-border hover:border-[#3A5A40]/30 hover:bg-muted/30"
+                    )}
+                  >
+                    <span className="text-2xl leading-none shrink-0">{m.emoji}</span>
+                    <span className={cn(
+                      "text-xs font-medium leading-snug",
+                      selectedMotivation === m.id ? "text-[#3A5A40]" : "text-foreground"
+                    )}>
+                      {m.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <Button
+                className="w-full bg-[#3A5A40] hover:bg-[#344E41] gap-2"
+                onClick={handleMotivationContinue}
+                disabled={!selectedMotivation}
+              >
+                Continue
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+
+              <button
+                type="button"
+                onClick={() => setStep("region")}
+                className="mt-4 w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                ← Back
+              </button>
+            </div>
+          )}
+
+          {/* Step 3: Account details */}
           {step === "account" && (
             <div>
               <div className="mb-8">
@@ -174,7 +259,7 @@ export default function Signup() {
                   </button>
                 </div>
                 <h1 className="text-2xl font-bold">Create your account</h1>
-                <p className="text-muted-foreground mt-1">Step 2 of 2 — your account details</p>
+                <p className="text-muted-foreground mt-1">Step 3 of 3 — your account details</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">
@@ -256,7 +341,15 @@ export default function Signup() {
                 </Button>
               </form>
 
-              <p className="mt-6 text-center text-sm text-muted-foreground">
+              <button
+                type="button"
+                onClick={() => setStep("motivation")}
+                className="mt-4 w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                ← Back
+              </button>
+
+              <p className="mt-4 text-center text-sm text-muted-foreground">
                 Already have an account?{" "}
                 <a href="/login" className="text-[#3A5A40] font-medium hover:underline">Sign in</a>
               </p>
