@@ -40,7 +40,7 @@ const MOTIVATIONS = [
 ];
 
 const LEFT_PANEL: Record<string, { heading: string; body: string }> = {
-  region:     { heading: "Where are you based?",          body: "We'll show contribution amounts and payouts in your local currency, so everything feels familiar." },
+  region:     { heading: "Where are you based?",          body: "This sets your display preference for how amounts are shown to you. Each group's actual currency is chosen by whoever creates it." },
   motivation: { heading: "What's driving you?",           body: "Tell us your savings goal and we'll help you find the right group to get there faster." },
   account:    { heading: "Almost there!",                  body: "Create your account and you'll be matched with a savings group that fits your goal." },
 };
@@ -190,7 +190,7 @@ export default function Signup() {
                 </div>
                 <h1 className="text-2xl font-bold">Where are you based?</h1>
                 <p className="text-muted-foreground mt-1">
-                  We'll show amounts in your local currency — you can change this any time.
+                  This sets how amounts are displayed to you. Each group's currency is set by whoever creates it.
                 </p>
               </div>
 
@@ -221,7 +221,7 @@ export default function Signup() {
                 className="w-full bg-[#3A5A40] hover:bg-[#344E41] gap-2"
                 onClick={handleRegionContinue}
               >
-                Continue with {selectedInfo.currency}
+                Continue
                 <ChevronRight className="w-4 h-4" />
               </Button>
 

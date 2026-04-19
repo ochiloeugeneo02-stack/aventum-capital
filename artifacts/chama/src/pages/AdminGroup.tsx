@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/StatusBadge";
-import { useRegion } from "@/contexts/RegionContext";
+import { useRegion, REGIONS } from "@/contexts/RegionContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
 import { Loader2, Plus, Users, Copy, Check, Mail, Link2, LogOut, Clock, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
@@ -214,6 +214,7 @@ export default function AdminGroup() {
   const [pendingInvite, setPendingInvite] = useState<{ url: string; email: string; groupId: number } | null>(null);
   const [createForm, setCreateForm] = useState({
     name: "",
+    currency: region.currency,
     contributionAmount: "",
     schedule: "bi-weekly",
     maxMembers: "5",
@@ -280,7 +281,7 @@ export default function AdminGroup() {
     createMutation.mutate({
       data: {
         name: createForm.name,
-        currency: region.currency,
+        currency: createForm.currency,
         contributionAmount: parseFloat(createForm.contributionAmount),
         schedule: createForm.schedule as any,
         maxMembers: parseInt(createForm.maxMembers, 10),
@@ -317,20 +318,33 @@ export default function AdminGroup() {
                 <Input placeholder="Nairobi Savings Circle" value={createForm.name} onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))} required />
               </div>
               <div className="space-y-2">
-                <Label>
-                  Contribution amount ({region.currency})
-                </Label>
+                <Label>Group currency</Label>
+                <select
+                  className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"
+                  value={createForm.currency}
+                  onChange={e => setCreateForm(f => ({ ...f, currency: e.target.value }))}
+                  required
+                >
+                  {Object.values(REGIONS).map(r => (
+                    <option key={r.currency} value={r.currency}>
+                      {r.flag} {r.currency} — {r.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  All contribution amounts and payouts for this group will be in {createForm.currency}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Contribution amount ({createForm.currency})</Label>
                 <Input
                   type="number"
-                  placeholder={region.code === "KE" ? "5000" : region.code === "US" ? "38" : "50"}
+                  placeholder="500"
                   value={createForm.contributionAmount}
                   onChange={e => setCreateForm(f => ({ ...f, contributionAmount: e.target.value }))}
                   required
                   min="1"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Stored in {region.currency} — all members will see amounts in the group's currency
-                </p>
               </div>
               <div className="space-y-2">
                 <Label>Schedule</Label>
