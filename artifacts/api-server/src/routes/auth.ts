@@ -7,6 +7,8 @@ import { hashPassword, verifyPassword, requireAuth } from "../lib/auth";
 import { createAuditLog } from "../lib/auditLog";
 import { sendPasswordResetEmail } from "../lib/email";
 import { logger } from "../lib/logger";
+import { authenticator } from "otplib";
+import QRCode from "qrcode";
 
 const router: IRouter = Router();
 
@@ -223,12 +225,9 @@ router.get("/auth/2fa/setup", requireAuth, async (req, res): Promise<void> => {
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId!)).limit(1);
   if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
-  const { authenticator } = await import("otplib");
-  const QRCode = await import("qrcode");
-
   const secret = authenticator.generateSecret();
   const otpauth = authenticator.keyuri(user.email, "Aventum Capital", secret);
-  const qrDataUrl = await QRCode.default.toDataURL(otpauth);
+  const qrDataUrl = await QRCode.toDataURL(otpauth);
 
   const backupCodes = Array.from({ length: 8 }, () =>
     crypto.randomBytes(4).toString("hex").toUpperCase()
