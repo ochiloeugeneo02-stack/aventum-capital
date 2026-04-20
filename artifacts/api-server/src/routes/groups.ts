@@ -6,7 +6,7 @@ import { CreateGroupBody, UpdateGroupBody, InviteMemberBody } from "@workspace/a
 import { createAuditLog } from "../lib/auditLog";
 import { formatUser } from "./users";
 import { createGroupInvitation } from "./invitations";
-import { sendGroupAddedEmail } from "../lib/email";
+import { sendGroupAddedEmail, sendMemberJoinedNotificationEmail, sendAdminAddedMemberEmail } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -347,11 +347,14 @@ router.post("/groups/:groupId/invite", requireAuth, async (req, res): Promise<vo
       details: existingUser.email,
     });
 
-    // Send notification email to the newly added member
     const appBaseUrl = (() => {
       const domain = process.env.REPLIT_DOMAINS?.split(",")[0];
       return domain ? `https://${domain}` : `http://localhost:${process.env.PORT ?? 8080}`;
     })();
+
+    const newTotalMembers = currentCount + 1;
+
+    // 1. Notify the newly added member
     sendGroupAddedEmail({
       email: existingUser.email,
       name: existingUser.name,
@@ -360,7 +363,43 @@ router.post("/groups/:groupId/invite", requireAuth, async (req, res): Promise<vo
       contributionAmount: `${group.currency} ${Number(group.contributionAmount).toLocaleString()}`,
       schedule: group.schedule,
       appBaseUrl,
-    }).catch(() => {}); // fire-and-forget
+    }).catch(() => {});
+
+    // 2. Notify all other existing members + send admin confirmation (fire-and-forget)
+    Promise.resolve().then(async () => {
+      try {
+        const existingMemberRecords = await db.select().from(groupMembersTable)
+          .where(and(eq(groupMembersTable.groupId, groupId), sql`${groupMembersTable.userId} != ${existingUser.id}`));
+        const otherUserIds = existingMemberRecords.map((m) => m.userId).filter((id) => id !== invitedByUserId);
+        const [otherUsers, inviterUser] = await Promise.all([
+          otherUserIds.length > 0 ? db.select().from(usersTable).where(inArray(usersTable.id, otherUserIds)) : Promise.resolve([]),
+          inviter ? Promise.resolve(inviter) : db.select().from(usersTable).where(eq(usersTable.id, invitedByUserId)).limit(1).then((r) => r[0]),
+        ]);
+        otherUsers.forEach((member) => {
+          sendMemberJoinedNotificationEmail({
+            email: member.email,
+            recipientName: member.name,
+            newMemberName: existingUser.name,
+            groupName: group.name,
+            totalMembers: newTotalMembers,
+            maxMembers: group.maxMembers,
+            appBaseUrl,
+          }).catch(() => {});
+        });
+        if (inviterUser && inviterUser.id !== existingUser.id) {
+          sendAdminAddedMemberEmail({
+            email: inviterUser.email,
+            adminName: inviterUser.name,
+            newMemberName: existingUser.name,
+            newMemberEmail: existingUser.email,
+            groupName: group.name,
+            totalMembers: newTotalMembers,
+            maxMembers: group.maxMembers,
+            appBaseUrl,
+          }).catch(() => {});
+        }
+      } catch (_err) {}
+    });
 
     res.json({ success: true, type: "direct", message: `${existingUser.name} has been added to the group` });
     return;

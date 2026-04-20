@@ -6,6 +6,7 @@ import { PayContributionBody } from "@workspace/api-zod";
 import { createAuditLog } from "../lib/auditLog";
 import { formatUser } from "./users";
 import { db as dbImport, usersTable } from "@workspace/db";
+import { sendContributionReceiptEmail, sendContributionActivityEmail } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -217,6 +218,52 @@ router.post("/contributions/pay", requireAuth, async (req, res): Promise<void> =
       status: newGroupStatus,
     }).where(eq(groupsTable.id, groupId));
   }
+
+  // Fire-and-forget contribution email notifications
+  const _allMembersSnap = allMembers;
+  const _paidCountSnap = paidContribs.length;
+  const _cycleSnap = cycle;
+  const _contributionSnap = contribution;
+  const _groupSnap = group;
+  Promise.resolve().then(async () => {
+    try {
+      const appBaseUrl = (() => {
+        const domain = process.env.REPLIT_DOMAINS?.split(",")[0];
+        return domain ? `https://${domain}` : `http://localhost:${process.env.PORT ?? 8080}`;
+      })();
+      const [contributor] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+      if (!contributor) return;
+      const amount = `${_groupSnap.currency} ${Number(_groupSnap.contributionAmount).toLocaleString()}`;
+      const paidAt = _contributionSnap.paidAt ?? new Date();
+      sendContributionReceiptEmail({
+        email: contributor.email,
+        name: contributor.name,
+        groupName: _groupSnap.name,
+        amount,
+        cycleNumber: _cycleSnap.cycleNumber,
+        paidAt,
+        appBaseUrl,
+      }).catch(() => {});
+      const otherMemberIds = _allMembersSnap.map((m) => m.userId).filter((id) => id !== userId);
+      if (otherMemberIds.length > 0) {
+        const otherUsers = await db.select().from(usersTable).where(inArray(usersTable.id, otherMemberIds));
+        otherUsers.forEach((member) => {
+          sendContributionActivityEmail({
+            email: member.email,
+            recipientName: member.name,
+            contributorName: contributor.name,
+            groupName: _groupSnap.name,
+            amount,
+            cycleNumber: _cycleSnap.cycleNumber,
+            paidAt,
+            paidCount: _paidCountSnap,
+            totalMembers: _allMembersSnap.length,
+            appBaseUrl,
+          }).catch(() => {});
+        });
+      }
+    } catch (_err) {}
+  });
 
   res.status(201).json(await formatContribution(contribution));
 });

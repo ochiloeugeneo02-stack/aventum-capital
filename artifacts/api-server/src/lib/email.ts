@@ -1,5 +1,56 @@
 import { logger } from "./logger";
 
+async function sendViaResend(to: string | string[], subject: string, html: string): Promise<boolean> {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.EMAIL_FROM ?? "Aventum Capital <onboarding@resend.dev>";
+  if (!resendApiKey) {
+    logger.info({ to }, "No email provider — email skipped");
+    return false;
+  }
+  try {
+    const { Resend } = await import("resend");
+    const resend = new Resend(resendApiKey);
+    const { error } = await resend.emails.send({ from: fromEmail, to, subject, html });
+    if (error) { logger.error({ error, to, subject }, "Resend delivery error"); return false; }
+    logger.info({ to, subject }, "Email sent via Resend");
+    return true;
+  } catch (err) {
+    logger.error({ err, to, subject }, "Resend send failed");
+    return false;
+  }
+}
+
+function buildEmailWrapper(opts: { headerTitle: string; headerSubtitle: string; bodyHtml: string }): string {
+  const year = new Date().getFullYear();
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="margin:0;padding:0;background:#f5f4f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f0;padding:40px 16px 64px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;">
+        <tr><td align="center" style="padding-bottom:24px;">
+          <div style="font-size:22px;font-weight:700;color:#344E41;">Aventum<span style="color:#588157;">.</span></div>
+          <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:2px;text-transform:uppercase;margin-top:2px;">Capital</div>
+        </td></tr>
+        <tr><td style="background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 32px rgba(0,0,0,0.08);">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="background:linear-gradient(135deg,#344E41 0%,#3A5A40 100%);padding:36px 40px;text-align:center;">
+              <div style="font-size:22px;font-weight:700;color:#ffffff;margin-bottom:6px;">${opts.headerTitle}</div>
+              <div style="font-size:14px;color:rgba(255,255,255,0.75);">${opts.headerSubtitle}</div>
+            </td></tr>
+            <tr><td style="padding:32px 40px 36px;">${opts.bodyHtml}</td></tr>
+          </table>
+        </td></tr>
+        <tr><td align="center" style="padding-top:28px;">
+          <p style="font-size:12px;color:#9ca3af;margin:0;">© ${year} Aventum Capital. All rights reserved.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
 interface InviteEmailData {
   inviteToken: string;
   inviteeName: string | null;
@@ -464,4 +515,167 @@ export async function sendInviteEmail(data: InviteEmailData): Promise<boolean> {
   // No email provider configured
   logger.info({ email: data.inviteeEmail, inviteUrl }, "No email provider configured — invite link generated only");
   return false;
+}
+
+function fmtDateTime(d: Date): string {
+  return d.toLocaleString("en-KE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Africa/Nairobi",
+  });
+}
+
+export async function sendMemberJoinedNotificationEmail(opts: {
+  email: string;
+  recipientName: string;
+  newMemberName: string;
+  groupName: string;
+  totalMembers: number;
+  maxMembers: number;
+  appBaseUrl: string;
+}): Promise<boolean> {
+  const dashboardUrl = `${opts.appBaseUrl}/groups`;
+  const html = buildEmailWrapper({
+    headerTitle: "New member joined your group",
+    headerSubtitle: `Activity update for ${opts.groupName}`,
+    bodyHtml: `
+      <p style="font-size:15px;color:#374151;margin:0 0 20px;">Hi <strong>${opts.recipientName}</strong>,</p>
+      <p style="font-size:15px;color:#374151;margin:0 0 24px;">
+        <strong>${opts.newMemberName}</strong> has just joined <strong>${opts.groupName}</strong>.
+        The group now has <strong>${opts.totalMembers}/${opts.maxMembers}</strong> members.
+      </p>
+      <div style="background:#f8faf8;border:1px solid #e5e7eb;border-radius:12px;padding:16px 20px;margin-bottom:24px;">
+        <div style="font-size:12px;font-weight:600;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Group</div>
+        <div style="font-size:16px;font-weight:700;color:#344E41;">${opts.groupName}</div>
+        <div style="font-size:13px;color:#6b7280;margin-top:4px;">${opts.totalMembers} of ${opts.maxMembers} spots filled</div>
+      </div>
+      <a href="${dashboardUrl}" style="display:block;background:linear-gradient(135deg,#3A5A40 0%,#344E41 100%);color:#ffffff;text-decoration:none;text-align:center;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:600;">View group →</a>`,
+  });
+  return sendViaResend(opts.email, `${opts.newMemberName} joined ${opts.groupName}`, html);
+}
+
+export async function sendAdminAddedMemberEmail(opts: {
+  email: string;
+  adminName: string;
+  newMemberName: string;
+  newMemberEmail: string;
+  groupName: string;
+  totalMembers: number;
+  maxMembers: number;
+  appBaseUrl: string;
+}): Promise<boolean> {
+  const dashboardUrl = `${opts.appBaseUrl}/groups`;
+  const html = buildEmailWrapper({
+    headerTitle: "Member added successfully",
+    headerSubtitle: `Confirmation for ${opts.groupName}`,
+    bodyHtml: `
+      <p style="font-size:15px;color:#374151;margin:0 0 20px;">Hi <strong>${opts.adminName}</strong>,</p>
+      <p style="font-size:15px;color:#374151;margin:0 0 24px;">
+        You've successfully added <strong>${opts.newMemberName}</strong> to <strong>${opts.groupName}</strong>.
+        They've been notified and can now participate in the group.
+      </p>
+      <div style="background:#f8faf8;border:1px solid #e5e7eb;border-radius:12px;padding:16px 20px;margin-bottom:24px;">
+        <div style="font-size:12px;font-weight:600;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">New member</div>
+        <div style="font-size:16px;font-weight:700;color:#1f2937;">${opts.newMemberName}</div>
+        <div style="font-size:13px;color:#6b7280;margin-top:2px;">${opts.newMemberEmail}</div>
+        <div style="font-size:13px;color:#6b7280;margin-top:8px;">Group now has <strong>${opts.totalMembers}/${opts.maxMembers}</strong> members</div>
+      </div>
+      <a href="${dashboardUrl}" style="display:block;background:linear-gradient(135deg,#3A5A40 0%,#344E41 100%);color:#ffffff;text-decoration:none;text-align:center;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:600;">View group →</a>`,
+  });
+  return sendViaResend(opts.email, `You added ${opts.newMemberName} to ${opts.groupName}`, html);
+}
+
+export async function sendContributionReceiptEmail(opts: {
+  email: string;
+  name: string;
+  groupName: string;
+  amount: string;
+  cycleNumber: number;
+  paidAt: Date;
+  appBaseUrl: string;
+}): Promise<boolean> {
+  const dashboardUrl = `${opts.appBaseUrl}/groups`;
+  const html = buildEmailWrapper({
+    headerTitle: "Contribution confirmed",
+    headerSubtitle: `Your payment for ${opts.groupName} has been recorded`,
+    bodyHtml: `
+      <p style="font-size:15px;color:#374151;margin:0 0 20px;">Hi <strong>${opts.name}</strong>,</p>
+      <p style="font-size:15px;color:#374151;margin:0 0 24px;">
+        Your contribution to <strong>${opts.groupName}</strong> has been recorded successfully.
+      </p>
+      <div style="background:#f8faf8;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:24px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td width="50%" style="padding:16px 20px;border-right:1px solid #e5e7eb;">
+              <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Amount paid</div>
+              <div style="font-size:20px;font-weight:700;color:#344E41;">${opts.amount}</div>
+            </td>
+            <td width="50%" style="padding:16px 20px;">
+              <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Cycle</div>
+              <div style="font-size:20px;font-weight:700;color:#344E41;">#${opts.cycleNumber}</div>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2" style="padding:0 20px 16px;border-top:1px solid #e5e7eb;padding-top:12px;">
+              <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Paid at</div>
+              <div style="font-size:14px;color:#374151;">${fmtDateTime(opts.paidAt)}</div>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <a href="${dashboardUrl}" style="display:block;background:linear-gradient(135deg,#3A5A40 0%,#344E41 100%);color:#ffffff;text-decoration:none;text-align:center;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:600;">View my groups →</a>`,
+  });
+  return sendViaResend(opts.email, `Contribution confirmed — ${opts.groupName}`, html);
+}
+
+export async function sendContributionActivityEmail(opts: {
+  email: string;
+  recipientName: string;
+  contributorName: string;
+  groupName: string;
+  amount: string;
+  cycleNumber: number;
+  paidAt: Date;
+  paidCount: number;
+  totalMembers: number;
+  appBaseUrl: string;
+}): Promise<boolean> {
+  const dashboardUrl = `${opts.appBaseUrl}/groups`;
+  const allPaid = opts.paidCount >= opts.totalMembers;
+  const html = buildEmailWrapper({
+    headerTitle: "Contribution made",
+    headerSubtitle: `Activity update for ${opts.groupName}`,
+    bodyHtml: `
+      <p style="font-size:15px;color:#374151;margin:0 0 20px;">Hi <strong>${opts.recipientName}</strong>,</p>
+      <p style="font-size:15px;color:#374151;margin:0 0 24px;">
+        <strong>${opts.contributorName}</strong> has made their contribution to <strong>${opts.groupName}</strong>.
+      </p>
+      <div style="background:#f8faf8;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:24px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td width="50%" style="padding:16px 20px;border-right:1px solid #e5e7eb;">
+              <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Amount</div>
+              <div style="font-size:20px;font-weight:700;color:#344E41;">${opts.amount}</div>
+            </td>
+            <td width="50%" style="padding:16px 20px;">
+              <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Cycle</div>
+              <div style="font-size:20px;font-weight:700;color:#344E41;">#${opts.cycleNumber}</div>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2" style="padding:0 20px 16px;border-top:1px solid #e5e7eb;padding-top:12px;">
+              <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Paid at</div>
+              <div style="font-size:14px;color:#374151;">${fmtDateTime(opts.paidAt)}</div>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div style="background:${allPaid ? "#f0faf4" : "#fffbf0"};border:1px solid ${allPaid ? "#86efac" : "#fde68a"};border-radius:10px;padding:14px 18px;margin-bottom:24px;font-size:14px;color:#374151;">
+        ${allPaid
+          ? `✅ All <strong>${opts.totalMembers}</strong> members have paid this cycle. The pool is being disbursed!`
+          : `<strong>${opts.paidCount} of ${opts.totalMembers}</strong> members have contributed so far this cycle.`}
+      </div>
+      <a href="${dashboardUrl}" style="display:block;background:linear-gradient(135deg,#3A5A40 0%,#344E41 100%);color:#ffffff;text-decoration:none;text-align:center;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:600;">View group →</a>`,
+  });
+  return sendViaResend(opts.email, `${opts.contributorName} made a contribution to ${opts.groupName}`, html);
 }
