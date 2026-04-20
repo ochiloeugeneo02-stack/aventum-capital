@@ -19,6 +19,32 @@ function maskEmail(email: string): string {
   return `${local.slice(0, 2)}***@${domain}`;
 }
 
+// ─── Signed 2FA token helpers (bypasses cookie/session for the OTP handoff) ──
+
+function get2faSecret(): string {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) throw new Error("SESSION_SECRET not set");
+  return secret;
+}
+
+function sign2faToken(payload: { userId: number; otp: string; expiry: number }): string {
+  const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const sig = crypto.createHmac("sha256", get2faSecret()).update(data).digest("base64url");
+  return `${data}.${sig}`;
+}
+
+function verify2faToken(token: string): { userId: number; otp: string; expiry: number } | null {
+  try {
+    const [data, sig] = token.split(".");
+    if (!data || !sig) return null;
+    const expected = crypto.createHmac("sha256", get2faSecret()).update(data).digest("base64url");
+    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
+    return JSON.parse(Buffer.from(data, "base64url").toString("utf8"));
+  } catch {
+    return null;
+  }
+}
+
 function formatUser(u: typeof usersTable.$inferSelect) {
   return {
     id: u.id,
@@ -104,15 +130,13 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 
   if (user.twoFactorEnabled) {
     const otp = generateOtp();
-    req.session.pending2fa = true;
-    req.session.pending2faUserId = user.id;
-    req.session.twoFactorOtp = otp;
-    req.session.twoFactorOtpExpiry = Date.now() + 10 * 60 * 1000;
+    const expiry = Date.now() + 10 * 60 * 1000;
+    const twoFactorToken = sign2faToken({ userId: user.id, otp, expiry });
 
     await sendOtpEmail({ email: user.email, name: user.name, otp, purpose: "login" });
     logger.info({ userId: user.id }, "2FA OTP sent for login");
 
-    res.json({ requiresTwoFactor: true, emailHint: maskEmail(user.email) });
+    res.json({ requiresTwoFactor: true, emailHint: maskEmail(user.email), twoFactorToken });
     return;
   }
 
@@ -235,71 +259,75 @@ router.post("/auth/change-password", requireAuth, async (req, res): Promise<void
 // ─── Two-Factor Authentication (Email OTP) ───────────────────────────────────
 
 router.post("/auth/2fa/validate", async (req, res): Promise<void> => {
-  if (!req.session.pending2fa || !req.session.pending2faUserId) {
-    res.status(400).json({ error: "No pending 2FA session" });
+  const { code, twoFactorToken } = req.body;
+
+  if (!twoFactorToken || typeof twoFactorToken !== "string") {
+    res.status(400).json({ error: "Missing 2FA token" });
     return;
   }
-
-  const { code } = req.body;
   if (!code || typeof code !== "string") {
     res.status(400).json({ error: "Code is required" });
     return;
   }
 
-  if (!req.session.twoFactorOtp || !req.session.twoFactorOtpExpiry) {
-    res.status(400).json({ error: "No OTP found. Please request a new code." });
+  const payload = verify2faToken(twoFactorToken);
+  if (!payload) {
+    res.status(400).json({ error: "Invalid or tampered 2FA token" });
     return;
   }
 
-  if (Date.now() > req.session.twoFactorOtpExpiry) {
-    res.status(400).json({ error: "Code has expired. Please request a new one." });
+  if (Date.now() > payload.expiry) {
+    res.status(400).json({ error: "Code has expired. Please sign in again." });
     return;
   }
 
-  if (code.replace(/\s/g, "") !== req.session.twoFactorOtp) {
+  if (code.replace(/\s/g, "") !== payload.otp) {
     res.status(401).json({ error: "Invalid code. Please try again." });
     return;
   }
 
-  const userId = req.session.pending2faUserId;
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, payload.userId)).limit(1);
   if (!user) {
     res.status(400).json({ error: "User not found" });
     return;
   }
 
-  delete req.session.pending2fa;
-  delete req.session.pending2faUserId;
-  delete req.session.twoFactorOtp;
-  delete req.session.twoFactorOtpExpiry;
-
   req.session.userId = user.id;
   req.session.userRole = user.role;
 
+  logger.info({ userId: user.id }, "2FA validated, session created");
   await createAuditLog({ action: "user.login", performedBy: user.id, targetType: "user", targetId: user.id });
   res.json({ user: formatUser(user), message: "Login successful" });
 });
 
 router.post("/auth/2fa/resend", async (req, res): Promise<void> => {
-  if (!req.session.pending2fa || !req.session.pending2faUserId) {
-    res.status(400).json({ error: "No pending 2FA session" });
+  const { twoFactorToken } = req.body;
+
+  if (!twoFactorToken || typeof twoFactorToken !== "string") {
+    res.status(400).json({ error: "Missing 2FA token" });
     return;
   }
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.pending2faUserId)).limit(1);
+  const payload = verify2faToken(twoFactorToken);
+  if (!payload) {
+    res.status(400).json({ error: "Invalid or tampered 2FA token" });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, payload.userId)).limit(1);
   if (!user) {
     res.status(400).json({ error: "User not found" });
     return;
   }
 
   const otp = generateOtp();
-  req.session.twoFactorOtp = otp;
-  req.session.twoFactorOtpExpiry = Date.now() + 10 * 60 * 1000;
+  const expiry = Date.now() + 10 * 60 * 1000;
+  const newToken = sign2faToken({ userId: user.id, otp, expiry });
 
   await sendOtpEmail({ email: user.email, name: user.name, otp, purpose: "login" });
   logger.info({ userId: user.id }, "2FA OTP resent");
 
-  res.json({ message: "A new code has been sent to your email." });
+  res.json({ message: "A new code has been sent to your email.", twoFactorToken: newToken });
 });
 
 router.post("/auth/2fa/request", requireAuth, async (req, res): Promise<void> => {

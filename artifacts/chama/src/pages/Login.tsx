@@ -21,6 +21,7 @@ export default function Login() {
   const [requires2fa, setRequires2fa] = useState(false);
   const [emailHint, setEmailHint] = useState("");
   const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [twoFactorToken, setTwoFactorToken] = useState("");
   const [validating2fa, setValidating2fa] = useState(false);
   const [resending, setResending] = useState(false);
 
@@ -30,6 +31,7 @@ export default function Login() {
         if (data.requiresTwoFactor) {
           setRequires2fa(true);
           setEmailHint(data.emailHint ?? "");
+          setTwoFactorToken(data.twoFactorToken ?? "");
           return;
         }
         await completeLogin(data.user);
@@ -67,7 +69,7 @@ export default function Login() {
     try {
       const data: any = await apiRequest("/api/auth/2fa/validate", {
         method: "POST",
-        body: JSON.stringify({ code: twoFactorCode.replace(/\s/g, "") }),
+        body: JSON.stringify({ code: twoFactorCode.replace(/\s/g, ""), twoFactorToken }),
         headers: { "Content-Type": "application/json" },
       });
       await completeLogin(data.user);
@@ -182,7 +184,13 @@ export default function Login() {
                   onClick={async () => {
                     setResending(true);
                     try {
-                      await apiRequest("/api/auth/2fa/resend", { method: "POST" });
+                      const data: any = await apiRequest("/api/auth/2fa/resend", {
+                        method: "POST",
+                        body: JSON.stringify({ twoFactorToken }),
+                        headers: { "Content-Type": "application/json" },
+                      });
+                      if (data.twoFactorToken) setTwoFactorToken(data.twoFactorToken);
+                      setTwoFactorCode("");
                       toast({ title: "Code resent", description: "Check your inbox for a new code." });
                     } catch {
                       toast({ title: "Could not resend", description: "Please try again.", variant: "destructive" });
