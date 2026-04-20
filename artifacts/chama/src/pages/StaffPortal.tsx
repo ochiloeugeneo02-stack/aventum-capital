@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
 import SuperAdmin from "@/pages/SuperAdmin";
-import { Eye, EyeOff, Loader2, ShieldCheck, Shield, Lock } from "lucide-react";
+import { Eye, EyeOff, Loader2, ShieldCheck, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const SESSION_KEY_2FA_TOKEN = "aventum_staff_2fa_token";
@@ -103,33 +103,42 @@ export default function StaffPortal() {
     return <SuperAdmin />;
   }
 
+  const StaffBg = ({ children }: { children: React.ReactNode }) => (
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      <div className="absolute inset-0" style={{ backgroundImage: "url('/staff-bg.jpg')", backgroundSize: "cover", backgroundPosition: "center top", filter: "grayscale(40%) brightness(0.28)" }} />
+      <div className="absolute inset-0" style={{ background: "linear-gradient(160deg, rgba(11,20,15,0.82) 0%, rgba(18,30,22,0.88) 60%, rgba(10,14,12,0.95) 100%)" }} />
+      <div className="relative">{children}</div>
+    </div>
+  );
+
   // If authenticated but wrong role, show unauthorised
   if (!isLoading && isAuthenticated && user?.role !== "super_admin") {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0B0F0E" }}>
-        <div className="text-center space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto">
-            <Lock className="w-7 h-7 text-red-400" />
+      <StaffBg>
+        <div className="text-center space-y-4 px-6">
+          <img src="/logo-icon-sage.png" alt="" className="w-12 h-12 rounded-xl mx-auto opacity-60 mb-2" />
+          <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
+            <Lock className="w-6 h-6 text-red-400" />
           </div>
           <h2 className="text-white font-bold text-xl">Unauthorised</h2>
           <p className="text-white/40 text-sm">This portal is restricted to Aventum staff.</p>
-          <button
-            onClick={() => navigate("/")}
-            className="text-[#A3C4A8] text-sm hover:underline mt-2"
-          >
+          <button onClick={() => navigate("/")} className="text-[#A3C4A8] text-sm hover:underline block mx-auto pt-1">
             Back to the app
           </button>
         </div>
-      </div>
+      </StaffBg>
     );
   }
 
   // Loading splash
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0B0F0E" }}>
-        <Loader2 className="w-6 h-6 animate-spin text-[#3A5A40]" />
-      </div>
+      <StaffBg>
+        <div className="flex flex-col items-center gap-4">
+          <img src="/logo-icon-sage.png" alt="" className="w-12 h-12 rounded-xl opacity-80" />
+          <Loader2 className="w-5 h-5 animate-spin text-[#3A5A40]" />
+        </div>
+      </StaffBg>
     );
   }
 
@@ -140,37 +149,40 @@ export default function StaffPortal() {
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center relative overflow-hidden"
-      style={{ background: "#0B0F0E" }}
-    >
-      {/* Background grid */}
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      {/* Background photo — skyscraper, desaturated + heavily darkened */}
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0"
         style={{
-          backgroundImage:
-            "linear-gradient(rgba(58,90,64,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(58,90,64,0.07) 1px, transparent 1px)",
-          backgroundSize: "48px 48px",
+          backgroundImage: "url('/staff-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center top",
+          filter: "grayscale(40%) brightness(0.28)",
         }}
       />
-      {/* Radial glow */}
+      {/* Warm dark green tint overlay */}
       <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(58,90,64,0.18) 0%, transparent 70%)",
-        }}
+        className="absolute inset-0"
+        style={{ background: "linear-gradient(160deg, rgba(11,20,15,0.82) 0%, rgba(18,30,22,0.88) 60%, rgba(10,14,12,0.95) 100%)" }}
+      />
+      {/* Subtle vignette */}
+      <div
+        className="absolute inset-0"
+        style={{ background: "radial-gradient(ellipse 100% 80% at 50% 100%, rgba(0,0,0,0.5) 0%, transparent 70%)" }}
       />
 
       {/* Card */}
       <div className="relative w-full max-w-md mx-4">
-        {/* Top brand strip */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-9 h-9 rounded-xl bg-[#1C3229] border border-[#3A5A40]/40 flex items-center justify-center">
-            <Shield className="w-4.5 h-4.5 text-[#A3C4A8]" style={{ width: "18px", height: "18px" }} />
-          </div>
-          <div>
-            <div className="text-white font-bold text-sm tracking-[0.2em] uppercase">Aventum</div>
-            <div className="text-white/30 text-[10px] tracking-[0.15em] uppercase">Operations Centre</div>
+        {/* Logo + brand */}
+        <div className="flex flex-col items-center gap-3 mb-9">
+          <img
+            src="/logo-icon-sage.png"
+            alt="Aventum Capital"
+            className="w-14 h-14 rounded-2xl shadow-lg shadow-black/40"
+          />
+          <div className="text-center">
+            <div className="text-white/90 font-semibold text-base tracking-[0.18em] uppercase">Aventum Capital</div>
+            <div className="text-white/30 text-[11px] tracking-[0.22em] uppercase mt-0.5">Operations Centre</div>
           </div>
         </div>
 
