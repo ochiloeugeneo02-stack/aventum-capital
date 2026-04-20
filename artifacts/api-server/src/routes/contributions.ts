@@ -7,6 +7,7 @@ import { createAuditLog } from "../lib/auditLog";
 import { formatUser } from "./users";
 import { db as dbImport, usersTable } from "@workspace/db";
 import { sendContributionReceiptEmail, sendContributionActivityEmail } from "../lib/email";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -262,7 +263,7 @@ router.post("/contributions/pay", requireAuth, async (req, res): Promise<void> =
           }).catch(() => {});
         });
       }
-    } catch (_err) {}
+    } catch (err) { logger.error({ err }, "contribution notification email failed"); }
   });
 
   res.status(201).json(await formatContribution(contribution));

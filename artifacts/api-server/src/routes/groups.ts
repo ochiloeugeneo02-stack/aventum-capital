@@ -7,6 +7,7 @@ import { createAuditLog } from "../lib/auditLog";
 import { formatUser } from "./users";
 import { createGroupInvitation } from "./invitations";
 import { sendGroupAddedEmail, sendMemberJoinedNotificationEmail, sendAdminAddedMemberEmail } from "../lib/email";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -398,7 +399,7 @@ router.post("/groups/:groupId/invite", requireAuth, async (req, res): Promise<vo
             appBaseUrl,
           }).catch(() => {});
         }
-      } catch (_err) {}
+      } catch (err) { logger.error({ err }, "member-add notification email failed"); }
     });
 
     res.json({ success: true, type: "direct", message: `${existingUser.name} has been added to the group` });
