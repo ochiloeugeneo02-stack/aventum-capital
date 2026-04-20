@@ -13,6 +13,7 @@ import invitationsRouter from "./invitations";
 import exitRequestsRouter from "./exitRequests";
 import groupChatRouter from "./groupChat";
 import turnSwapsRouter from "./turnSwaps";
+import supportRouter from "./support";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(invitationsRouter);
 router.use(exitRequestsRouter);
 router.use(groupChatRouter);
 router.use(turnSwapsRouter);
+router.use(supportRouter);
 
 export default router;

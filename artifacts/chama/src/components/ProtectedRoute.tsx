@@ -4,9 +4,10 @@ import { Redirect } from "wouter";
 interface ProtectedRouteProps {
   children: React.ReactNode;
   roles?: string[];
+  memberOnly?: boolean;
 }
 
-export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, roles, memberOnly }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
@@ -26,6 +27,10 @@ export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
 
   if (roles && user && !roles.includes(user.role)) {
     return <Redirect to="/dashboard" />;
+  }
+
+  if (memberOnly && user?.role === "super_admin") {
+    return <Redirect to="/admin" />;
   }
 
   return <>{children}</>;

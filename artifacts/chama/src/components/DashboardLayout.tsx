@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -32,10 +33,10 @@ const NAV_ITEMS: NavItem[] = [
   { label: "My Groups", href: "/groups", icon: Users },
   { label: "Contributions", href: "/contributions", icon: CreditCard },
   { label: "Payouts", href: "/payouts", icon: DollarSign },
+  { label: "Support", href: "/support", icon: MessageCircle },
   { label: "Settings", href: "/settings", icon: Settings },
-  { label: "Group Admin", href: "/admin/group", icon: Shield, roles: ["group_admin", "super_admin"] },
-  { label: "Organization", href: "/org", icon: Building, roles: ["org_admin", "super_admin"] },
-  { label: "Super Admin", href: "/admin", icon: Shield, roles: ["super_admin"] },
+  { label: "Group Admin", href: "/admin/group", icon: Shield, roles: ["group_admin"] },
+  { label: "Organization", href: "/org", icon: Building, roles: ["org_admin"] },
 ];
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {

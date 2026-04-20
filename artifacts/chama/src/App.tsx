@@ -23,6 +23,7 @@ import InviteAccept from "@/pages/InviteAccept";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import SetupTwoFactor from "@/pages/SetupTwoFactor";
+import Support from "@/pages/Support";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -62,49 +63,55 @@ function Router() {
       </Route>
 
       <Route path="/dashboard">
-        <ProtectedRoute>
+        <ProtectedRoute memberOnly>
           <Dashboard />
         </ProtectedRoute>
       </Route>
 
       <Route path="/groups">
-        <ProtectedRoute>
+        <ProtectedRoute memberOnly>
           <Groups />
         </ProtectedRoute>
       </Route>
 
       <Route path="/groups/:id">
-        <ProtectedRoute>
+        <ProtectedRoute memberOnly>
           <GroupDetail />
         </ProtectedRoute>
       </Route>
 
       <Route path="/contributions">
-        <ProtectedRoute>
+        <ProtectedRoute memberOnly>
           <Contributions />
         </ProtectedRoute>
       </Route>
 
       <Route path="/payouts">
-        <ProtectedRoute>
+        <ProtectedRoute memberOnly>
           <Payouts />
         </ProtectedRoute>
       </Route>
 
       <Route path="/settings">
-        <ProtectedRoute>
+        <ProtectedRoute memberOnly>
           <Settings />
         </ProtectedRoute>
       </Route>
 
+      <Route path="/support">
+        <ProtectedRoute memberOnly>
+          <Support />
+        </ProtectedRoute>
+      </Route>
+
       <Route path="/admin/group">
-        <ProtectedRoute roles={["group_admin", "super_admin"]}>
+        <ProtectedRoute roles={["group_admin"]} memberOnly>
           <AdminGroup />
         </ProtectedRoute>
       </Route>
 
       <Route path="/org">
-        <ProtectedRoute roles={["org_admin", "super_admin"]}>
+        <ProtectedRoute roles={["org_admin"]} memberOnly>
           <Organization />
         </ProtectedRoute>
       </Route>

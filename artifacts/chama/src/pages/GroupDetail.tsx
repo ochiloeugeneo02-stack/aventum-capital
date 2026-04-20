@@ -206,16 +206,21 @@ export default function GroupDetail() {
     if (!termsChecked) return;
     setSubmittingExit(true);
     try {
-      const result = await apiRequest<any>(`/api/groups/${groupId}/exit-request`, {
+      await apiRequest<any>(`/api/support/tickets`, {
         method: "POST",
-        body: JSON.stringify({ reason: exitReason || undefined, termsAccepted: true }),
+        body: JSON.stringify({
+          category: "exit_request",
+          groupId,
+          subject: `Exit request — ${group?.name ?? `Group #${groupId}`}`,
+          message: exitReason?.trim() || "I would like to exit this savings group. I have read and accepted the terms.",
+        }),
         headers: { "Content-Type": "application/json" },
       });
-      setMyExitRequest({ id: result.id, status: "pending", reviewNote: null, autoApproveAfterCycle: result.autoApproveAfterCycle, createdAt: new Date().toISOString() });
+      setMyExitRequest({ id: 0, status: "pending", reviewNote: null, autoApproveAfterCycle: null, createdAt: new Date().toISOString() });
       setShowExitModal(false);
       setExitReason("");
       setTermsChecked(false);
-      toast({ title: "Exit request submitted", description: result.message });
+      toast({ title: "Exit request submitted", description: "Our team will review your request and get back to you shortly. Check Support for updates." });
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error ?? "Could not submit exit request", variant: "destructive" });
     } finally {

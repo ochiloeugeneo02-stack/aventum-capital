@@ -350,8 +350,9 @@ function GroupDeleteSection({ groupId, groupName, onRequested }: { groupId: numb
   useEffect(() => {
     (async () => {
       try {
-        const data = await apiRequest<{ status: string; reason: string; requestedAt: string; reviewNote?: string | null } | null>(`/api/groups/${groupId}/delete-request`);
-        setExisting(data);
+        const tickets = await apiRequest<any[]>(`/api/support/tickets`);
+        const match = tickets.find((t: any) => t.category === "group_deletion" && t.groupId === groupId);
+        setExisting(match ? { status: match.status === "closed" ? "approved" : match.status, reason: "", requestedAt: match.createdAt } : null);
       } catch { setExisting(null); }
     })();
   }, [groupId]);
@@ -360,12 +361,17 @@ function GroupDeleteSection({ groupId, groupName, onRequested }: { groupId: numb
     if (!reason.trim()) return;
     setLoading(true);
     try {
-      await apiRequest(`/api/groups/${groupId}/delete-request`, {
+      await apiRequest(`/api/support/tickets`, {
         method: "POST",
-        body: JSON.stringify({ reason: reason.trim() }),
+        body: JSON.stringify({
+          category: "group_deletion",
+          groupId,
+          subject: `Group deletion request — ${groupName}`,
+          message: reason.trim(),
+        }),
         headers: { "Content-Type": "application/json" },
       });
-      toast({ title: "Request submitted", description: "Aventum Capital will review your deletion request shortly." });
+      toast({ title: "Request submitted", description: "Aventum Capital will review your deletion request shortly. Check Support for updates." });
       setExisting({ status: "pending", reason: reason.trim(), requestedAt: new Date().toISOString() });
       setShowForm(false);
       setReason("");
