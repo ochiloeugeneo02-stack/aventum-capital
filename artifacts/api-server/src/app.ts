@@ -69,6 +69,7 @@ const PgSession = connectPgSimple(session);
 const pgStore = new PgSession({
   conString: process.env.DATABASE_URL,
   tableName: "user_sessions",
+  createTableIfMissing: true,
   pruneSessionInterval: 60 * 15, // prune expired sessions every 15 min
 });
 

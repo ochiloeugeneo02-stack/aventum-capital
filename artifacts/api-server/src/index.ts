@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { pool } from "@workspace/db";
 
 const rawPort = process.env["PORT"];
 
@@ -13,6 +14,94 @@ const port = Number(rawPort);
 
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
+}
+
+async function ensureAppSchema() {
+  const client = await pool.connect();
+  try {
+    logger.info("Running migrations");
+
+    // Add missing columns to existing tables
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS username text UNIQUE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS location text;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS email_marketing boolean NOT NULL DEFAULT false;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS motivation text;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token text;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token_expiry timestamp with time zone;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_secret text;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled boolean NOT NULL DEFAULT false;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_backup_codes text;
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS group_messages (
+        id serial PRIMARY KEY,
+        group_id integer NOT NULL,
+        user_id integer NOT NULL,
+        content text NOT NULL,
+        message_type text NOT NULL DEFAULT 'text',
+        created_at timestamp with time zone NOT NULL DEFAULT now()
+      );
+
+      CREATE TABLE IF NOT EXISTS support_tickets (
+        id serial PRIMARY KEY,
+        user_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        category varchar(50) NOT NULL DEFAULT 'general',
+        group_id integer REFERENCES groups(id) ON DELETE SET NULL,
+        subject varchar(255) NOT NULL,
+        status varchar(50) NOT NULL DEFAULT 'open',
+        priority varchar(20) NOT NULL DEFAULT 'normal',
+        closed_at timestamp,
+        closed_by integer REFERENCES users(id) ON DELETE SET NULL,
+        created_at timestamp NOT NULL DEFAULT now(),
+        updated_at timestamp NOT NULL DEFAULT now()
+      );
+
+      CREATE TABLE IF NOT EXISTS support_messages (
+        id serial PRIMARY KEY,
+        ticket_id integer NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
+        sender_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        message text NOT NULL,
+        is_admin boolean NOT NULL DEFAULT false,
+        read_at timestamp,
+        created_at timestamp NOT NULL DEFAULT now()
+      );
+
+      CREATE TABLE IF NOT EXISTS turn_swap_requests (
+        id serial PRIMARY KEY,
+        group_id integer NOT NULL,
+        requester_id integer NOT NULL,
+        target_member_id integer NOT NULL,
+        reason text,
+        status text NOT NULL DEFAULT 'pending',
+        admin_note text,
+        group_admin_id integer,
+        group_admin_decided_at timestamp with time zone,
+        super_admin_decided_at timestamp with time zone,
+        created_at timestamp with time zone NOT NULL DEFAULT now(),
+        updated_at timestamp with time zone NOT NULL DEFAULT now()
+      );
+
+      CREATE TABLE IF NOT EXISTS group_delete_requests (
+        id serial PRIMARY KEY,
+        group_id integer NOT NULL,
+        requested_by integer NOT NULL,
+        reason text NOT NULL,
+        status text NOT NULL DEFAULT 'pending',
+        reviewed_by integer,
+        review_note text,
+        disbursement_note text,
+        requested_at timestamp with time zone NOT NULL DEFAULT now(),
+        reviewed_at timestamp with time zone
+      );
+    `);
+    logger.info("Migrations complete");
+  } catch (err) {
+    logger.error({ err }, "Schema migration failed — continuing");
+  } finally {
+    client.release();
+  }
 }
 
 async function initStripe() {
@@ -51,6 +140,7 @@ async function initStripe() {
   }
 }
 
+await ensureAppSchema();
 await initStripe();
 
 app.listen(port, (err) => {
