@@ -16,8 +16,16 @@ function HeroLoginPanel() {
 
   const loginMutation = useLoginUser({
     mutation: {
-      onSuccess: (data) => {
-        setUser(data.user as any);
+      onSuccess: (data: any) => {
+        if (data.requiresTwoFactor) {
+          // Save 2FA state to sessionStorage and hand off to the login page
+          sessionStorage.setItem("aventum_2fa_token", data.twoFactorToken ?? "");
+          sessionStorage.setItem("aventum_2fa_email_hint", data.emailHint ?? "");
+          sessionStorage.setItem("aventum_requires_2fa", "true");
+          navigate("/login");
+          return;
+        }
+        setUser(data.user);
         toast({ title: "Welcome back!", description: `Signed in as ${data.user.name}` });
         navigate("/dashboard");
       },
@@ -78,12 +86,16 @@ function HeroLoginPanel() {
         </button>
       </form>
       <div className="mt-4 space-y-1 text-xs text-gray-500">
-        <p className="cursor-pointer hover:text-[#3A5A40] transition-colors">Forgot password?</p>
+        <p>
+          <button type="button" onClick={() => navigate("/forgot-password")} className="cursor-pointer hover:text-[#3A5A40] transition-colors">
+            Forgot password?
+          </button>
+        </p>
         <p>
           Don't have an account?{" "}
-          <a href="/signup" className="text-[#3A5A40] font-medium hover:underline">
+          <button type="button" onClick={() => navigate("/signup")} className="text-[#3A5A40] font-medium hover:underline">
             Sign up
-          </a>
+          </button>
         </p>
       </div>
       <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-500">
