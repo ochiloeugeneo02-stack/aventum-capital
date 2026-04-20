@@ -14,6 +14,18 @@ Digital rotational savings (chama) platform. Members contribute on a rotating sc
 - **Change password:** Authenticated `/auth/change-password` endpoint. Form in Settings page.
 - **Extended user profile:** `users` table has `username` (unique), `location`, `emailMarketing`, `passwordResetToken`, `passwordResetTokenExpiry` columns. Signup step 3 collects username, phone, location (geolocation), email marketing consent. Settings page has full profile editor + change password form.
 
+## Group Deletion Requests
+- DB table: `group_delete_requests` (id, group_id, requested_by, reason, status, reviewed_by, review_note, disbursement_note, requested_at, reviewed_at)
+- Group admins submit via `POST /api/groups/:groupId/delete-request`, fetch status via `GET /api/groups/:groupId/delete-request`
+- Super admin: `GET /api/admin/delete-requests`, `POST /api/admin/delete-requests/:id/approve`, `POST /api/admin/delete-requests/:id/reject`
+- UI: `GroupDeleteSection` component in `AdminGroup.tsx` (collapsible, shows form/status), Delete Requests section in SuperAdmin control panel
+
+## Super Admin Control Panel (`/admin`)
+- Full-page layout with dark forest green sidebar navigation (no `DashboardLayout`)
+- Sections: Overview (KPIs + quick actions), Users, Groups (with status filters), Contributions, Payouts, Delete Requests, Exit Requests, Swap Requests, Audit Log
+- Pending request badges show on sidebar nav items for actionable items
+- All approve/reject actions wired to existing API endpoints
+
 ## Key Zod schemas (api-zod/src/generated/api.ts)
 - `CreateGroupBody` — includes `currency?: string`
 - `ListGroupsResponseItem` / `GetGroupResponse` — include `currency: string`

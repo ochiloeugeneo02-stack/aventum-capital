@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, groupsTable, groupMembersTable, usersTable, contributionCyclesTable, contributionsTable } from "@workspace/db";
+import { db, groupsTable, groupMembersTable, usersTable, contributionCyclesTable, contributionsTable, groupDeleteRequestsTable } from "@workspace/db";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { requireAuth } from "../lib/auth";
 import { CreateGroupBody, UpdateGroupBody, InviteMemberBody } from "@workspace/api-zod";
@@ -515,6 +515,70 @@ router.post("/groups/:groupId/resume", requireAuth, async (req, res): Promise<vo
   const [updated] = await db.update(groupsTable).set({ status: "active" }).where(eq(groupsTable.id, groupId)).returning();
   await createAuditLog({ action: "group.resume", performedBy: req.session!.userId!, targetType: "group", targetId: groupId });
   res.json(await getGroupWithCounts(updated));
+});
+
+// ── Group Delete Requests ─────────────────────────────────────────────────────
+
+router.post("/groups/:groupId/delete-request", requireAuth, async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId, 10);
+  const userId = req.session!.userId!;
+  const { reason } = req.body as { reason?: string };
+
+  if (!reason?.trim()) {
+    res.status(400).json({ error: "A reason is required to request group deletion" });
+    return;
+  }
+
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
+  if (!group) {
+    res.status(404).json({ error: "Group not found" });
+    return;
+  }
+
+  if (!isGroupAdmin(userId, req.session?.userRole, group)) {
+    res.status(403).json({ error: "Only the group admin can request group deletion" });
+    return;
+  }
+
+  if (group.status === "deleted") {
+    res.status(409).json({ error: "Group is already deleted" });
+    return;
+  }
+
+  // Check for existing pending request
+  const [existing] = await db.select().from(groupDeleteRequestsTable)
+    .where(and(eq(groupDeleteRequestsTable.groupId, groupId), eq(groupDeleteRequestsTable.status, "pending")))
+    .limit(1);
+  if (existing) {
+    res.status(409).json({ error: "A delete request is already pending for this group" });
+    return;
+  }
+
+  const [req_] = await db.insert(groupDeleteRequestsTable).values({
+    groupId,
+    requestedBy: userId,
+    reason: reason.trim(),
+    status: "pending",
+  }).returning();
+
+  await createAuditLog({
+    action: "group.delete_requested",
+    performedBy: userId,
+    targetType: "group",
+    targetId: groupId,
+    details: reason.trim(),
+  });
+
+  logger.info({ groupId, userId, reason: reason.trim() }, "Group delete request submitted");
+  res.status(201).json({ success: true, requestId: req_.id, message: "Delete request submitted. Aventum Capital will review it shortly." });
+});
+
+router.get("/groups/:groupId/delete-request", requireAuth, async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId, 10);
+  const [existing] = await db.select().from(groupDeleteRequestsTable)
+    .where(eq(groupDeleteRequestsTable.groupId, groupId))
+    .limit(1);
+  res.json(existing ?? null);
 });
 
 export { getGroupWithCounts };

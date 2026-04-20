@@ -1,11 +1,12 @@
 import { Router, type IRouter } from "express";
-import { db, auditLogsTable, usersTable, groupsTable, groupMembersTable, contributionCyclesTable, contributionsTable, payoutsTable } from "@workspace/db";
-import { eq, and, inArray, sql } from "drizzle-orm";
+import { db, auditLogsTable, usersTable, groupsTable, groupMembersTable, contributionCyclesTable, contributionsTable, payoutsTable, groupDeleteRequestsTable } from "@workspace/db";
+import { eq, and, inArray, sql, desc } from "drizzle-orm";
 import { requireRole } from "../lib/auth";
 import { TriggerPayoutBody } from "@workspace/api-zod";
 import { createAuditLog } from "../lib/auditLog";
 import { formatUser } from "./users";
 import { formatPayout } from "./payouts";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -96,6 +97,121 @@ router.post("/admin/payout-trigger", requireRole("super_admin", "group_admin"), 
   });
 
   res.json(await formatPayout(payout));
+});
+
+// ── Delete Request Management ─────────────────────────────────────────────────
+
+router.get("/admin/delete-requests", requireRole("super_admin"), async (req, res): Promise<void> => {
+  const requests = await db.select().from(groupDeleteRequestsTable).orderBy(desc(groupDeleteRequestsTable.requestedAt));
+
+  const groupIds = [...new Set(requests.map(r => r.groupId))];
+  const userIds = [...new Set([...requests.map(r => r.requestedBy), ...requests.map(r => r.reviewedBy).filter(Boolean) as number[]])];
+
+  const [groups, users] = await Promise.all([
+    groupIds.length > 0 ? db.select().from(groupsTable).where(inArray(groupsTable.id, groupIds)) : Promise.resolve([]),
+    userIds.length > 0 ? db.select().from(usersTable).where(inArray(usersTable.id, userIds)) : Promise.resolve([]),
+  ]);
+
+  const groupMap = new Map(groups.map(g => [g.id, g]));
+  const userMap = new Map(users.map(u => [u.id, u]));
+
+  res.json(requests.map(r => ({
+    id: r.id,
+    groupId: r.groupId,
+    group: groupMap.has(r.groupId) ? { id: groupMap.get(r.groupId)!.id, name: groupMap.get(r.groupId)!.name, status: groupMap.get(r.groupId)!.status, currency: groupMap.get(r.groupId)!.currency, contributionAmount: groupMap.get(r.groupId)!.contributionAmount } : null,
+    requestedBy: r.requestedBy,
+    requester: userMap.has(r.requestedBy) ? { name: userMap.get(r.requestedBy)!.name, email: userMap.get(r.requestedBy)!.email } : null,
+    reason: r.reason,
+    status: r.status,
+    reviewedBy: r.reviewedBy,
+    reviewer: r.reviewedBy && userMap.has(r.reviewedBy) ? { name: userMap.get(r.reviewedBy)!.name } : null,
+    reviewNote: r.reviewNote,
+    disbursementNote: r.disbursementNote,
+    requestedAt: r.requestedAt.toISOString(),
+    reviewedAt: r.reviewedAt?.toISOString() ?? null,
+  })));
+});
+
+router.post("/admin/delete-requests/:id/approve", requireRole("super_admin"), async (req, res): Promise<void> => {
+  const reqId = parseInt(req.params.id, 10);
+  const { disbursementNote, reviewNote } = req.body as { disbursementNote?: string; reviewNote?: string };
+  const adminId = req.session!.userId!;
+
+  const [deleteReq] = await db.select().from(groupDeleteRequestsTable).where(eq(groupDeleteRequestsTable.id, reqId)).limit(1);
+  if (!deleteReq) { res.status(404).json({ error: "Request not found" }); return; }
+  if (deleteReq.status !== "pending") { res.status(409).json({ error: "Request already reviewed" }); return; }
+
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, deleteReq.groupId)).limit(1);
+  if (!group) { res.status(404).json({ error: "Group not found" }); return; }
+
+  await db.update(groupDeleteRequestsTable)
+    .set({ status: "approved", reviewedBy: adminId, reviewNote: reviewNote ?? null, disbursementNote: disbursementNote ?? null, reviewedAt: new Date() })
+    .where(eq(groupDeleteRequestsTable.id, reqId));
+
+  await db.update(groupsTable).set({ status: "deleted" }).where(eq(groupsTable.id, group.id));
+
+  await createAuditLog({
+    action: "group.delete_approved",
+    performedBy: adminId,
+    targetType: "group",
+    targetId: group.id,
+    details: `Delete request #${reqId} approved. ${disbursementNote ?? ""}`,
+  });
+
+  logger.info({ groupId: group.id, reqId }, "Group delete request approved by super admin");
+  res.json({ success: true, message: `Group "${group.name}" has been closed and marked for deletion.` });
+});
+
+router.post("/admin/delete-requests/:id/reject", requireRole("super_admin"), async (req, res): Promise<void> => {
+  const reqId = parseInt(req.params.id, 10);
+  const { reviewNote } = req.body as { reviewNote?: string };
+  const adminId = req.session!.userId!;
+
+  const [deleteReq] = await db.select().from(groupDeleteRequestsTable).where(eq(groupDeleteRequestsTable.id, reqId)).limit(1);
+  if (!deleteReq) { res.status(404).json({ error: "Request not found" }); return; }
+  if (deleteReq.status !== "pending") { res.status(409).json({ error: "Request already reviewed" }); return; }
+
+  await db.update(groupDeleteRequestsTable)
+    .set({ status: "rejected", reviewedBy: adminId, reviewNote: reviewNote ?? null, reviewedAt: new Date() })
+    .where(eq(groupDeleteRequestsTable.id, reqId));
+
+  await createAuditLog({
+    action: "group.delete_rejected",
+    performedBy: adminId,
+    targetType: "group",
+    targetId: deleteReq.groupId,
+    details: `Delete request #${reqId} rejected. ${reviewNote ?? ""}`,
+  });
+
+  res.json({ success: true, message: "Delete request rejected." });
+});
+
+// ── All Groups (super admin view) ─────────────────────────────────────────────
+
+router.get("/admin/groups", requireRole("super_admin"), async (req, res): Promise<void> => {
+  const groups = await db.select().from(groupsTable).orderBy(desc(groupsTable.createdAt));
+  const adminIds = [...new Set(groups.map(g => g.adminId))];
+  const admins = adminIds.length > 0 ? await db.select().from(usersTable).where(inArray(usersTable.id, adminIds)) : [];
+  const adminMap = new Map(admins.map(u => [u.id, u]));
+
+  const memberCounts = await db.select({ groupId: groupMembersTable.groupId, count: sql<number>`count(*)` })
+    .from(groupMembersTable)
+    .groupBy(groupMembersTable.groupId);
+  const countMap = new Map(memberCounts.map(m => [m.groupId, Number(m.count)]));
+
+  res.json(groups.map(g => ({
+    id: g.id,
+    name: g.name,
+    status: g.status,
+    currency: g.currency,
+    contributionAmount: parseFloat(g.contributionAmount as unknown as string),
+    schedule: g.schedule,
+    maxMembers: g.maxMembers,
+    currentCycle: g.currentCycle,
+    totalMembers: countMap.get(g.id) ?? 0,
+    admin: adminMap.has(g.adminId) ? { id: adminMap.get(g.adminId)!.id, name: adminMap.get(g.adminId)!.name, email: adminMap.get(g.adminId)!.email } : null,
+    createdAt: g.createdAt.toISOString(),
+  })));
 });
 
 export default router;

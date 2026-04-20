@@ -10,3 +10,4 @@ export * from "./invitations";
 export * from "./exitRequests";
 export * from "./groupMessages";
 export * from "./turnSwapRequests";
+export * from "./groupDeleteRequests";

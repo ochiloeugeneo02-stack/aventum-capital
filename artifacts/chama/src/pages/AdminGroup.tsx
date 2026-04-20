@@ -18,7 +18,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useRegion, REGIONS } from "@/contexts/RegionContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
-import { Loader2, Plus, Users, Copy, Check, Mail, Link2, LogOut, Clock, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, ArrowLeftRight } from "lucide-react";
+import { Loader2, Plus, Users, Copy, Check, Mail, Link2, LogOut, Clock, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, ArrowLeftRight, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function StatusBadgeSmall({ status }: { status: string }) {
@@ -339,6 +339,146 @@ function GroupSwapRequests({ groupId }: { groupId: number }) {
   );
 }
 
+function GroupDeleteSection({ groupId, groupName, onRequested }: { groupId: number; groupName: string; onRequested?: () => void }) {
+  const { toast } = useToast();
+  const [expanded, setExpanded] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [reason, setReason] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [existing, setExisting] = useState<{ status: string; reason: string; requestedAt: string; reviewNote?: string | null } | null | undefined>(undefined);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await apiRequest<{ status: string; reason: string; requestedAt: string; reviewNote?: string | null } | null>(`/api/groups/${groupId}/delete-request`);
+        setExisting(data);
+      } catch { setExisting(null); }
+    })();
+  }, [groupId]);
+
+  const submit = async () => {
+    if (!reason.trim()) return;
+    setLoading(true);
+    try {
+      await apiRequest(`/api/groups/${groupId}/delete-request`, {
+        method: "POST",
+        body: JSON.stringify({ reason: reason.trim() }),
+        headers: { "Content-Type": "application/json" },
+      });
+      toast({ title: "Request submitted", description: "Aventum Capital will review your deletion request shortly." });
+      setExisting({ status: "pending", reason: reason.trim(), requestedAt: new Date().toISOString() });
+      setShowForm(false);
+      setReason("");
+      onRequested?.();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Could not submit request", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (existing === undefined) return null;
+
+  const statusColor: Record<string, string> = {
+    pending: "bg-amber-100 text-amber-700 border-amber-200",
+    approved: "bg-green-100 text-green-700 border-green-200",
+    rejected: "bg-red-100 text-red-700 border-red-200",
+  };
+
+  return (
+    <div className="border-t border-border pt-4 mt-4">
+      <button
+        className="flex items-center gap-2 w-full text-left group"
+        onClick={() => setExpanded(e => !e)}
+      >
+        <Trash2 className="w-4 h-4 text-destructive" />
+        <span className="text-sm font-medium text-destructive">Request Group Deletion</span>
+        {existing?.status === "pending" && (
+          <span className="text-[11px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Pending review</span>
+        )}
+        {existing?.status === "approved" && (
+          <span className="text-[11px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Approved</span>
+        )}
+        {existing?.status === "rejected" && (
+          <span className="text-[11px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">Rejected</span>
+        )}
+        <span className="ml-auto text-muted-foreground">{expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}</span>
+      </button>
+
+      {expanded && (
+        <div className="mt-3 space-y-3">
+          {/* Info banner */}
+          <div className="flex items-start gap-2.5 p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">
+            <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-medium">Deletion requires Aventum Capital approval</p>
+              <p className="opacity-80 mt-0.5">Submitting a request will notify our team. We'll review, arrange fund disbursement to all members, and confirm before closing the group.</p>
+            </div>
+          </div>
+
+          {existing ? (
+            <div className={cn("rounded-xl border p-4 space-y-2", statusColor[existing.status] ?? "bg-muted/20 border-border")}>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold capitalize">{existing.status} — Deletion Request</span>
+                <span className="text-xs opacity-70">{new Date(existing.requestedAt).toLocaleDateString()}</span>
+              </div>
+              <p className="text-xs italic">"{existing.reason}"</p>
+              {existing.reviewNote && <p className="text-xs">Aventum note: {existing.reviewNote}</p>}
+              {existing.status === "rejected" && (
+                <button
+                  className="text-xs text-destructive font-medium hover:underline mt-1"
+                  onClick={() => { setExisting(null); setShowForm(true); }}
+                >
+                  Submit a new request
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              {!showForm ? (
+                <button
+                  className="w-full text-sm font-medium text-destructive border border-destructive/30 rounded-xl py-3 hover:bg-destructive/5 transition-colors"
+                  onClick={() => setShowForm(true)}
+                >
+                  + Submit deletion request for "{groupName}"
+                </button>
+              ) : (
+                <div className="space-y-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">Why do you want to delete this group?</p>
+                    <button onClick={() => { setShowForm(false); setReason(""); }} className="text-muted-foreground hover:text-foreground">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <textarea
+                    className="w-full text-sm border border-red-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-destructive/30 bg-white resize-none"
+                    rows={3}
+                    placeholder="e.g. Group members have agreed to dissolve, all cycles complete, etc."
+                    value={reason}
+                    onChange={e => setReason(e.target.value)}
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <Button size="sm" variant="outline" onClick={() => { setShowForm(false); setReason(""); }}>Cancel</Button>
+                    <Button
+                      size="sm"
+                      className="bg-destructive hover:bg-destructive/90 text-white"
+                      onClick={submit}
+                      disabled={loading || !reason.trim()}
+                    >
+                      {loading && <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />}
+                      Submit request
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminGroup() {
   const { region, formatGroupAmount } = useRegion();
   const { toast } = useToast();
@@ -608,6 +748,9 @@ export default function AdminGroup() {
 
                   <GroupExitRequests groupId={g.id} />
                   <GroupSwapRequests groupId={g.id} />
+                  {g.status !== "deleted" && (
+                    <GroupDeleteSection groupId={g.id} groupName={g.name} />
+                  )}
                 </div>
               );
             })}
