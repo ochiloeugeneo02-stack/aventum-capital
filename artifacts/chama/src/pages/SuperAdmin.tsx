@@ -217,6 +217,7 @@ export default function SuperAdmin() {
   const [closingTicket, setClosingTicket] = useState(false);
   const [closeNote, setCloseNote] = useState("");
   const [showCloseNote, setShowCloseNote] = useState(false);
+  const [deletingGroup, setDeletingGroup] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [swapRequests, setSwapRequests] = useState<SwapReq[]>([]);
@@ -330,6 +331,20 @@ export default function SuperAdmin() {
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error ?? "Failed", variant: "destructive" });
     } finally { setClosingTicket(false); }
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!activeTicket) return;
+    setDeletingGroup(true);
+    try {
+      await apiRequest(`/api/admin/support/tickets/${activeTicket.id}/delete-group`, { method: "POST" });
+      toast({ title: "Group deleted", description: "The group has been closed and the member has been notified via the ticket." });
+      setShowCloseNote(false);
+      await openTicket(activeTicket.id);
+      await loadSupport();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Failed to delete group", variant: "destructive" });
+    } finally { setDeletingGroup(false); }
   };
 
   const handleReopenTicket = async () => {
@@ -670,9 +685,21 @@ export default function SuperAdmin() {
                     </div>
                     <div className="flex gap-2 shrink-0">
                       {activeTicket.status !== "closed" ? (
-                        <button onClick={() => setShowCloseNote(v => !v)} className="text-xs font-medium px-3 py-1.5 rounded-xl border border-[#E8E4DF] text-[#6B7280] hover:border-red-300 hover:text-red-600 transition-colors">
-                          Close ticket
-                        </button>
+                        <>
+                          {activeTicket.category === "group_deletion" && activeTicket.groupId && (
+                            <button
+                              onClick={handleDeleteGroup}
+                              disabled={deletingGroup}
+                              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-60"
+                            >
+                              {deletingGroup ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                              Delete group
+                            </button>
+                          )}
+                          <button onClick={() => setShowCloseNote(v => !v)} className="text-xs font-medium px-3 py-1.5 rounded-xl border border-[#E8E4DF] text-[#6B7280] hover:border-red-300 hover:text-red-600 transition-colors">
+                            Close ticket
+                          </button>
+                        </>
                       ) : (
                         <button onClick={handleReopenTicket} className="text-xs font-medium px-3 py-1.5 rounded-xl border border-[#E8E4DF] text-[#6B7280] hover:border-[#3A5A40] hover:text-[#3A5A40] transition-colors">
                           Reopen

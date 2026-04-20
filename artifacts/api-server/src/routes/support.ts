@@ -297,6 +297,40 @@ router.post("/admin/support/tickets/:id/messages", requireAuth, requireRole("sup
   }
 });
 
+/* ── Admin: delete group via group_deletion ticket ─────────────── */
+router.post("/admin/support/tickets/:id/delete-group", requireAuth, requireRole("super_admin"), async (req, res) => {
+  try {
+    const ticketId = Number(req.params.id);
+    const adminId = req.session!.userId!;
+
+    const [ticket] = await db.select().from(supportTickets).where(eq(supportTickets.id, ticketId));
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+    if (!ticket.groupId) return res.status(400).json({ error: "No group associated with this ticket" });
+    if (ticket.status === "closed") return res.status(409).json({ error: "Ticket already closed" });
+
+    await db.update(groupsTable).set({ status: "deleted" }).where(eq(groupsTable.id, ticket.groupId));
+
+    await db.insert(supportMessages).values({
+      ticketId,
+      senderId: adminId,
+      message: "Your group deletion request has been approved. The group has been closed and marked as deleted. All records are preserved.",
+      isAdmin: true,
+    });
+
+    await db.update(supportTickets).set({
+      status: "closed",
+      closedAt: new Date(),
+      closedBy: adminId,
+      updatedAt: new Date(),
+    }).where(eq(supportTickets.id, ticketId));
+
+    return res.json({ success: true, message: "Group deleted and ticket closed." });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Failed to delete group" });
+  }
+});
+
 /* ── Admin: close ticket ───────────────────────────────────────── */
 router.post("/admin/support/tickets/:id/close", requireAuth, requireRole("super_admin"), async (req, res) => {
   try {

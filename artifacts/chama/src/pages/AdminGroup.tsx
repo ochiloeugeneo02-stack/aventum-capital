@@ -353,7 +353,8 @@ function GroupDeleteSection({ groupId, groupName, onRequested }: { groupId: numb
       try {
         const tickets = await apiRequest<any[]>(`/api/support/tickets`);
         const match = tickets.find((t: any) => t.category === "group_deletion" && t.groupId === groupId);
-        setExisting(match ? { status: match.status === "closed" ? "approved" : match.status, reason: "", requestedAt: match.createdAt } : null);
+        const toDisplayStatus = (s: string) => s === "closed" ? "approved" : (s === "open" || s === "in_progress") ? "pending" : s;
+        setExisting(match ? { status: toDisplayStatus(match.status), reason: "", requestedAt: match.createdAt } : null);
       } catch { setExisting(null); }
     })();
   }, [groupId]);
