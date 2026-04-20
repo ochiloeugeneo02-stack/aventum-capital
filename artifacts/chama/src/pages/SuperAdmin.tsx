@@ -81,17 +81,25 @@ interface SwapReq {
   createdAt: string;
 }
 
-function StatCard({ label, value, sub, icon: Icon, accent }: { label: string; value: string | number; sub?: string; icon: React.ElementType; accent: string }) {
-  return (
-    <div className="bg-white rounded-2xl border border-[#E8E4DF] p-5 flex flex-col gap-3">
+function StatCard({ label, value, sub, icon: Icon, accent, onClick }: { label: string; value: string | number; sub?: string; icon: React.ElementType; accent: string; onClick?: () => void }) {
+  const inner = (
+    <>
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-[#6B7280] uppercase tracking-wider">{label}</span>
         <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${accent}`}><Icon className="w-4 h-4" /></div>
       </div>
       <div className="text-2xl font-bold text-[#1F2937]">{value}</div>
       {sub && <div className="text-xs text-[#9CA3AF]">{sub}</div>}
-    </div>
+    </>
   );
+  if (onClick) {
+    return (
+      <button onClick={onClick} className="bg-white rounded-2xl border border-[#E8E4DF] p-5 flex flex-col gap-3 text-left hover:border-[#3A5A40]/40 hover:shadow-sm transition-all group w-full">
+        {inner}
+      </button>
+    );
+  }
+  return <div className="bg-white rounded-2xl border border-[#E8E4DF] p-5 flex flex-col gap-3">{inner}</div>;
 }
 
 function SectionHeader({ title, sub, onRefresh, loading, action }: { title: string; sub?: string; onRefresh?: () => void; loading?: boolean; action?: React.ReactNode }) {
@@ -190,7 +198,7 @@ function formatTime(iso: string) {
 
 export default function SuperAdmin() {
   const { formatCurrency, formatDate, formatDateTime } = useRegion();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [section, setSection] = useState<Section>("overview");
@@ -400,16 +408,23 @@ export default function SuperAdmin() {
           })}
         </nav>
 
-        <div className="px-5 py-5 border-t border-white/10">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-full bg-[#3A5A40] flex items-center justify-center text-white text-xs font-bold">
+        <div className="px-4 py-4 border-t border-white/10 space-y-2">
+          <div className="flex items-center gap-2.5 px-1">
+            <div className="w-7 h-7 rounded-full bg-[#3A5A40] flex items-center justify-center text-white text-xs font-bold shrink-0">
               {user?.name?.charAt(0) ?? "A"}
             </div>
-            <div className="overflow-hidden">
+            <div className="overflow-hidden flex-1 min-w-0">
               <div className="text-white/80 text-xs font-medium truncate">{user?.name ?? "Admin"}</div>
               <div className="text-white/35 text-[10px] truncate">{user?.email ?? ""}</div>
             </div>
           </div>
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-white/50 hover:text-white/90 hover:bg-white/10 transition-all text-sm font-medium"
+          >
+            <LogOut className="w-4 h-4 shrink-0" />
+            Sign out
+          </button>
         </div>
       </aside>
 
@@ -459,17 +474,17 @@ export default function SuperAdmin() {
                   </div>
 
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <StatCard label="Total Users" value={s?.totalUsers ?? 0} icon={Users} accent="bg-blue-50 text-blue-500" sub="Registered members" />
-                    <StatCard label="Active Groups" value={s?.activeGroups ?? 0} icon={Activity} accent="bg-emerald-50 text-emerald-600" sub={`of ${s?.totalGroups ?? 0} total`} />
-                    <StatCard label="Total Contributed" value={formatCurrency(s?.totalContributed ?? 0)} icon={TrendingUp} accent="bg-[#F0F5F1] text-[#3A5A40]" sub="Lifetime" />
-                    <StatCard label="Total Paid Out" value={formatCurrency(s?.totalPaidOut ?? 0)} icon={DollarSign} accent="bg-green-50 text-green-600" sub="Disbursed" />
+                    <StatCard label="Total Users" value={s?.totalUsers ?? 0} icon={Users} accent="bg-blue-50 text-blue-500" sub="Registered members" onClick={() => setSection("users")} />
+                    <StatCard label="Active Groups" value={s?.activeGroups ?? 0} icon={Activity} accent="bg-emerald-50 text-emerald-600" sub={`of ${s?.totalGroups ?? 0} total`} onClick={() => setSection("groups")} />
+                    <StatCard label="Total Contributed" value={formatCurrency(s?.totalContributed ?? 0)} icon={TrendingUp} accent="bg-[#F0F5F1] text-[#3A5A40]" sub="Lifetime" onClick={() => setSection("contributions")} />
+                    <StatCard label="Total Paid Out" value={formatCurrency(s?.totalPaidOut ?? 0)} icon={DollarSign} accent="bg-green-50 text-green-600" sub="Disbursed" onClick={() => setSection("payouts")} />
                   </div>
 
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <StatCard label="Pending Payouts" value={s?.pendingPayouts ?? 0} icon={Clock} accent="bg-amber-50 text-amber-500" />
-                    <StatCard label="Open Support" value={openSupportCount} icon={MessageCircle} accent="bg-blue-50 text-blue-500" sub="Tickets needing attention" />
-                    <StatCard label="Unread Tickets" value={unreadSupportCount} icon={AlertTriangle} accent="bg-red-50 text-red-500" />
-                    <StatCard label="Organizations" value={s?.totalOrganizations ?? 0} icon={FolderOpen} accent="bg-purple-50 text-purple-500" />
+                    <StatCard label="Pending Payouts" value={s?.pendingPayouts ?? 0} icon={Clock} accent="bg-amber-50 text-amber-500" onClick={() => setSection("payouts")} />
+                    <StatCard label="Open Support" value={openSupportCount} icon={MessageCircle} accent="bg-blue-50 text-blue-500" sub="Tickets needing attention" onClick={() => setSection("support")} />
+                    <StatCard label="Unread Tickets" value={unreadSupportCount} icon={AlertTriangle} accent="bg-red-50 text-red-500" onClick={() => setSection("support")} />
+                    <StatCard label="Organizations" value={s?.totalOrganizations ?? 0} icon={FolderOpen} accent="bg-purple-50 text-purple-500" onClick={() => setSection("groups")} />
                   </div>
 
                   <div>

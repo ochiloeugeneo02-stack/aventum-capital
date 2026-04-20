@@ -20,11 +20,13 @@ export function BackButton({ to, label = "Back", className }: BackButtonProps) {
     <button
       onClick={handleClick}
       className={cn(
-        "inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group",
+        "inline-flex items-center gap-2 text-sm font-medium text-[#374151] hover:text-[#1C3229] transition-colors group",
         className
       )}
     >
-      <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+      <span className="w-7 h-7 rounded-lg bg-[#F0EDE8] group-hover:bg-[#E8E4DF] flex items-center justify-center transition-colors">
+        <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+      </span>
       <span>{label}</span>
     </button>
   );
