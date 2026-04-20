@@ -16,7 +16,7 @@ const SESSION_KEY_REQUIRES_2FA = "aventum_requires_2fa";
 
 export default function Login() {
   const [, navigate] = useLocation();
-  const { setUser, isAuthenticated } = useAuth();
+  const { setUser, isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -68,6 +68,13 @@ export default function Login() {
   async function completeLogin(user: any) {
     setUser(user);
     toast({ title: "Welcome back!", description: `Signed in as ${user.name}` });
+
+    // Super admins belong in the staff portal
+    if (user.role === "super_admin") {
+      navigate("/staff");
+      return;
+    }
+
     const pendingToken = localStorage.getItem("aventum_pending_invite");
     if (pendingToken) {
       try {
@@ -115,8 +122,10 @@ export default function Login() {
   }
 
   useEffect(() => {
-    if (isAuthenticated) navigate("/dashboard");
-  }, [isAuthenticated]);
+    if (!isAuthenticated) return;
+    if (user?.role === "super_admin") navigate("/staff");
+    else navigate("/dashboard");
+  }, [isAuthenticated, user]);
 
   if (isAuthenticated) return null;
 

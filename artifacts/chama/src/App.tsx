@@ -19,6 +19,7 @@ import Settings from "@/pages/Settings";
 import AdminGroup from "@/pages/AdminGroup";
 import Organization from "@/pages/Organization";
 import SuperAdmin from "@/pages/SuperAdmin";
+import StaffPortal from "@/pages/StaffPortal";
 import InviteAccept from "@/pages/InviteAccept";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
@@ -121,6 +122,9 @@ function Router() {
           <SuperAdmin />
         </ProtectedRoute>
       </Route>
+
+      {/* Dedicated staff portal — handles its own auth state */}
+      <Route path="/staff" component={StaffPortal} />
 
       <Route component={NotFound} />
     </Switch>
