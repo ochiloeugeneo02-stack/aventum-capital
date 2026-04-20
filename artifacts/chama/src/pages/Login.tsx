@@ -10,6 +10,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 
+const SESSION_KEY_2FA_TOKEN = "aventum_2fa_token";
+const SESSION_KEY_2FA_EMAIL_HINT = "aventum_2fa_email_hint";
+const SESSION_KEY_REQUIRES_2FA = "aventum_requires_2fa";
+
 export default function Login() {
   const [, navigate] = useLocation();
   const { setUser, isAuthenticated } = useAuth();
@@ -18,22 +22,41 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const [requires2fa, setRequires2fa] = useState(false);
-  const [emailHint, setEmailHint] = useState("");
+  // Restore 2FA state from sessionStorage (survives HMR / page reload)
+  const [requires2fa, setRequires2fa] = useState(() => sessionStorage.getItem(SESSION_KEY_REQUIRES_2FA) === "true");
+  const [emailHint, setEmailHint] = useState(() => sessionStorage.getItem(SESSION_KEY_2FA_EMAIL_HINT) ?? "");
   const [twoFactorCode, setTwoFactorCode] = useState("");
-  const [twoFactorToken, setTwoFactorToken] = useState("");
+  const [twoFactorToken, setTwoFactorToken] = useState(() => sessionStorage.getItem(SESSION_KEY_2FA_TOKEN) ?? "");
   const [validating2fa, setValidating2fa] = useState(false);
   const [resending, setResending] = useState(false);
+
+  function enter2faState(token: string, hint: string) {
+    sessionStorage.setItem(SESSION_KEY_2FA_TOKEN, token);
+    sessionStorage.setItem(SESSION_KEY_2FA_EMAIL_HINT, hint);
+    sessionStorage.setItem(SESSION_KEY_REQUIRES_2FA, "true");
+    setTwoFactorToken(token);
+    setEmailHint(hint);
+    setRequires2fa(true);
+  }
+
+  function clear2faState() {
+    sessionStorage.removeItem(SESSION_KEY_2FA_TOKEN);
+    sessionStorage.removeItem(SESSION_KEY_2FA_EMAIL_HINT);
+    sessionStorage.removeItem(SESSION_KEY_REQUIRES_2FA);
+    setTwoFactorToken("");
+    setEmailHint("");
+    setRequires2fa(false);
+    setTwoFactorCode("");
+  }
 
   const loginMutation = useLoginUser({
     mutation: {
       onSuccess: async (data: any) => {
         if (data.requiresTwoFactor) {
-          setRequires2fa(true);
-          setEmailHint(data.emailHint ?? "");
-          setTwoFactorToken(data.twoFactorToken ?? "");
+          enter2faState(data.twoFactorToken ?? "", data.emailHint ?? "");
           return;
         }
+        clear2faState();
         await completeLogin(data.user);
       },
       onError: () => {
@@ -64,17 +87,26 @@ export default function Login() {
 
   async function handle2faSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!twoFactorCode.trim()) return;
+    const code = twoFactorCode.replace(/\s/g, "");
+    if (code.length < 6) return;
+
+    if (!twoFactorToken) {
+      toast({ title: "Session expired", description: "Please sign in again.", variant: "destructive" });
+      clear2faState();
+      return;
+    }
+
     setValidating2fa(true);
     try {
       const data: any = await apiRequest("/api/auth/2fa/validate", {
         method: "POST",
-        body: JSON.stringify({ code: twoFactorCode.replace(/\s/g, ""), twoFactorToken }),
-        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, twoFactorToken }),
       });
+      clear2faState();
       await completeLogin(data.user);
     } catch (err: any) {
-      const msg = err?.data?.error ?? "Invalid code. Try again.";
+      console.error("[2FA validate error]", err);
+      const msg = err?.data?.error ?? err?.message ?? "Invalid code. Try again.";
       toast({ title: "Verification failed", description: msg, variant: "destructive" });
       setTwoFactorCode("");
     } finally {
@@ -187,9 +219,10 @@ export default function Login() {
                       const data: any = await apiRequest("/api/auth/2fa/resend", {
                         method: "POST",
                         body: JSON.stringify({ twoFactorToken }),
-                        headers: { "Content-Type": "application/json" },
                       });
-                      if (data.twoFactorToken) setTwoFactorToken(data.twoFactorToken);
+                      if (data.twoFactorToken) {
+                        enter2faState(data.twoFactorToken, emailHint);
+                      }
                       setTwoFactorCode("");
                       toast({ title: "Code resent", description: "Check your inbox for a new code." });
                     } catch {
@@ -205,7 +238,7 @@ export default function Login() {
                   <button
                     type="button"
                     className="text-sm text-muted-foreground hover:text-foreground"
-                    onClick={() => { setRequires2fa(false); setTwoFactorCode(""); }}
+                    onClick={() => clear2faState()}
                   >
                     ← Back to login
                   </button>
@@ -261,9 +294,13 @@ export default function Login() {
               </div>
 
               <div className="mt-5 text-center">
-                <a href="/forgot-password" className="text-sm text-[#3A5A40] hover:underline">
+                <button
+                  type="button"
+                  onClick={() => navigate("/forgot-password")}
+                  className="text-sm text-[#3A5A40] hover:underline"
+                >
                   Forgot your password?
-                </a>
+                </button>
               </div>
 
               <p className="mt-4 text-center text-sm text-muted-foreground">
