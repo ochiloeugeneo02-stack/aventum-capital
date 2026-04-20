@@ -8,6 +8,7 @@ import {
   getGetDashboardSummaryQueryKey,
 } from "@workspace/api-client-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { BackButton } from "@/components/BackButton";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -337,6 +338,7 @@ export default function GroupDetail() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <BackButton to="/groups" label="All Groups" />
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>

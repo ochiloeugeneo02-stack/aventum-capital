@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useRegion } from "@/contexts/RegionContext";
 import { Loader2, CreditCard } from "lucide-react";
 import { useState } from "react";
+import { BackButton } from "@/components/BackButton";
 
 export default function Contributions() {
   const { formatCurrency, formatDate } = useRegion();
@@ -17,6 +18,7 @@ export default function Contributions() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <BackButton />
         <div>
           <h1 className="text-2xl font-bold">Contributions</h1>
           <p className="text-muted-foreground text-sm mt-1">Your complete contribution history</p>

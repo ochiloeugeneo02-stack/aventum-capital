@@ -1,5 +1,6 @@
 import { useListOrganizations, getListOrganizationsQueryKey } from "@workspace/api-client-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { BackButton } from "@/components/BackButton";
 import { useRegion } from "@/contexts/RegionContext";
 import { Loader2, Building } from "lucide-react";
 
@@ -11,6 +12,7 @@ export default function Organization() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <BackButton />
         <div>
           <h1 className="text-2xl font-bold">Organization</h1>
           <p className="text-muted-foreground text-sm mt-1">Overview of your organization's savings activity</p>

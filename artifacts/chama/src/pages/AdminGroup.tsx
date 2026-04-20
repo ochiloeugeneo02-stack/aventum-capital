@@ -11,6 +11,7 @@ import {
   getGetGroupMembersQueryKey,
 } from "@workspace/api-client-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { BackButton } from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -580,6 +581,7 @@ export default function AdminGroup() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <BackButton to="/groups" label="All Groups" />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Group Admin</h1>

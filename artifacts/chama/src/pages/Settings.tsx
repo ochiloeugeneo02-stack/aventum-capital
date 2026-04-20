@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useUpdateUser, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { BackButton } from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -196,6 +197,7 @@ export default function Settings() {
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-2xl">
+        <BackButton />
         <div>
           <h1 className="text-2xl font-bold">Settings</h1>
           <p className="text-muted-foreground text-sm mt-1">Manage your profile and preferences</p>

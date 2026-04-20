@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useRegion } from "@/contexts/RegionContext";
 import { Loader2, DollarSign } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 
 export default function Payouts() {
   const { formatCurrency, formatDate } = useRegion();
@@ -11,6 +12,7 @@ export default function Payouts() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <BackButton />
         <div>
           <h1 className="text-2xl font-bold">Payouts</h1>
           <p className="text-muted-foreground text-sm mt-1">Your received payouts from all groups</p>
