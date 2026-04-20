@@ -309,6 +309,94 @@ export async function sendPasswordResetEmail(data: PasswordResetEmailData): Prom
   return false;
 }
 
+interface GroupAddedEmailData {
+  email: string;
+  name: string;
+  groupName: string;
+  inviterName: string;
+  contributionAmount: string;
+  schedule: string;
+  appBaseUrl: string;
+}
+
+export async function sendGroupAddedEmail(data: GroupAddedEmailData): Promise<boolean> {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.EMAIL_FROM ?? "Aventum Capital <onboarding@resend.dev>";
+  const year = new Date().getFullYear();
+  const dashboardUrl = `${data.appBaseUrl}/groups`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="margin:0;padding:0;background:#f5f4f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f0;padding:40px 16px 64px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;">
+        <tr><td align="center" style="padding-bottom:24px;">
+          <div style="font-size:22px;font-weight:700;color:#344E41;">Aventum<span style="color:#588157;">.</span></div>
+          <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:2px;text-transform:uppercase;margin-top:2px;">Capital</div>
+        </td></tr>
+        <tr><td style="background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 32px rgba(0,0,0,0.08);">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="background:linear-gradient(135deg,#344E41 0%,#3A5A40 100%);padding:36px 40px;text-align:center;">
+              <div style="font-size:24px;font-weight:700;color:#ffffff;margin-bottom:6px;">You've joined a savings group!</div>
+              <div style="font-size:14px;color:rgba(255,255,255,0.75);">Hi ${data.name}, you've been added to a group on Aventum Capital</div>
+            </td></tr>
+            <tr><td style="padding:36px 40px;">
+              <p style="font-size:15px;color:#374151;margin:0 0 20px;">
+                <strong>${data.inviterName}</strong> has added you to the <strong>${data.groupName}</strong> savings group.
+              </p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8faf8;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:24px;">
+                <tr><td style="padding:20px 24px;">
+                  <div style="display:flex;gap:16px;">
+                    <div style="margin-bottom:12px;">
+                      <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Group</div>
+                      <div style="font-size:15px;font-weight:600;color:#374151;">${data.groupName}</div>
+                    </div>
+                  </div>
+                  <div style="margin-bottom:12px;">
+                    <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Contribution</div>
+                    <div style="font-size:15px;font-weight:600;color:#374151;">${data.contributionAmount} · ${data.schedule}</div>
+                  </div>
+                </td></tr>
+              </table>
+              <div style="text-align:center;">
+                <a href="${dashboardUrl}" style="display:inline-block;background:#3A5A40;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:10px;">View my group</a>
+              </div>
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td align="center" style="padding-top:28px;">
+          <p style="font-size:12px;color:#9ca3af;margin:0;">© ${year} Aventum Capital. All rights reserved.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  if (resendApiKey) {
+    try {
+      const { Resend } = await import("resend");
+      const resend = new Resend(resendApiKey);
+      const { error } = await resend.emails.send({
+        from: fromEmail,
+        to: data.email,
+        subject: `You've been added to ${data.groupName} on Aventum Capital`,
+        html,
+      });
+      if (error) { logger.error({ error }, "Resend group-added email error"); return false; }
+      logger.info({ email: data.email, groupName: data.groupName }, "Group-added notification sent");
+      return true;
+    } catch (err) {
+      logger.error({ err }, "Resend group-added send failed");
+      return false;
+    }
+  }
+
+  logger.info({ email: data.email }, "No email provider — group-added notification skipped");
+  return false;
+}
+
 export async function sendInviteEmail(data: InviteEmailData): Promise<boolean> {
   const resendApiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.EMAIL_FROM ?? "Aventum Capital <onboarding@resend.dev>";

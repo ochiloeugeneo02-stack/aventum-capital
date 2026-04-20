@@ -6,6 +6,7 @@ import { CreateGroupBody, UpdateGroupBody, InviteMemberBody } from "@workspace/a
 import { createAuditLog } from "../lib/auditLog";
 import { formatUser } from "./users";
 import { createGroupInvitation } from "./invitations";
+import { sendGroupAddedEmail } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -345,6 +346,21 @@ router.post("/groups/:groupId/invite", requireAuth, async (req, res): Promise<vo
       targetId: groupId,
       details: existingUser.email,
     });
+
+    // Send notification email to the newly added member
+    const appBaseUrl = (() => {
+      const domain = process.env.REPLIT_DOMAINS?.split(",")[0];
+      return domain ? `https://${domain}` : `http://localhost:${process.env.PORT ?? 8080}`;
+    })();
+    sendGroupAddedEmail({
+      email: existingUser.email,
+      name: existingUser.name,
+      groupName: group.name,
+      inviterName: inviter?.name ?? "A group admin",
+      contributionAmount: `${group.currency} ${Number(group.contributionAmount).toLocaleString()}`,
+      schedule: group.schedule,
+      appBaseUrl,
+    }).catch(() => {}); // fire-and-forget
 
     res.json({ success: true, type: "direct", message: `${existingUser.name} has been added to the group` });
     return;

@@ -130,12 +130,20 @@ export default function GroupDetail() {
     })();
   }, [groupId, user]);
 
-  // Fetch chat messages
+  // Fetch chat messages — only update state when something actually changed
   const fetchMessages = useCallback(async () => {
     if (!groupId) return;
     try {
       const msgs = await apiRequest<ChatMessage[]>(`/api/groups/${groupId}/messages?limit=100`);
-      setMessages(msgs);
+      setMessages(prev => {
+        if (
+          prev.length === msgs.length &&
+          (prev.length === 0 || prev[prev.length - 1]?.id === msgs[msgs.length - 1]?.id)
+        ) {
+          return prev; // no change — preserve reference so auto-scroll doesn't fire
+        }
+        return msgs;
+      });
     } catch {}
     setChatLoading(false);
   }, [groupId]);
@@ -148,9 +156,15 @@ export default function GroupDetail() {
     };
   }, [fetchMessages]);
 
-  // Auto-scroll chat to bottom when new messages arrive
+  // Track last message ID to only scroll when genuinely new messages arrive
+  const lastScrolledIdRef = useRef<number | null>(null);
   useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messages.length === 0) return;
+    const lastId = messages[messages.length - 1]?.id;
+    if (lastId !== lastScrolledIdRef.current) {
+      lastScrolledIdRef.current = lastId ?? null;
+      chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
