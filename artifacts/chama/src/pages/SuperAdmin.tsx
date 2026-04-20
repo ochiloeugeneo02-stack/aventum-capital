@@ -470,7 +470,7 @@ export default function SuperAdmin() {
           </div>
         </div>
 
-        <div className="px-8 py-7">
+        <div key={section} className="px-8 py-7 section-enter">
 
           {/* ── OVERVIEW ─────────────────────────────────────────── */}
           {section === "overview" && (
