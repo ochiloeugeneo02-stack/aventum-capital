@@ -99,7 +99,7 @@ export default function InviteAccept() {
     <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(160deg, #f9f8f5 0%, #eef2ec 100%)" }}>
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto w-full">
-        <a href="/"><Logo variant="dark" /></a>
+        <button type="button" onClick={() => navigate("/")} className="focus:outline-none"><Logo variant="dark" /></button>
         {!isAuthenticated && (
           <div className="flex gap-3">
             <Button variant="ghost" size="sm" onClick={() => {
@@ -131,9 +131,7 @@ export default function InviteAccept() {
               <XCircle className="w-12 h-12 text-destructive mx-auto mb-4 opacity-60" />
               <h2 className="text-xl font-bold mb-2">Invitation unavailable</h2>
               <p className="text-muted-foreground mb-6">{error}</p>
-              <a href="/signup">
-                <Button className="bg-[#3A5A40] hover:bg-[#344E41]">Create an account anyway</Button>
-              </a>
+              <Button className="bg-[#3A5A40] hover:bg-[#344E41]" onClick={() => navigate("/signup")}>Create an account anyway</Button>
             </div>
           )}
 

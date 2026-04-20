@@ -3,8 +3,9 @@ import { db, invitationsTable, groupsTable, groupMembersTable, usersTable } from
 import { eq, and, sql } from "drizzle-orm";
 import { requireAuth } from "../lib/auth";
 import { createAuditLog } from "../lib/auditLog";
-import { sendInviteEmail } from "../lib/email";
+import { sendInviteEmail, sendGroupAddedEmail, sendAdminAddedMemberEmail, sendMemberJoinedNotificationEmail } from "../lib/email";
 import crypto from "node:crypto";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -138,6 +139,70 @@ router.post("/invitations/:token/accept", requireAuth, async (req, res): Promise
     targetType: "group",
     targetId: invite.groupId,
     details: invite.email,
+  });
+
+  // Fire-and-forget: notify inviter + other members + welcome the new member
+  Promise.resolve().then(async () => {
+    try {
+      const appBaseUrl = getAppBaseUrl(req);
+      const newTotalMembers = currentCount + 1;
+      const contributionAmount = parseFloat(group.contributionAmount as unknown as string);
+
+      const [newUser, inviter, otherMemberRecords] = await Promise.all([
+        db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1).then(r => r[0]),
+        db.select().from(usersTable).where(eq(usersTable.id, invite.invitedBy)).limit(1).then(r => r[0]),
+        db.select({ userId: groupMembersTable.userId })
+          .from(groupMembersTable)
+          .where(and(eq(groupMembersTable.groupId, invite.groupId), sql`${groupMembersTable.userId} != ${userId}`)),
+      ]);
+
+      if (!newUser) return;
+
+      // 1. Welcome the new member
+      sendGroupAddedEmail({
+        email: newUser.email,
+        name: newUser.name,
+        groupName: group.name,
+        inviterName: inviter?.name ?? "A group admin",
+        contributionAmount: `${group.currency} ${contributionAmount.toLocaleString()}`,
+        schedule: group.schedule,
+        appBaseUrl,
+      }).catch(err => logger.error({ err }, "invite accept: welcome email failed"));
+
+      // 2. Notify the inviter
+      if (inviter && inviter.id !== newUser.id) {
+        sendAdminAddedMemberEmail({
+          email: inviter.email,
+          adminName: inviter.name,
+          newMemberName: newUser.name,
+          newMemberEmail: newUser.email,
+          groupName: group.name,
+          totalMembers: newTotalMembers,
+          maxMembers: group.maxMembers,
+          appBaseUrl,
+        }).catch(err => logger.error({ err }, "invite accept: inviter notification failed"));
+      }
+
+      // 3. Notify other existing members
+      const otherIds = otherMemberRecords.map(m => m.userId).filter(id => id !== invite.invitedBy && id !== newUser.id);
+      if (otherIds.length > 0) {
+        const { inArray } = await import("drizzle-orm");
+        const otherUsers = await db.select().from(usersTable).where(inArray(usersTable.id, otherIds));
+        otherUsers.forEach(member => {
+          sendMemberJoinedNotificationEmail({
+            email: member.email,
+            recipientName: member.name,
+            newMemberName: newUser.name,
+            groupName: group.name,
+            totalMembers: newTotalMembers,
+            maxMembers: group.maxMembers,
+            appBaseUrl,
+          }).catch(err => logger.error({ err }, "invite accept: member notification failed"));
+        });
+      }
+    } catch (err) {
+      logger.error({ err }, "invite accept: post-accept notifications failed");
+    }
   });
 
   res.json({ success: true, groupId: invite.groupId, groupName: group.name });
