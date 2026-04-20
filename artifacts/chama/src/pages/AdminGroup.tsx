@@ -18,7 +18,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useRegion, REGIONS } from "@/contexts/RegionContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
-import { Loader2, Plus, Users, Copy, Check, Mail, Link2, LogOut, Clock, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Plus, Users, Copy, Check, Mail, Link2, LogOut, Clock, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, ArrowLeftRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function StatusBadgeSmall({ status }: { status: string }) {
@@ -194,6 +194,142 @@ function GroupExitRequests({ groupId }: { groupId: number }) {
                   <Mail className="w-3.5 h-3.5" />
                   Contact Aventum support about this request
                 </a>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface SwapReq {
+  id: number;
+  requesterId: number;
+  targetMemberId: number;
+  requesterName: string | null;
+  targetMemberName?: string | null;
+  reason: string | null;
+  status: string;
+  adminNote: string | null;
+  createdAt: string;
+}
+
+function GroupSwapRequests({ groupId }: { groupId: number }) {
+  const { toast } = useToast();
+  const [requests, setRequests] = useState<SwapReq[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+  const [processingId, setProcessingId] = useState<number | null>(null);
+
+  const loadRequests = useCallback(async () => {
+    try {
+      const data = await apiRequest<SwapReq[]>(`/api/groups/${groupId}/swap-requests`);
+      setRequests(data);
+    } catch {}
+    setLoading(false);
+  }, [groupId]);
+
+  useEffect(() => { loadRequests(); }, [loadRequests]);
+
+  const handleApprove = async (id: number) => {
+    setProcessingId(id);
+    try {
+      await apiRequest(`/api/swap-requests/${id}/approve`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+      toast({ title: "Swap approved", description: "The rotation positions have been swapped." });
+      loadRequests();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Could not approve", variant: "destructive" });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleDeny = async (id: number) => {
+    setProcessingId(id);
+    try {
+      await apiRequest(`/api/swap-requests/${id}/deny`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+      toast({ title: "Swap denied" });
+      loadRequests();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Could not deny", variant: "destructive" });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  if (loading) return null;
+  if (requests.length === 0) return null;
+
+  const pending = requests.filter(r => r.status === "pending");
+
+  return (
+    <div className="border-t border-border pt-4 mt-4">
+      <button
+        className="flex items-center gap-2 w-full text-left"
+        onClick={() => setExpanded(e => !e)}
+      >
+        <ArrowLeftRight className="w-4 h-4 text-[#3A5A40]" />
+        <span className="text-sm font-medium">Turn Swap Requests</span>
+        {pending.length > 0 && (
+          <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">{pending.length} pending</span>
+        )}
+        <span className="ml-auto text-muted-foreground">
+          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="mt-3 space-y-3">
+          {[...pending, ...requests.filter(r => r.status !== "pending")].map(req => (
+            <div key={req.id} className={cn(
+              "rounded-xl border p-4 space-y-2",
+              req.status === "pending" ? "border-amber-200 bg-amber-50/40" : "border-border bg-muted/20"
+            )}>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="text-sm font-medium flex items-center gap-2">
+                    {req.requesterName ?? "Unknown"}
+                    <ArrowLeftRight className="w-3.5 h-3.5 text-muted-foreground" />
+                    {req.targetMemberName ?? "Unknown"}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Swap rotation positions</div>
+                </div>
+                <span className={cn("text-[11px] font-medium px-2 py-0.5 rounded-full capitalize", {
+                  "bg-amber-100 text-amber-700": req.status === "pending",
+                  "bg-green-100 text-green-700": req.status === "approved",
+                  "bg-red-100 text-red-700": req.status === "denied",
+                  "bg-muted text-muted-foreground": req.status === "cancelled",
+                })}>
+                  {req.status}
+                </span>
+              </div>
+
+              {req.reason && (
+                <p className="text-xs text-muted-foreground italic">"{req.reason}"</p>
+              )}
+
+              {req.status === "pending" && (
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    className="bg-[#3A5A40] hover:bg-[#344E41] h-7 text-xs"
+                    disabled={processingId === req.id}
+                    onClick={() => handleApprove(req.id)}
+                  >
+                    {processingId === req.id && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                    Approve & swap
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs text-destructive border-destructive/30 hover:bg-destructive/5"
+                    disabled={processingId === req.id}
+                    onClick={() => handleDeny(req.id)}
+                  >
+                    Deny
+                  </Button>
+                </div>
               )}
             </div>
           ))}
@@ -471,6 +607,7 @@ export default function AdminGroup() {
                   </div>
 
                   <GroupExitRequests groupId={g.id} />
+                  <GroupSwapRequests groupId={g.id} />
                 </div>
               );
             })}

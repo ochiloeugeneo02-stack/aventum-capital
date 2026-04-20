@@ -11,6 +11,8 @@ import adminRouter from "./admin";
 import stripeRouter from "./stripe";
 import invitationsRouter from "./invitations";
 import exitRequestsRouter from "./exitRequests";
+import groupChatRouter from "./groupChat";
+import turnSwapsRouter from "./turnSwaps";
 
 const router: IRouter = Router();
 
@@ -26,5 +28,7 @@ router.use(adminRouter);
 router.use(stripeRouter);
 router.use(invitationsRouter);
 router.use(exitRequestsRouter);
+router.use(groupChatRouter);
+router.use(turnSwapsRouter);
 
 export default router;

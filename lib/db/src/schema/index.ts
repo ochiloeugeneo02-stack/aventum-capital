@@ -8,3 +8,5 @@ export * from "./payouts";
 export * from "./auditLogs";
 export * from "./invitations";
 export * from "./exitRequests";
+export * from "./groupMessages";
+export * from "./turnSwapRequests";

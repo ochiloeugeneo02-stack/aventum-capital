@@ -20,10 +20,10 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useRegion } from "@/contexts/RegionContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
-import { Loader2, Users, CreditCard, DollarSign, Activity, Shield, LogOut, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Loader2, Users, CreditCard, DollarSign, Activity, Shield, LogOut, Clock, CheckCircle2, AlertTriangle, ArrowLeftRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const TABS = ["Overview", "Users", "Contributions", "Payouts", "Exit Requests", "Audit Logs"] as const;
+const TABS = ["Overview", "Users", "Contributions", "Payouts", "Exit Requests", "Swap Requests", "Audit Logs"] as const;
 type Tab = typeof TABS[number];
 
 interface ExitReq {
@@ -41,6 +41,20 @@ interface ExitReq {
   reviewedAt: string | null;
 }
 
+interface AdminSwapReq {
+  id: number;
+  groupId: number;
+  groupName: string | null;
+  requesterId: number;
+  requesterName: string | null;
+  targetMemberId: number;
+  targetMemberName: string | null;
+  reason: string | null;
+  status: string;
+  adminNote: string | null;
+  createdAt: string;
+}
+
 export default function SuperAdmin() {
   const { formatCurrency, formatDate, formatDateTime } = useRegion();
   const [tab, setTab] = useState<Tab>("Overview");
@@ -51,6 +65,10 @@ export default function SuperAdmin() {
   const [exitLoading, setExitLoading] = useState(false);
   const [exitActionLoading, setExitActionLoading] = useState<number | null>(null);
   const [exitNotes, setExitNotes] = useState<Record<number, string>>({});
+
+  const [swapRequests, setSwapRequests] = useState<AdminSwapReq[]>([]);
+  const [swapLoading, setSwapLoading] = useState(false);
+  const [swapActionLoading, setSwapActionLoading] = useState<number | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useGetAdminStats({ query: { queryKey: getGetAdminStatsQueryKey() } });
   const { data: users, isLoading: usersLoading } = useListUsers({}, { query: { queryKey: getListUsersQueryKey() }, enabled: tab === "Users" });
@@ -67,9 +85,36 @@ export default function SuperAdmin() {
     setExitLoading(false);
   }, []);
 
+  const loadSwapRequests = useCallback(async () => {
+    setSwapLoading(true);
+    try {
+      const data = await apiRequest<AdminSwapReq[]>("/api/admin/swap-requests");
+      setSwapRequests(data);
+    } catch {}
+    setSwapLoading(false);
+  }, []);
+
   useEffect(() => {
     if (tab === "Exit Requests") loadExitRequests();
-  }, [tab, loadExitRequests]);
+    if (tab === "Swap Requests") loadSwapRequests();
+  }, [tab, loadExitRequests, loadSwapRequests]);
+
+  const handleSwapAction = async (id: number, action: "approve" | "deny") => {
+    setSwapActionLoading(id);
+    try {
+      await apiRequest(`/api/swap-requests/${id}/${action}`, {
+        method: "POST",
+        body: JSON.stringify({}),
+        headers: { "Content-Type": "application/json" },
+      });
+      toast({ title: action === "approve" ? "Swap approved" : "Swap denied", description: action === "approve" ? "Rotation positions have been swapped." : undefined });
+      await loadSwapRequests();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Action failed", variant: "destructive" });
+    } finally {
+      setSwapActionLoading(null);
+    }
+  };
 
   const handleExitAction = async (reqId: number, action: "approve" | "deny") => {
     setExitActionLoading(reqId);
@@ -411,6 +456,127 @@ export default function SuperAdmin() {
                   </div>
                 )}
               </div>
+            )}
+          </div>
+        )}
+
+        {/* SWAP REQUESTS */}
+        {tab === "Swap Requests" && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold">Turn Swap Requests</h3>
+              {swapRequests.filter(r => r.status === "pending").length > 0 && (
+                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                  {swapRequests.filter(r => r.status === "pending").length} pending
+                </span>
+              )}
+            </div>
+            {swapLoading ? (
+              <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+            ) : swapRequests.length === 0 ? (
+              <div className="bg-card border border-border rounded-xl p-12 text-center">
+                <ArrowLeftRight className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-30" />
+                <p className="text-muted-foreground text-sm">No swap requests yet</p>
+              </div>
+            ) : (
+              <>
+                {/* Pending */}
+                {swapRequests.filter(r => r.status === "pending").length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Pending Review</h4>
+                    <div className="space-y-3">
+                      {swapRequests.filter(r => r.status === "pending").map(req => (
+                        <div key={req.id} className="bg-card border border-amber-200 rounded-xl p-5 space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="text-sm font-medium flex items-center gap-2">
+                                <span>{req.requesterName ?? "Unknown"}</span>
+                                <ArrowLeftRight className="w-3.5 h-3.5 text-muted-foreground" />
+                                <span>{req.targetMemberName ?? "Unknown"}</span>
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-0.5">
+                                Group: {req.groupName ?? `#${req.groupId}`} • {formatDate(req.createdAt)}
+                              </div>
+                            </div>
+                            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">pending</span>
+                          </div>
+                          {req.reason && (
+                            <div className="px-3 py-2 bg-muted/40 rounded-lg">
+                              <p className="text-xs text-muted-foreground italic">"{req.reason}"</p>
+                            </div>
+                          )}
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              className="flex-1 bg-[#3A5A40] hover:bg-[#344E41] text-xs"
+                              onClick={() => handleSwapAction(req.id, "approve")}
+                              disabled={swapActionLoading === req.id}
+                            >
+                              {swapActionLoading === req.id && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}
+                              <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                              Approve & Swap
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 text-xs border-destructive text-destructive hover:bg-destructive/5"
+                              onClick={() => handleSwapAction(req.id, "deny")}
+                              disabled={swapActionLoading === req.id}
+                            >
+                              {swapActionLoading === req.id && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}
+                              <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />
+                              Deny
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Resolved */}
+                {swapRequests.filter(r => r.status !== "pending").length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 mt-4">Resolved</h4>
+                    <div className="bg-card border border-border rounded-xl overflow-hidden">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/20">
+                            <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Requester → Target</th>
+                            <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Group</th>
+                            <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Status</th>
+                            <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {swapRequests.filter(r => r.status !== "pending").map(req => (
+                            <tr key={req.id} className="hover:bg-muted/20 transition-colors">
+                              <td className="px-4 py-3">
+                                <div className="text-sm font-medium flex items-center gap-1.5">
+                                  {req.requesterName}
+                                  <ArrowLeftRight className="w-3 h-3 text-muted-foreground" />
+                                  {req.targetMemberName}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-muted-foreground">{req.groupName ?? `#${req.groupId}`}</td>
+                              <td className="px-4 py-3">
+                                <span className={cn("text-[11px] font-medium px-2 py-0.5 rounded-full capitalize", {
+                                  "bg-green-100 text-green-700": req.status === "approved",
+                                  "bg-red-100 text-red-700": req.status === "denied",
+                                  "bg-muted text-muted-foreground": req.status === "cancelled",
+                                })}>
+                                  {req.status}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(req.createdAt)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
