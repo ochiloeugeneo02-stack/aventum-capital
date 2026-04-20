@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { useRegisterUser } from "@workspace/api-client-react";
@@ -68,14 +68,18 @@ export default function Signup() {
   const [location, setLocation] = useState("");
   const [locationLoading, setLocationLoading] = useState(false);
 
-  if (isAuthenticated) {
-    navigate("/dashboard");
-    return null;
-  }
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && !submitted) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, submitted]);
 
   const registerMutation = useRegisterUser({
     mutation: {
       onSuccess: async (data) => {
+        setSubmitted(true);
         setUser(data.user as any);
         toast({ title: "Account created!", description: `Welcome, ${data.user.name}` });
         const pendingToken = localStorage.getItem("aventum_pending_invite");
@@ -85,13 +89,13 @@ export default function Signup() {
             await apiRequest(`/api/invitations/${pendingToken}/accept`, { method: "POST" });
             localStorage.removeItem("aventum_pending_invite");
             toast({ title: "You've joined the group!", description: "Your invitation was accepted." });
-            navigate("/dashboard");
+            navigate("/setup-2fa");
           } catch {
             localStorage.removeItem("aventum_pending_invite");
-            navigate("/dashboard");
+            navigate("/setup-2fa");
           }
         } else {
-          navigate("/dashboard");
+          navigate("/setup-2fa");
         }
       },
       onError: (error: any) => {

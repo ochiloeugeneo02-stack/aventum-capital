@@ -19,14 +19,17 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
 
   const [requires2fa, setRequires2fa] = useState(false);
+  const [emailHint, setEmailHint] = useState("");
   const [twoFactorCode, setTwoFactorCode] = useState("");
   const [validating2fa, setValidating2fa] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const loginMutation = useLoginUser({
     mutation: {
       onSuccess: async (data: any) => {
         if (data.requiresTwoFactor) {
           setRequires2fa(true);
+          setEmailHint(data.emailHint ?? "");
           return;
         }
         await completeLogin(data.user);
@@ -104,7 +107,7 @@ export default function Login() {
           </h2>
           <p className="text-white/60 mb-8">
             {requires2fa
-              ? "Enter the 6-digit code from your authenticator app to complete sign-in."
+              ? "We emailed you a 6-digit code. Enter it below to complete sign-in."
               : "Sign in to track your contributions, view your payout schedule, and manage your groups."}
           </p>
           {!requires2fa && (
@@ -139,28 +142,27 @@ export default function Login() {
                 <div className="w-12 h-12 rounded-xl bg-[#3A5A40]/10 flex items-center justify-center mb-4">
                   <ShieldCheck className="w-6 h-6 text-[#3A5A40]" />
                 </div>
-                <h1 className="text-2xl font-bold">Two-factor authentication</h1>
-                <p className="text-muted-foreground mt-1">Enter the code from your authenticator app</p>
+                <h1 className="text-2xl font-bold">Check your email</h1>
+                <p className="text-muted-foreground mt-1">
+                  We sent a 6-digit code to <span className="font-medium">{emailHint || "your email"}</span>
+                </p>
               </div>
 
               <form onSubmit={handle2faSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="totp-code">6-digit code</Label>
+                  <Label htmlFor="totp-code">Verification code</Label>
                   <Input
                     id="totp-code"
                     type="text"
                     inputMode="numeric"
-                    placeholder="000 000"
+                    placeholder="000000"
                     value={twoFactorCode}
                     onChange={e => setTwoFactorCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
                     autoFocus
                     autoComplete="one-time-code"
-                    className="text-center text-xl tracking-widest font-mono"
+                    className="text-center text-2xl tracking-[0.5em] font-mono"
                     maxLength={6}
                   />
-                  <p className="text-xs text-muted-foreground text-center">
-                    You can also enter one of your backup codes
-                  </p>
                 </div>
                 <Button
                   type="submit"
@@ -172,14 +174,34 @@ export default function Login() {
                 </Button>
               </form>
 
-              <div className="mt-5 text-center">
+              <div className="mt-5 space-y-3 text-center">
                 <button
                   type="button"
-                  className="text-sm text-muted-foreground hover:text-foreground"
-                  onClick={() => { setRequires2fa(false); setTwoFactorCode(""); }}
+                  disabled={resending}
+                  className="text-sm text-[#3A5A40] hover:underline disabled:opacity-50"
+                  onClick={async () => {
+                    setResending(true);
+                    try {
+                      await apiRequest("/api/auth/2fa/resend", { method: "POST" });
+                      toast({ title: "Code resent", description: "Check your inbox for a new code." });
+                    } catch {
+                      toast({ title: "Could not resend", description: "Please try again.", variant: "destructive" });
+                    } finally {
+                      setResending(false);
+                    }
+                  }}
                 >
-                  ← Back to login
+                  {resending ? "Resending…" : "Didn't get it? Resend code"}
                 </button>
+                <div>
+                  <button
+                    type="button"
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                    onClick={() => { setRequires2fa(false); setTwoFactorCode(""); }}
+                  >
+                    ← Back to login
+                  </button>
+                </div>
               </div>
             </>
           ) : (

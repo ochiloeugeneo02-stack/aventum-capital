@@ -184,6 +184,74 @@ interface PasswordResetEmailData {
   appBaseUrl: string;
 }
 
+interface OtpEmailData {
+  email: string;
+  name: string;
+  otp: string;
+  purpose: "login" | "enable_2fa";
+}
+
+export async function sendOtpEmail(data: OtpEmailData): Promise<boolean> {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.EMAIL_FROM ?? "Aventum Capital <onboarding@resend.dev>";
+  const year = new Date().getFullYear();
+  const purposeLabel = data.purpose === "enable_2fa" ? "enable two-factor authentication" : "sign in";
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="margin:0;padding:0;background:#f5f4f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f0;padding:40px 16px 64px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;">
+        <tr><td align="center" style="padding-bottom:24px;">
+          <div style="font-size:22px;font-weight:700;color:#344E41;">Aventum<span style="color:#588157;">.</span></div>
+          <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:2px;text-transform:uppercase;margin-top:2px;">Capital</div>
+        </td></tr>
+        <tr><td style="background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 32px rgba(0,0,0,0.08);">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="background:linear-gradient(135deg,#344E41 0%,#3A5A40 100%);padding:36px 40px;text-align:center;">
+              <div style="font-size:24px;font-weight:700;color:#ffffff;margin-bottom:6px;">Your verification code</div>
+              <div style="font-size:14px;color:rgba(255,255,255,0.65);">Hi ${data.name}, use this code to ${purposeLabel}</div>
+            </td></tr>
+            <tr><td style="padding:40px 40px 32px;text-align:center;">
+              <div style="font-size:48px;font-weight:800;letter-spacing:12px;color:#344E41;font-family:'Courier New',monospace;margin-bottom:8px;">${data.otp}</div>
+              <p style="font-size:14px;color:#9ca3af;margin:0 0 24px;">This code expires in <strong>10 minutes</strong>. Do not share it with anyone.</p>
+              <div style="height:1px;background:#f0ede8;margin:0 0 20px;"></div>
+              <p style="font-size:13px;color:#9ca3af;margin:0;">If you didn't request this code, you can safely ignore this email.</p>
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td align="center" style="padding-top:28px;">
+          <p style="font-size:12px;color:#9ca3af;margin:0;">© ${year} Aventum Capital. All rights reserved.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  const subject = data.purpose === "enable_2fa"
+    ? "Your Aventum 2FA setup code"
+    : "Your Aventum sign-in code";
+
+  if (resendApiKey) {
+    try {
+      const { Resend } = await import("resend");
+      const resend = new Resend(resendApiKey);
+      const { error } = await resend.emails.send({ from: fromEmail, to: data.email, subject, html });
+      if (error) { logger.error({ error }, "Resend OTP send error"); return false; }
+      logger.info({ email: data.email, purpose: data.purpose }, "OTP email sent");
+      return true;
+    } catch (err) {
+      logger.error({ err }, "Resend OTP send failed");
+      return false;
+    }
+  }
+
+  logger.info({ email: data.email, otp: data.otp }, "No email provider — OTP generated only");
+  return false;
+}
+
 export async function sendPasswordResetEmail(data: PasswordResetEmailData): Promise<boolean> {
   const resendApiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.EMAIL_FROM ?? "Aventum Capital <onboarding@resend.dev>";

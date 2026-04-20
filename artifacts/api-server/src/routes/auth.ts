@@ -5,12 +5,19 @@ import { eq } from "drizzle-orm";
 import { RegisterUserBody, LoginUserBody } from "@workspace/api-zod";
 import { hashPassword, verifyPassword, requireAuth } from "../lib/auth";
 import { createAuditLog } from "../lib/auditLog";
-import { sendPasswordResetEmail } from "../lib/email";
+import { sendPasswordResetEmail, sendOtpEmail } from "../lib/email";
 import { logger } from "../lib/logger";
-import { authenticator } from "otplib";
-import QRCode from "qrcode";
 
 const router: IRouter = Router();
+
+function generateOtp(): string {
+  return String(crypto.randomInt(100000, 999999));
+}
+
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  return `${local.slice(0, 2)}***@${domain}`;
+}
 
 function formatUser(u: typeof usersTable.$inferSelect) {
   return {
@@ -95,10 +102,17 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  if (user.twoFactorEnabled && user.twoFactorSecret) {
+  if (user.twoFactorEnabled) {
+    const otp = generateOtp();
     req.session.pending2fa = true;
     req.session.pending2faUserId = user.id;
-    res.json({ requiresTwoFactor: true });
+    req.session.twoFactorOtp = otp;
+    req.session.twoFactorOtpExpiry = Date.now() + 10 * 60 * 1000;
+
+    await sendOtpEmail({ email: user.email, name: user.name, otp, purpose: "login" });
+    logger.info({ userId: user.id }, "2FA OTP sent for login");
+
+    res.json({ requiresTwoFactor: true, emailHint: maskEmail(user.email) });
     return;
   }
 
@@ -106,7 +120,6 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   req.session.userRole = user.role;
 
   await createAuditLog({ action: "user.login", performedBy: user.id, targetType: "user", targetId: user.id });
-
   res.json({ user: formatUser(user), message: "Login successful" });
 });
 
@@ -219,77 +232,7 @@ router.post("/auth/change-password", requireAuth, async (req, res): Promise<void
   res.json({ message: "Password changed successfully" });
 });
 
-// ─── Two-Factor Authentication ────────────────────────────────────────────────
-
-router.get("/auth/2fa/setup", requireAuth, async (req, res): Promise<void> => {
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId!)).limit(1);
-  if (!user) { res.status(404).json({ error: "User not found" }); return; }
-
-  const secret = authenticator.generateSecret();
-  const otpauth = authenticator.keyuri(user.email, "Aventum Capital", secret);
-  const qrDataUrl = await QRCode.toDataURL(otpauth);
-
-  const backupCodes = Array.from({ length: 8 }, () =>
-    crypto.randomBytes(4).toString("hex").toUpperCase()
-  );
-
-  await db.update(usersTable).set({ twoFactorSecret: secret }).where(eq(usersTable.id, user.id));
-
-  res.json({ secret, qrDataUrl, backupCodes });
-});
-
-router.post("/auth/2fa/enable", requireAuth, async (req, res): Promise<void> => {
-  const { code, backupCodes } = req.body;
-  if (!code || typeof code !== "string") {
-    res.status(400).json({ error: "Verification code is required" });
-    return;
-  }
-
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId!)).limit(1);
-  if (!user || !user.twoFactorSecret) {
-    res.status(400).json({ error: "2FA setup not initiated" });
-    return;
-  }
-
-  const { authenticator } = await import("otplib");
-  const valid = authenticator.verify({ token: code.replace(/\s/g, ""), secret: user.twoFactorSecret });
-  if (!valid) {
-    res.status(400).json({ error: "Invalid verification code" });
-    return;
-  }
-
-  const hashedBackups = Array.isArray(backupCodes)
-    ? backupCodes.map((c: string) => crypto.createHash("sha256").update(c).digest("hex"))
-    : [];
-
-  await db.update(usersTable).set({
-    twoFactorEnabled: true,
-    twoFactorBackupCodes: JSON.stringify(hashedBackups),
-  }).where(eq(usersTable.id, user.id));
-
-  logger.info({ userId: user.id }, "2FA enabled");
-  res.json({ message: "Two-factor authentication enabled successfully" });
-});
-
-router.post("/auth/2fa/disable", requireAuth, async (req, res): Promise<void> => {
-  const { password } = req.body;
-  if (!password) { res.status(400).json({ error: "Password is required" }); return; }
-
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId!)).limit(1);
-  if (!user) { res.status(404).json({ error: "User not found" }); return; }
-
-  const valid = await verifyPassword(password, user.passwordHash);
-  if (!valid) { res.status(400).json({ error: "Incorrect password" }); return; }
-
-  await db.update(usersTable).set({
-    twoFactorEnabled: false,
-    twoFactorSecret: null,
-    twoFactorBackupCodes: null,
-  }).where(eq(usersTable.id, user.id));
-
-  logger.info({ userId: user.id }, "2FA disabled");
-  res.json({ message: "Two-factor authentication disabled" });
-});
+// ─── Two-Factor Authentication (Email OTP) ───────────────────────────────────
 
 router.post("/auth/2fa/validate", async (req, res): Promise<void> => {
   if (!req.session.pending2fa || !req.session.pending2faUserId) {
@@ -303,40 +246,121 @@ router.post("/auth/2fa/validate", async (req, res): Promise<void> => {
     return;
   }
 
-  const userId = req.session.pending2faUserId;
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-  if (!user || !user.twoFactorSecret) {
-    res.status(400).json({ error: "Invalid session" });
+  if (!req.session.twoFactorOtp || !req.session.twoFactorOtpExpiry) {
+    res.status(400).json({ error: "No OTP found. Please request a new code." });
     return;
   }
 
-  const cleanCode = code.replace(/\s/g, "");
-  const { authenticator } = await import("otplib");
-  const validTotp = authenticator.verify({ token: cleanCode, secret: user.twoFactorSecret });
+  if (Date.now() > req.session.twoFactorOtpExpiry) {
+    res.status(400).json({ error: "Code has expired. Please request a new one." });
+    return;
+  }
 
-  if (!validTotp) {
-    const storedBackups: string[] = user.twoFactorBackupCodes ? JSON.parse(user.twoFactorBackupCodes) : [];
-    const hashedInput = crypto.createHash("sha256").update(cleanCode).digest("hex");
-    const backupIndex = storedBackups.indexOf(hashedInput);
+  if (code.replace(/\s/g, "") !== req.session.twoFactorOtp) {
+    res.status(401).json({ error: "Invalid code. Please try again." });
+    return;
+  }
 
-    if (backupIndex === -1) {
-      res.status(401).json({ error: "Invalid code" });
-      return;
-    }
-
-    storedBackups.splice(backupIndex, 1);
-    await db.update(usersTable).set({ twoFactorBackupCodes: JSON.stringify(storedBackups) }).where(eq(usersTable.id, user.id));
-    logger.info({ userId: user.id }, "2FA backup code used");
+  const userId = req.session.pending2faUserId;
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  if (!user) {
+    res.status(400).json({ error: "User not found" });
+    return;
   }
 
   delete req.session.pending2fa;
   delete req.session.pending2faUserId;
+  delete req.session.twoFactorOtp;
+  delete req.session.twoFactorOtpExpiry;
+
   req.session.userId = user.id;
   req.session.userRole = user.role;
 
   await createAuditLog({ action: "user.login", performedBy: user.id, targetType: "user", targetId: user.id });
-
   res.json({ user: formatUser(user), message: "Login successful" });
+});
+
+router.post("/auth/2fa/resend", async (req, res): Promise<void> => {
+  if (!req.session.pending2fa || !req.session.pending2faUserId) {
+    res.status(400).json({ error: "No pending 2FA session" });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.pending2faUserId)).limit(1);
+  if (!user) {
+    res.status(400).json({ error: "User not found" });
+    return;
+  }
+
+  const otp = generateOtp();
+  req.session.twoFactorOtp = otp;
+  req.session.twoFactorOtpExpiry = Date.now() + 10 * 60 * 1000;
+
+  await sendOtpEmail({ email: user.email, name: user.name, otp, purpose: "login" });
+  logger.info({ userId: user.id }, "2FA OTP resent");
+
+  res.json({ message: "A new code has been sent to your email." });
+});
+
+router.post("/auth/2fa/request", requireAuth, async (req, res): Promise<void> => {
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId!)).limit(1);
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  const otp = generateOtp();
+  req.session.twoFactorOtp = otp;
+  req.session.twoFactorOtpExpiry = Date.now() + 10 * 60 * 1000;
+
+  await sendOtpEmail({ email: user.email, name: user.name, otp, purpose: "enable_2fa" });
+  logger.info({ userId: user.id }, "2FA enable OTP sent");
+
+  res.json({ sent: true, emailHint: maskEmail(user.email) });
+});
+
+router.post("/auth/2fa/enable", requireAuth, async (req, res): Promise<void> => {
+  const { code } = req.body;
+  if (!code || typeof code !== "string") {
+    res.status(400).json({ error: "Verification code is required" });
+    return;
+  }
+
+  if (!req.session.twoFactorOtp || !req.session.twoFactorOtpExpiry) {
+    res.status(400).json({ error: "No pending code. Please request a new one." });
+    return;
+  }
+
+  if (Date.now() > req.session.twoFactorOtpExpiry) {
+    res.status(400).json({ error: "Code has expired. Please request a new one." });
+    return;
+  }
+
+  if (code.replace(/\s/g, "") !== req.session.twoFactorOtp) {
+    res.status(400).json({ error: "Invalid code" });
+    return;
+  }
+
+  delete req.session.twoFactorOtp;
+  delete req.session.twoFactorOtpExpiry;
+
+  await db.update(usersTable).set({ twoFactorEnabled: true }).where(eq(usersTable.id, req.session.userId!));
+
+  logger.info({ userId: req.session.userId }, "2FA enabled");
+  res.json({ message: "Two-factor authentication enabled successfully" });
+});
+
+router.post("/auth/2fa/disable", requireAuth, async (req, res): Promise<void> => {
+  const { password } = req.body;
+  if (!password) { res.status(400).json({ error: "Password is required" }); return; }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId!)).limit(1);
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  const valid = await verifyPassword(password, user.passwordHash);
+  if (!valid) { res.status(400).json({ error: "Incorrect password" }); return; }
+
+  await db.update(usersTable).set({ twoFactorEnabled: false }).where(eq(usersTable.id, user.id));
+
+  logger.info({ userId: user.id }, "2FA disabled");
+  res.json({ message: "Two-factor authentication disabled" });
 });
 
 export default router;

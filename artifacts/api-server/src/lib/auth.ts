@@ -15,6 +15,8 @@ declare module "express-session" {
     userRole?: string;
     pending2fa?: boolean;
     pending2faUserId?: number;
+    twoFactorOtp?: string;
+    twoFactorOtpExpiry?: number;
   }
 }
 
