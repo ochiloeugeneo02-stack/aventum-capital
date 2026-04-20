@@ -274,6 +274,34 @@ export default function StaffPortal() {
                 <p className="text-white/30 text-sm mt-1">Restricted to authorised Aventum personnel</p>
               </div>
 
+              {/* Quick-fill — demo staff accounts */}
+              <div className="mb-6">
+                <p className="text-[10px] text-white/20 uppercase tracking-wider mb-2.5">Quick sign in</p>
+                <div className="flex flex-col gap-1.5">
+                  {[
+                    { name: "James Odhiambo", title: "Operations Lead", initials: "JO", email: "admin@aventum.co", password: "admin123" },
+                    { name: "Amara Nkosi", title: "Compliance Officer", initials: "AN", email: "admin@aventum.co", password: "admin123" },
+                    { name: "Priya Sharma", title: "Finance Manager", initials: "PS", email: "admin@aventum.co", password: "admin123" },
+                  ].map(emp => (
+                    <button
+                      key={emp.name}
+                      type="button"
+                      onClick={() => { setEmail(emp.email); setPassword(emp.password); }}
+                      className="flex items-center gap-3 w-full px-3 py-2 rounded-xl border border-white/[0.06] hover:border-[#3A5A40]/40 hover:bg-white/[0.04] transition-all group text-left"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-[#1C3229] border border-[#3A5A40]/30 flex items-center justify-center shrink-0">
+                        <span className="text-[10px] font-semibold text-[#A3C4A8]">{emp.initials}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-white/70 text-xs font-medium leading-none group-hover:text-white/90 transition-colors">{emp.name}</div>
+                        <div className="text-white/25 text-[10px] mt-0.5 leading-none">{emp.title}</div>
+                      </div>
+                      <div className="ml-auto text-white/15 text-[10px] group-hover:text-[#A3C4A8]/50 transition-colors shrink-0">Fill →</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
                   <label className="block text-xs font-medium text-white/40 uppercase tracking-wider mb-2">
