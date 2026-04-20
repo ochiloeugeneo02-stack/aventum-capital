@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { WebhookHandlers } from "./lib/webhookHandlers";
@@ -64,7 +65,16 @@ if (!sessionSecret) {
   throw new Error("SESSION_SECRET environment variable is required");
 }
 
+const PgSession = connectPgSimple(session);
+const pgStore = new PgSession({
+  conString: process.env.DATABASE_URL,
+  tableName: "user_sessions",
+  createTableIfMissing: true,
+  pruneSessionInterval: 60 * 15, // prune expired sessions every 15 min
+});
+
 app.use(session({
+  store: pgStore,
   secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
