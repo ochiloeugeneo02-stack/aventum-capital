@@ -17,7 +17,7 @@ router.post("/support/tickets", requireAuth, async (req, res) => {
     const [ticket] = await db
       .insert(supportTickets)
       .values({
-        userId: req.user!.id,
+        userId: req.session!.userId!,
         category,
         groupId: groupId ? Number(groupId) : null,
         subject: subject.trim(),
@@ -28,7 +28,7 @@ router.post("/support/tickets", requireAuth, async (req, res) => {
 
     await db.insert(supportMessages).values({
       ticketId: ticket.id,
-      senderId: req.user!.id,
+      senderId: req.session!.userId!,
       message: message.trim(),
       isAdmin: false,
     });
@@ -64,7 +64,7 @@ router.get("/support/tickets", requireAuth, async (req, res) => {
       })
       .from(supportTickets)
       .leftJoin(groupsTable, eq(supportTickets.groupId, groupsTable.id))
-      .where(eq(supportTickets.userId, req.user!.id))
+      .where(eq(supportTickets.userId, req.session!.userId!))
       .orderBy(desc(supportTickets.updatedAt));
 
     return res.json(rows);
@@ -85,7 +85,7 @@ router.get("/support/tickets/:id", requireAuth, async (req, res) => {
       .where(
         and(
           eq(supportTickets.id, ticketId),
-          eq(supportTickets.userId, req.user!.id)
+          eq(supportTickets.userId, req.session!.userId!)
         )
       );
 
@@ -136,7 +136,7 @@ router.post("/support/tickets/:id/messages", requireAuth, async (req, res) => {
       .where(
         and(
           eq(supportTickets.id, ticketId),
-          eq(supportTickets.userId, req.user!.id)
+          eq(supportTickets.userId, req.session!.userId!)
         )
       );
 
@@ -145,7 +145,7 @@ router.post("/support/tickets/:id/messages", requireAuth, async (req, res) => {
 
     await db.insert(supportMessages).values({
       ticketId,
-      senderId: req.user!.id,
+      senderId: req.session!.userId!,
       message: message.trim(),
       isAdmin: false,
     });
@@ -283,7 +283,7 @@ router.post("/admin/support/tickets/:id/messages", requireAuth, requireRole("sup
 
     await db.insert(supportMessages).values({
       ticketId,
-      senderId: req.user!.id,
+      senderId: req.session!.userId!,
       message: message.trim(),
       isAdmin: true,
     });
@@ -309,7 +309,7 @@ router.post("/admin/support/tickets/:id/close", requireAuth, requireRole("super_
     if (note?.trim()) {
       await db.insert(supportMessages).values({
         ticketId,
-        senderId: req.user!.id,
+        senderId: req.session!.userId!,
         message: `[Closing note] ${note.trim()}`,
         isAdmin: true,
       });
@@ -317,7 +317,7 @@ router.post("/admin/support/tickets/:id/close", requireAuth, requireRole("super_
 
     await db
       .update(supportTickets)
-      .set({ status: "closed", closedAt: new Date(), closedBy: req.user!.id, updatedAt: new Date() })
+      .set({ status: "closed", closedAt: new Date(), closedBy: req.session!.userId!, updatedAt: new Date() })
       .where(eq(supportTickets.id, ticketId));
 
     return res.json({ ok: true, message: "Ticket closed" });
