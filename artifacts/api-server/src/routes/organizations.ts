@@ -1,9 +1,8 @@
 import { Router, type IRouter } from "express";
 import { db, organizationsTable, usersTable, groupsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
-import { requireAuth } from "../lib/auth";
+import { requireAuth, requireRole } from "../lib/auth";
 import { CreateOrganizationBody } from "@workspace/api-zod";
-import { formatUser } from "./users";
 
 const router: IRouter = Router();
 
@@ -17,9 +16,21 @@ async function buildOrg(org: typeof organizationsTable.$inferSelect, includeGrou
     id: org.id,
     name: org.name,
     adminId: org.adminId,
+    plan: org.plan,
+    status: org.status,
+    industry: org.industry,
+    website: org.website,
+    billingEmail: org.billingEmail,
+    employeeCount: org.employeeCount,
+    logoUrl: org.logoUrl,
+    accountManager: org.accountManager,
+    contractStart: org.contractStart ? org.contractStart.toISOString() : null,
+    contractEnd: org.contractEnd ? org.contractEnd.toISOString() : null,
+    notes: org.notes,
     totalMembers: Number(memberCount[0]?.count ?? 0),
     totalGroups: Number(groupCount[0]?.count ?? 0),
     createdAt: org.createdAt.toISOString(),
+    updatedAt: org.updatedAt.toISOString(),
   };
 
   if (!includeGroups) return base;
@@ -84,6 +95,50 @@ router.get("/organizations/:orgId", requireAuth, async (req, res): Promise<void>
   }
 
   res.json(await buildOrg(org, true));
+});
+
+// Super admin: list all enterprise customers
+router.get("/admin/organizations", requireAuth, requireRole("super_admin"), async (_req, res): Promise<void> => {
+  const orgs = await db.select().from(organizationsTable).orderBy(organizationsTable.createdAt);
+  const result = await Promise.all(orgs.map((o) => buildOrg(o)));
+  res.json(result);
+});
+
+// Super admin: update enterprise customer details
+router.patch("/admin/organizations/:orgId", requireAuth, requireRole("super_admin"), async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.orgId) ? req.params.orgId[0] : req.params.orgId;
+  const orgId = parseInt(raw, 10);
+
+  const [existing] = await db.select().from(organizationsTable).where(eq(organizationsTable.id, orgId)).limit(1);
+  if (!existing) {
+    res.status(404).json({ error: "Organization not found" });
+    return;
+  }
+
+  const allowed = ["name", "plan", "status", "industry", "website", "billingEmail",
+                   "employeeCount", "logoUrl", "accountManager", "notes", "contractStart", "contractEnd"];
+  const updates: Record<string, any> = {};
+  for (const key of allowed) {
+    if (key in req.body) {
+      if ((key === "contractStart" || key === "contractEnd") && req.body[key]) {
+        updates[key] = new Date(req.body[key]);
+      } else {
+        updates[key] = req.body[key] ?? null;
+      }
+    }
+  }
+
+  if (Object.keys(updates).length === 0) {
+    res.status(400).json({ error: "No valid fields to update" });
+    return;
+  }
+
+  const [updated] = await db.update(organizationsTable)
+    .set(updates)
+    .where(eq(organizationsTable.id, orgId))
+    .returning();
+
+  res.json(await buildOrg(updated));
 });
 
 export default router;

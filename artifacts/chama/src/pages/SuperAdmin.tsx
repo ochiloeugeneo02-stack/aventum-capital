@@ -24,6 +24,7 @@ import {
   ArrowLeftRight, FileText, RefreshCw, CheckCircle2, AlertTriangle,
   Clock, Loader2, ChevronRight, Search, Shield, Activity, TrendingUp,
   X, Zap, MessageCircle, Send, ChevronLeft, HelpCircle, LogOut, Trash2,
+  Building2, Globe, Mail, Users2, Pencil, Check, CalendarRange, StickyNote,
 } from "lucide-react";
 
 type Section =
@@ -34,7 +35,8 @@ type Section =
   | "payouts"
   | "support"
   | "swap-requests"
-  | "audit-logs";
+  | "audit-logs"
+  | "enterprise";
 
 interface NavItem { id: Section; label: string; icon: React.ElementType; badge?: number; }
 
@@ -270,10 +272,24 @@ export default function SuperAdmin() {
     setGroupsLoading(false);
   }, []);
 
+  const [enterprises, setEnterprises] = useState<any[]>([]);
+  const [enterprisesLoading, setEnterprisesLoading] = useState(false);
+  const [enterpriseDetail, setEnterpriseDetail] = useState<any | null>(null);
+  const [enterpriseEditing, setEnterpriseEditing] = useState(false);
+  const [enterpriseEditData, setEnterpriseEditData] = useState<Record<string, string>>({});
+  const [enterpriseSaving, setEnterpriseSaving] = useState(false);
+
+  const loadEnterprises = useCallback(async () => {
+    setEnterprisesLoading(true);
+    try { setEnterprises(await apiRequest<any[]>("/api/admin/organizations")); } catch {}
+    setEnterprisesLoading(false);
+  }, []);
+
   useEffect(() => {
     if (section === "support") loadSupport();
     if (section === "swap-requests") loadSwapRequests();
     if (section === "groups") loadAllGroups();
+    if (section === "enterprise") loadEnterprises();
   }, [section]);
 
   useEffect(() => {
@@ -345,14 +361,15 @@ export default function SuperAdmin() {
   const pendingSwap = swapRequests.filter(r => r.status === "pending").length;
 
   const navItems: NavItem[] = [
-    { id: "overview",      label: "Overview",       icon: LayoutDashboard },
-    { id: "users",         label: "Users",           icon: Users },
-    { id: "groups",        label: "Groups",          icon: FolderOpen },
-    { id: "contributions", label: "Contributions",   icon: CreditCard },
-    { id: "payouts",       label: "Payouts",         icon: DollarSign },
-    { id: "support",       label: "Support Tickets", icon: MessageCircle, badge: unreadSupportCount || openSupportCount || undefined },
-    { id: "swap-requests", label: "Swap Requests",   icon: ArrowLeftRight, badge: pendingSwap || undefined },
-    { id: "audit-logs",    label: "Audit Log",       icon: FileText },
+    { id: "overview",      label: "Overview",           icon: LayoutDashboard },
+    { id: "users",         label: "Users",               icon: Users },
+    { id: "groups",        label: "Groups",              icon: FolderOpen },
+    { id: "enterprise",    label: "Enterprise",          icon: Building2 },
+    { id: "contributions", label: "Contributions",       icon: CreditCard },
+    { id: "payouts",       label: "Payouts",             icon: DollarSign },
+    { id: "support",       label: "Support Tickets",     icon: MessageCircle, badge: unreadSupportCount || openSupportCount || undefined },
+    { id: "swap-requests", label: "Swap Requests",       icon: ArrowLeftRight, badge: pendingSwap || undefined },
+    { id: "audit-logs",    label: "Audit Log",           icon: FileText },
   ];
 
   const filteredUsers = ((users as any)?.users ?? []).filter((u: any) =>
@@ -484,7 +501,7 @@ export default function SuperAdmin() {
                     <StatCard label="Pending Payouts" value={s?.pendingPayouts ?? 0} icon={Clock} accent="bg-amber-50 text-amber-500" onClick={() => setSection("payouts")} />
                     <StatCard label="Open Support" value={openSupportCount} icon={MessageCircle} accent="bg-blue-50 text-blue-500" sub="Tickets needing attention" onClick={() => setSection("support")} />
                     <StatCard label="Unread Tickets" value={unreadSupportCount} icon={AlertTriangle} accent="bg-red-50 text-red-500" onClick={() => setSection("support")} />
-                    <StatCard label="Organizations" value={s?.totalOrganizations ?? 0} icon={FolderOpen} accent="bg-purple-50 text-purple-500" onClick={() => setSection("groups")} />
+                    <StatCard label="Enterprise Accounts" value={s?.totalOrganizations ?? 0} icon={Building2} accent="bg-purple-50 text-purple-500" onClick={() => setSection("enterprise")} />
                   </div>
 
                   <div>
@@ -866,6 +883,254 @@ export default function SuperAdmin() {
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ── ENTERPRISE CUSTOMERS ──────────────────────────────── */}
+          {section === "enterprise" && (
+            <div className="flex gap-6 h-full min-h-0">
+              {/* List */}
+              <div className={cn("flex flex-col gap-3 transition-all", enterpriseDetail ? "w-72 shrink-0" : "flex-1")}>
+                <SectionHeader
+                  title="Enterprise Customers"
+                  sub="Manage custom / enterprise accounts and their plans"
+                  loading={enterprisesLoading}
+                  onRefresh={loadEnterprises}
+                />
+                {enterprisesLoading ? (
+                  <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[#3A5A40]" /></div>
+                ) : enterprises.length === 0 ? (
+                  <div className="bg-white border border-[#E8E4DF] rounded-2xl p-12 text-center">
+                    <Building2 className="w-10 h-10 text-[#D1CBC3] mx-auto mb-3" />
+                    <p className="text-[#9CA3AF] text-sm">No enterprise accounts yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {enterprises.filter((e: any) => !search || e.name?.toLowerCase().includes(search.toLowerCase()) || e.billingEmail?.toLowerCase().includes(search.toLowerCase())).map((e: any) => {
+                      const planColors: Record<string, string> = {
+                        free: "bg-gray-100 text-gray-500",
+                        starter: "bg-blue-50 text-blue-600",
+                        professional: "bg-indigo-50 text-indigo-600",
+                        enterprise: "bg-purple-50 text-purple-600",
+                        custom: "bg-[#F0F5F1] text-[#3A5A40]",
+                      };
+                      const statusColors: Record<string, string> = {
+                        active: "bg-emerald-50 text-emerald-600",
+                        trial: "bg-amber-50 text-amber-600",
+                        suspended: "bg-red-50 text-red-500",
+                        churned: "bg-gray-100 text-gray-400",
+                      };
+                      const isSelected = enterpriseDetail?.id === e.id;
+                      return (
+                        <button
+                          key={e.id}
+                          onClick={() => {
+                            setEnterpriseDetail(e);
+                            setEnterpriseEditing(false);
+                          }}
+                          className={cn(
+                            "w-full text-left bg-white border rounded-2xl p-4 flex items-center gap-4 transition-all hover:shadow-sm",
+                            isSelected ? "border-[#3A5A40]/50 shadow-sm" : "border-[#E8E4DF] hover:border-[#A3C4A8]"
+                          )}
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-[#F0F5F1] flex items-center justify-center shrink-0 text-lg font-bold text-[#3A5A40]">
+                            {e.name?.charAt(0)?.toUpperCase() ?? "O"}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-[#111827] text-sm truncate">{e.name}</div>
+                            <div className="text-xs text-[#9CA3AF] truncate">{e.industry ?? e.billingEmail ?? `${e.totalMembers} members`}</div>
+                          </div>
+                          <div className="flex flex-col items-end gap-1.5 shrink-0">
+                            <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize", planColors[e.plan] ?? "bg-gray-100 text-gray-500")}>{e.plan}</span>
+                            <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full capitalize", statusColors[e.status] ?? "bg-gray-100 text-gray-400")}>{e.status}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Detail panel */}
+              {enterpriseDetail && (() => {
+                const e = enterprises.find((x: any) => x.id === enterpriseDetail.id) ?? enterpriseDetail;
+                const planColors: Record<string, string> = {
+                  free: "bg-gray-100 text-gray-600",
+                  starter: "bg-blue-50 text-blue-700",
+                  professional: "bg-indigo-50 text-indigo-700",
+                  enterprise: "bg-purple-50 text-purple-700",
+                  custom: "bg-[#F0F5F1] text-[#3A5A40]",
+                };
+                const statusColors: Record<string, string> = {
+                  active: "bg-emerald-50 text-emerald-700",
+                  trial: "bg-amber-50 text-amber-700",
+                  suspended: "bg-red-50 text-red-600",
+                  churned: "bg-gray-100 text-gray-500",
+                };
+
+                const startEdit = () => {
+                  setEnterpriseEditData({
+                    name: e.name ?? "",
+                    plan: e.plan ?? "free",
+                    status: e.status ?? "active",
+                    industry: e.industry ?? "",
+                    website: e.website ?? "",
+                    billingEmail: e.billingEmail ?? "",
+                    employeeCount: e.employeeCount ?? "",
+                    accountManager: e.accountManager ?? "",
+                    contractStart: e.contractStart ? e.contractStart.slice(0, 10) : "",
+                    contractEnd: e.contractEnd ? e.contractEnd.slice(0, 10) : "",
+                    notes: e.notes ?? "",
+                  });
+                  setEnterpriseEditing(true);
+                };
+
+                const saveEdit = async () => {
+                  setEnterpriseSaving(true);
+                  try {
+                    const updated = await apiRequest<any>(`/api/admin/organizations/${e.id}`, {
+                      method: "PATCH",
+                      body: JSON.stringify(enterpriseEditData),
+                      headers: { "Content-Type": "application/json" },
+                    });
+                    setEnterprises(prev => prev.map((x: any) => x.id === e.id ? updated : x));
+                    setEnterpriseDetail(updated);
+                    setEnterpriseEditing(false);
+                    toast({ title: "Account updated" });
+                  } catch (err: any) {
+                    toast({ title: "Error", description: err?.data?.error ?? "Could not save", variant: "destructive" });
+                  } finally { setEnterpriseSaving(false); }
+                };
+
+                const Field = ({ label, value, icon: Icon }: { label: string; value?: string | null; icon?: React.ElementType }) => (
+                  <div>
+                    <div className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-1 flex items-center gap-1">
+                      {Icon && <Icon className="w-3 h-3" />}{label}
+                    </div>
+                    <div className="text-sm text-[#374151]">{value || <span className="text-[#D1CBC3] italic">Not set</span>}</div>
+                  </div>
+                );
+
+                const EditField = ({ k, label, type = "text", options }: { k: string; label: string; type?: string; options?: string[] }) => (
+                  <div>
+                    <label className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-1 block">{label}</label>
+                    {options ? (
+                      <select
+                        value={enterpriseEditData[k] ?? ""}
+                        onChange={ev => setEnterpriseEditData(p => ({ ...p, [k]: ev.target.value }))}
+                        className="w-full text-sm border border-[#E8E4DF] rounded-xl px-3 py-2 bg-white focus:outline-none focus:border-[#3A5A40]/50"
+                      >
+                        {options.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    ) : (
+                      <input
+                        type={type}
+                        value={enterpriseEditData[k] ?? ""}
+                        onChange={ev => setEnterpriseEditData(p => ({ ...p, [k]: ev.target.value }))}
+                        className="w-full text-sm border border-[#E8E4DF] rounded-xl px-3 py-2 bg-white focus:outline-none focus:border-[#3A5A40]/50"
+                      />
+                    )}
+                  </div>
+                );
+
+                return (
+                  <div className="flex-1 min-w-0 bg-white border border-[#E8E4DF] rounded-2xl overflow-hidden flex flex-col">
+                    {/* Header */}
+                    <div className="px-6 py-5 border-b border-[#F0EDE8] flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-[#F0F5F1] flex items-center justify-center text-xl font-bold text-[#3A5A40] shrink-0">
+                          {e.name?.charAt(0)?.toUpperCase() ?? "O"}
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-[#111827]">{e.name}</h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={cn("text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize", planColors[e.plan] ?? "bg-gray-100 text-gray-600")}>{e.plan}</span>
+                            <span className={cn("text-xs font-medium px-2.5 py-0.5 rounded-full capitalize", statusColors[e.status] ?? "bg-gray-100 text-gray-400")}>{e.status}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!enterpriseEditing ? (
+                          <button onClick={startEdit} className="flex items-center gap-1.5 text-xs font-medium text-[#6B7280] hover:text-[#1C3229] bg-[#F0EDE8] hover:bg-[#E8E4DF] px-3 py-1.5 rounded-lg transition-colors">
+                            <Pencil className="w-3.5 h-3.5" /> Edit
+                          </button>
+                        ) : (
+                          <>
+                            <button onClick={() => setEnterpriseEditing(false)} className="text-xs font-medium text-[#9CA3AF] hover:text-[#374151] px-3 py-1.5 rounded-lg hover:bg-[#F0EDE8] transition-colors">Cancel</button>
+                            <button onClick={saveEdit} disabled={enterpriseSaving} className="flex items-center gap-1.5 text-xs font-semibold bg-[#1C3229] text-white px-3 py-1.5 rounded-lg hover:bg-[#243D2F] transition-colors disabled:opacity-50">
+                              {enterpriseSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Save
+                            </button>
+                          </>
+                        )}
+                        <button onClick={() => { setEnterpriseDetail(null); setEnterpriseEditing(false); }} className="w-7 h-7 flex items-center justify-center rounded-lg text-[#9CA3AF] hover:text-[#374151] hover:bg-[#F0EDE8] transition-colors">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Metrics strip */}
+                    <div className="grid grid-cols-3 border-b border-[#F0EDE8]">
+                      {[
+                        { label: "Members", value: e.totalMembers },
+                        { label: "Groups", value: e.totalGroups },
+                        { label: "Customer since", value: e.createdAt ? new Date(e.createdAt).getFullYear() : "—" },
+                      ].map(m => (
+                        <div key={m.label} className="px-5 py-4 border-r border-[#F0EDE8] last:border-0 text-center">
+                          <div className="text-xl font-bold text-[#111827]">{m.value}</div>
+                          <div className="text-xs text-[#9CA3AF] mt-0.5">{m.label}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Body */}
+                    <div className="flex-1 overflow-y-auto p-6">
+                      {!enterpriseEditing ? (
+                        <div className="space-y-5">
+                          <div className="grid grid-cols-2 gap-4">
+                            <Field label="Industry" value={e.industry} icon={Building2} />
+                            <Field label="Company size" value={e.employeeCount ? `${e.employeeCount} employees` : null} icon={Users2} />
+                            <Field label="Website" value={e.website} icon={Globe} />
+                            <Field label="Billing email" value={e.billingEmail} icon={Mail} />
+                            <Field label="Account manager" value={e.accountManager} icon={Shield} />
+                            <Field label="Contract start" value={e.contractStart ? new Date(e.contractStart).toLocaleDateString() : null} icon={CalendarRange} />
+                            <Field label="Contract end" value={e.contractEnd ? new Date(e.contractEnd).toLocaleDateString() : null} icon={CalendarRange} />
+                          </div>
+                          {e.notes && (
+                            <div className="bg-[#FAFAF9] border border-[#F0EDE8] rounded-xl p-4">
+                              <div className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-2 flex items-center gap-1"><StickyNote className="w-3 h-3" />Internal notes</div>
+                              <p className="text-sm text-[#374151] whitespace-pre-wrap">{e.notes}</p>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <EditField k="name" label="Account name" />
+                            <EditField k="plan" label="Plan" options={["free", "starter", "professional", "enterprise", "custom"]} />
+                            <EditField k="status" label="Status" options={["active", "trial", "suspended", "churned"]} />
+                            <EditField k="industry" label="Industry" />
+                            <EditField k="website" label="Website" type="url" />
+                            <EditField k="billingEmail" label="Billing email" type="email" />
+                            <EditField k="employeeCount" label="Company size" options={["", "1-10", "11-50", "51-200", "201-500", "500+"]} />
+                            <EditField k="accountManager" label="Account manager" />
+                            <EditField k="contractStart" label="Contract start" type="date" />
+                            <EditField k="contractEnd" label="Contract end" type="date" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-1 block">Internal notes</label>
+                            <textarea
+                              value={enterpriseEditData.notes ?? ""}
+                              onChange={ev => setEnterpriseEditData(p => ({ ...p, notes: ev.target.value }))}
+                              rows={3}
+                              className="w-full text-sm border border-[#E8E4DF] rounded-xl px-3 py-2 bg-white focus:outline-none focus:border-[#3A5A40]/50 resize-none"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
