@@ -41,14 +41,14 @@ function HeroLoginPanel() {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          loginMutation.mutate({ data: { email, password } });
+          loginMutation.mutate({ data: { email: email.trim().toLowerCase(), password } });
         }}
         className="space-y-4"
       >
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Email or username</label>
           <input
-            type="email"
+            type="text"
             placeholder="email@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}

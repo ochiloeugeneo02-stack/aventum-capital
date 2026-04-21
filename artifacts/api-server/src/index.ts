@@ -114,6 +114,7 @@ async function ensureAppSchema() {
     const adminHash  = "$2b$12$WwcWYrDPVb4lAJTztWo97.TPJole7vGNvHIr9mFdNIOdfYNqEGgZ.";
     const graceHash  = "$2b$12$lrA2qDocrvec65hEVzTej.m04rY2.WmLE3a1Z0iQgjodjeSsr07Eq";
     const memberHash = "$2b$12$aDjjXMeBRQHZupaKCBNvFu1RYZcYXroWqGUeLzG.pLYqIooSHjrMq";
+    const theWaveHash = "$2b$12$Abis.RFiWrBTN9lZUgBDH.oVO7Cong8zQWu0HCbf6Y4yntk2mldsG";
 
     await client.query(
       `UPDATE users SET password_hash = $1, role = 'super_admin' WHERE email = 'admin@aventum.co'`,
@@ -126,6 +127,12 @@ async function ensureAppSchema() {
     await client.query(
       `UPDATE users SET password_hash = $1 WHERE email IN ('amina@aventum.co','david@aventum.co','fatuma@aventum.co','james@aventum.co')`,
       [memberHash]
+    );
+    await client.query(
+      `INSERT INTO users (name, email, username, password_hash, role, is_active, email_marketing)
+       VALUES ('oliver', 'thewave.grpevents@gmail.com', 'thewave', $1, 'group_admin', true, false)
+       ON CONFLICT (email) DO NOTHING`,
+      [theWaveHash]
     );
 
     logger.info("Migrations complete");

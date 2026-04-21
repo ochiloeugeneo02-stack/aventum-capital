@@ -703,7 +703,7 @@ components:
       properties:
         email:
           type: string
-          format: email
+          description: Email address or username
         password:
           type: string
       required:

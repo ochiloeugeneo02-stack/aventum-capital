@@ -39,7 +39,7 @@ export const RegisterUserBody = zod.object({
  * @summary Login
  */
 export const LoginUserBody = zod.object({
-  email: zod.string().email(),
+  email: zod.string().min(1),
   password: zod.string(),
 });
 

@@ -1,6 +1,6 @@
 import { useRoute } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 import {
   useGetGroup,
   usePayContribution,
@@ -24,6 +24,7 @@ import {
   MessageCircle, Send, ArrowLeftRight, X, ChevronDown, UserPlus, Copy, Check, Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import handsTogetherImage from "@assets/pexels-pixabay-461049_1776748558410.jpg";
 
 const EXIT_TERMS = [
   "I understand I must continue contributing for the full current savings cycle before my exit can be processed.",
@@ -32,6 +33,47 @@ const EXIT_TERMS = [
   "If I have already received my rotation payout, my exit may be automatically approved once the current cycle completes.",
   "Aventum Capital reserves the right to deny my exit request if it would negatively impact the group's operations.",
 ];
+
+function CommunityDialogFrame({
+  eyebrow,
+  title,
+  description,
+  children,
+  contentClassName,
+}: {
+  eyebrow: string;
+  title: ReactNode;
+  description: ReactNode;
+  children: ReactNode;
+  contentClassName?: string;
+}) {
+  return (
+    <div className="overflow-hidden bg-white text-[#1f2f27]">
+      <div className="grid sm:grid-cols-[190px_1fr]">
+        <div className="relative h-36 sm:h-auto min-h-full overflow-hidden bg-[#344E41]">
+          <img
+            src={handsTogetherImage}
+            alt="Hands joined together"
+            className="h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-[#344E41]/25" />
+          <div className="absolute bottom-4 left-4 right-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/90">Aventum</p>
+            <p className="mt-1 text-sm font-medium leading-snug text-white">Community savings, together.</p>
+          </div>
+        </div>
+        <div className={cn("p-6 pt-9 sm:p-8", contentClassName)}>
+          <DialogHeader className="mb-5 text-left">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#588157]">{eyebrow}</p>
+            <DialogTitle className="mt-2 text-2xl font-bold leading-tight text-[#1f2f27]">{title}</DialogTitle>
+            <DialogDescription className="mt-2 text-sm leading-relaxed text-[#5f6f64]">{description}</DialogDescription>
+          </DialogHeader>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 type ExitRequestStatus = "none" | "pending" | "approved" | "denied" | "auto_approved";
 
@@ -695,18 +737,13 @@ export default function GroupDetail() {
 
       {/* ── Invite Member Dialog ──────────────────────────────────── */}
       <Dialog open={showInviteDialog} onOpenChange={open => { setShowInviteDialog(open); if (!open) { setInviteResult(null); setInviteEmail(""); } }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl overflow-hidden border-0 bg-white p-0 shadow-2xl sm:rounded-2xl">
           {!inviteResult ? (
-            <div className="flex flex-col gap-4">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-primary" />
-                  Invite a member
-                </DialogTitle>
-                <DialogDescription>
-                  Enter their email. If they already have an account they're added instantly — otherwise you'll get a shareable link.
-                </DialogDescription>
-              </DialogHeader>
+            <CommunityDialogFrame
+              eyebrow="Grow your chama"
+              title={<span className="inline-flex items-center gap-2"><UserPlus className="w-5 h-5 text-primary" />Invite a member</span>}
+              description="Enter their email. If they already have an account they're added instantly — otherwise you'll get a shareable link."
+            >
               <form onSubmit={handleInvite} className="space-y-3">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">Email address</label>
@@ -723,18 +760,13 @@ export default function GroupDetail() {
                   {invitingMember ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Sending…</> : <><Mail className="w-4 h-4 mr-2" />Send invite</>}
                 </Button>
               </form>
-            </div>
+            </CommunityDialogFrame>
           ) : (
-            <div className="flex flex-col gap-4">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Check className="w-5 h-5 text-green-600" />
-                  Invite link ready
-                </DialogTitle>
-                <DialogDescription>
-                  Share this link with <strong className="text-foreground">{inviteResult.email}</strong>. It's valid for 7 days.
-                </DialogDescription>
-              </DialogHeader>
+            <CommunityDialogFrame
+              eyebrow="Invite ready"
+              title={<span className="inline-flex items-center gap-2"><Check className="w-5 h-5 text-green-600" />Invite link ready</span>}
+              description={<>Share this link with <strong className="text-[#1f2f27]">{inviteResult.email}</strong>. It's valid for 7 days.</>}
+            >
               <div className="space-y-3">
                 <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
                   <span className="text-xs text-muted-foreground truncate flex-1 font-mono select-all">{inviteResult.url}</span>
@@ -755,26 +787,20 @@ export default function GroupDetail() {
                   </Button>
                 </div>
               </div>
-            </div>
+            </CommunityDialogFrame>
           )}
         </DialogContent>
       </Dialog>
 
       {/* ── Exit Request Dialog ───────────────────────────────────── */}
       <Dialog open={showExitModal} onOpenChange={open => { setShowExitModal(open); if (!open) { setExitReason(""); setTermsChecked(false); } }}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
-                <LogOut className="w-4 h-4 text-destructive" />
-              </div>
-              Request to leave group
-            </DialogTitle>
-            <DialogDescription>
-              Your request will be reviewed by Aventum Capital. Please read and agree to the terms below.
-            </DialogDescription>
-          </DialogHeader>
-
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-3xl overflow-hidden border-0 bg-white p-0 shadow-2xl sm:rounded-2xl">
+          <CommunityDialogFrame
+            eyebrow="Group exit"
+            title={<span className="inline-flex items-center gap-2"><LogOut className="w-5 h-5 text-destructive" />Request to leave group</span>}
+            description="Your request will be reviewed by Aventum Capital. Please read and agree to the terms below."
+            contentClassName="max-h-[82vh] overflow-y-auto"
+          >
           <div className="space-y-5 py-2">
             <div className="bg-muted/40 rounded-xl p-4 border border-border">
               <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
@@ -816,24 +842,18 @@ export default function GroupDetail() {
               </Button>
             </div>
           </div>
+          </CommunityDialogFrame>
         </DialogContent>
       </Dialog>
 
       {/* ── Turn Swap Dialog ──────────────────────────────────────── */}
       <Dialog open={showSwapModal} onOpenChange={setShowSwapModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <ArrowLeftRight className="w-4 h-4 text-primary" />
-              </div>
-              Request turn swap
-            </DialogTitle>
-            <DialogDescription>
-              Ask to swap your payout position with another member. The group admin will review your request.
-            </DialogDescription>
-          </DialogHeader>
-
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl overflow-hidden border-0 bg-white p-0 shadow-2xl sm:rounded-2xl">
+          <CommunityDialogFrame
+            eyebrow="Rotation change"
+            title={<span className="inline-flex items-center gap-2"><ArrowLeftRight className="w-5 h-5 text-primary" />Request turn swap</span>}
+            description="Ask to swap your payout position with another member. The group admin will review your request."
+          >
           <div className="space-y-5 py-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Swap with</label>
@@ -875,6 +895,7 @@ export default function GroupDetail() {
               </Button>
             </div>
           </div>
+          </CommunityDialogFrame>
         </DialogContent>
       </Dialog>
     </DashboardLayout>

@@ -3,7 +3,7 @@
 ## Project Summary
 Digital rotational savings (chama) platform. Members contribute on a rotating schedule and receive pool payouts. Multi-region/currency, Stripe payments, group management, admin panels.
 
-**Demo accounts:** admin@aventum.co/admin123, grace@aventum.co/grace123, amina/david/fatuma/james@aventum.co/member123
+**Demo accounts:** admin@aventum.co/Aventum2024!, grace@aventum.co/grace123, amina/david/fatuma/james@aventum.co/member123. The Wave account is seeded on startup if missing: thewave.grpevents@gmail.com (username alias: thewave), preserving its existing password hash.
 
 ## Architecture
 - **Currency:** Groups store amounts in their native currency (set by admin's region at creation). `currency` column on `groups` table.
@@ -13,6 +13,8 @@ Digital rotational savings (chama) platform. Members contribute on a rotating sc
 - **Forgot/Reset password:** `/forgot-password` and `/reset-password` pages. Backend endpoints `/auth/forgot-password` and `/auth/reset-password` with crypto token + 1hr expiry. Email sent via Resend if `RESEND_API_KEY` is set, otherwise token URL logged. "Forgot password?" link on Login page.
 - **Change password:** Authenticated `/auth/change-password` endpoint. Form in Settings page.
 - **Extended user profile:** `users` table has `username` (unique), `location`, `emailMarketing`, `passwordResetToken`, `passwordResetTokenExpiry` columns. Signup step 3 collects username, phone, location (geolocation), email marketing consent. Settings page has full profile editor + change password form.
+- **Login normalization:** `/auth/login` trims/lowercases the submitted identifier and accepts either email or username. `thewave` is treated as an alias for `thewave.grpevents@gmail.com`.
+- **Group popups:** Group invite, exit, and turn-swap dialogs use a single Radix modal shell with an image-backed community panel (`attached_assets/pexels-pixabay-461049_1776748558410.jpg` imported via `@assets`) to avoid nested/double-box rendering.
 
 ## Group Deletion Requests
 - DB table: `group_delete_requests` (id, group_id, requested_by, reason, status, reviewed_by, review_note, disbursement_note, requested_at, reviewed_at)

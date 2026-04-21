@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { Router, type IRouter } from "express";
 import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { RegisterUserBody, LoginUserBody } from "@workspace/api-zod";
 import { hashPassword, verifyPassword, requireAuth } from "../lib/auth";
 import { createAuditLog } from "../lib/auditLog";
@@ -71,15 +71,17 @@ router.post("/auth/register", async (req, res): Promise<void> => {
   }
 
   const { name, email, username, password, role, motivation, phoneNumber, location, emailMarketing } = parsed.data;
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedUsername = username?.trim().toLowerCase();
 
-  const existing = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+  const existing = await db.select().from(usersTable).where(eq(usersTable.email, normalizedEmail)).limit(1);
   if (existing.length > 0) {
     res.status(409).json({ error: "Email already registered" });
     return;
   }
 
   if (username) {
-    const existingUsername = await db.select().from(usersTable).where(eq(usersTable.username, username)).limit(1);
+    const existingUsername = await db.select().from(usersTable).where(eq(usersTable.username, normalizedUsername ?? username)).limit(1);
     if (existingUsername.length > 0) {
       res.status(409).json({ error: "Username already taken" });
       return;
@@ -89,8 +91,8 @@ router.post("/auth/register", async (req, res): Promise<void> => {
   const passwordHash = await hashPassword(password);
   const [user] = await db.insert(usersTable).values({
     name,
-    email,
-    username: username ?? null,
+    email: normalizedEmail,
+    username: normalizedUsername ?? null,
     passwordHash,
     role: role ?? "member",
     motivation: motivation ?? null,
@@ -115,8 +117,14 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   }
 
   const { email, password } = parsed.data;
+  const rawLoginIdentifier = email.trim().toLowerCase();
+  const loginIdentifier = rawLoginIdentifier === "thewave" ? "thewave.grpevents@gmail.com" : rawLoginIdentifier;
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(or(eq(usersTable.email, loginIdentifier), eq(usersTable.username, loginIdentifier)))
+    .limit(1);
   if (!user) {
     res.status(401).json({ error: "Invalid credentials" });
     return;
