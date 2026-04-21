@@ -57,7 +57,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     .slice(0, 2) ?? "?";
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="min-h-screen flex bg-background isolate">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
