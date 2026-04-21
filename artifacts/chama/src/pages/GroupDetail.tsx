@@ -696,59 +696,66 @@ export default function GroupDetail() {
       {/* ── Invite Member Dialog ──────────────────────────────────── */}
       <Dialog open={showInviteDialog} onOpenChange={open => { setShowInviteDialog(open); if (!open) { setInviteResult(null); setInviteEmail(""); } }}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <UserPlus className="w-5 h-5 text-primary" />
-              Invite a member
-            </DialogTitle>
-            <DialogDescription>
-              Enter their email address. If they have an account they'll be added instantly; otherwise we'll generate a shareable link.
-            </DialogDescription>
-          </DialogHeader>
-
           {!inviteResult ? (
-            <form onSubmit={handleInvite} className="space-y-4 pt-1">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Email address</label>
-                <div className="flex gap-2">
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <UserPlus className="w-5 h-5 text-primary" />
+                  Invite a member
+                </DialogTitle>
+                <DialogDescription>
+                  Enter their email. If they already have an account they're added instantly — otherwise you'll get a shareable link.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleInvite} className="space-y-3 mt-2">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Email address</label>
                   <Input
                     type="email"
                     required
                     placeholder="friend@example.com"
                     value={inviteEmail}
                     onChange={e => setInviteEmail(e.target.value)}
-                    className="flex-1"
+                    autoFocus
                   />
-                  <Button type="submit" disabled={invitingMember || !inviteEmail.trim()}>
-                    {invitingMember ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                </div>
+                <Button type="submit" disabled={invitingMember || !inviteEmail.trim()} className="w-full">
+                  {invitingMember ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Sending…</> : <><Mail className="w-4 h-4 mr-2" />Send invite</>}
+                </Button>
+              </form>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Check className="w-5 h-5 text-green-600" />
+                  Invite link ready
+                </DialogTitle>
+                <DialogDescription>
+                  Share this link with <strong className="text-foreground">{inviteResult.email}</strong>. It's valid for 7 days.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="mt-2 space-y-4">
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
+                  <span className="text-xs text-muted-foreground truncate flex-1 font-mono select-all">{inviteResult.url}</span>
+                  <button
+                    onClick={copyInviteLink}
+                    className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap"
+                  >
+                    {copiedInvite ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedInvite ? "Copied!" : "Copy link"}
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => { setInviteResult(null); setInviteEmail(""); }}>
+                    Invite another
+                  </Button>
+                  <Button className="flex-1" onClick={() => { setShowInviteDialog(false); setInviteResult(null); setInviteEmail(""); }}>
+                    Done
                   </Button>
                 </div>
               </div>
-            </form>
-          ) : (
-            <div className="space-y-4 pt-1">
-              <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-3">
-                <p className="text-sm font-medium text-foreground">Share this link with <span className="text-primary">{inviteResult.email}</span></p>
-                <div className="flex items-center gap-2 bg-background rounded-lg border border-border px-3 py-2">
-                  <span className="text-xs text-muted-foreground truncate flex-1 font-mono">{inviteResult.url}</span>
-                  <button
-                    onClick={copyInviteLink}
-                    className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                  >
-                    {copiedInvite ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {copiedInvite ? "Copied!" : "Copy"}
-                  </button>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => { setInviteResult(null); setInviteEmail(""); }}>
-                  Invite another
-                </Button>
-                <Button className="flex-1" onClick={() => { setShowInviteDialog(false); setInviteResult(null); setInviteEmail(""); }}>
-                  Done
-                </Button>
-              </div>
-            </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
