@@ -70,7 +70,7 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.production]
-APP_BASE_URL = "https://www.aventumcapital.com"
+APP_BASE_URL = "https://aventumcapital.com"
 
 [userenv.shared]
 EMAIL_FROM = "Aventum Capital <noreply@aventumcapital.com>"
