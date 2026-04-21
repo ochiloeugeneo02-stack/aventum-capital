@@ -34,6 +34,17 @@ async function ensureAppSchema() {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_backup_codes text;
     `);
 
+    // Session table for connect-pg-simple
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_sessions (
+        "sid" varchar NOT NULL COLLATE "default",
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL,
+        CONSTRAINT "user_sessions_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE
+      );
+      CREATE INDEX IF NOT EXISTS "IDX_user_sessions_expire" ON user_sessions ("expire");
+    `);
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS group_messages (
         id serial PRIMARY KEY,

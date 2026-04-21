@@ -9,6 +9,10 @@ import { WebhookHandlers } from "./lib/webhookHandlers";
 
 const app: Express = express();
 
+// Trust Replit's reverse proxy so Express sees HTTPS requests correctly.
+// Required for session cookies with `secure: true` to be set properly.
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,
