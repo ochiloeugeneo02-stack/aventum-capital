@@ -28,8 +28,10 @@ interface PaymentIntentResponse {
   clientSecret: string;
   paymentIntentId: string;
   amountCharged: number;
+  contributionAmountCharged: number;
   currency: string;
   platformFee: number;
+  feeRate: number;
 }
 
 function formatChargedAmount(amount: number, currency: string) {
@@ -47,6 +49,7 @@ function PaymentForm({
   cycleId,
   paymentIntentId,
   amountLabel,
+  feeLabel,
   chargedLabel,
   onSuccess,
   onOpenChange,
@@ -55,6 +58,7 @@ function PaymentForm({
   cycleId: number;
   paymentIntentId: string;
   amountLabel: string;
+  feeLabel: string;
   chargedLabel: string;
   onSuccess: () => void;
   onOpenChange: (open: boolean) => void;
@@ -120,6 +124,10 @@ function PaymentForm({
           <span className="font-medium">{amountLabel}</span>
         </div>
         <div className="mt-1 flex justify-between gap-4">
+          <span className="text-muted-foreground">Aventum transaction fee (3%)</span>
+          <span className="font-medium">{feeLabel}</span>
+        </div>
+        <div className="mt-2 flex justify-between gap-4 border-t border-border/70 pt-2">
           <span className="text-muted-foreground">Charged today</span>
           <span className="font-medium">{chargedLabel}</span>
         </div>
@@ -190,6 +198,7 @@ export function ContributionPaymentDialog({
   );
 
   const chargedLabel = intent ? formatChargedAmount(intent.amountCharged, intent.currency) : amountLabel;
+  const feeLabel = intent ? formatChargedAmount(intent.platformFee, intent.currency) : "3%";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -225,6 +234,7 @@ export function ContributionPaymentDialog({
               cycleId={cycleId}
               paymentIntentId={intent.paymentIntentId}
               amountLabel={amountLabel}
+              feeLabel={feeLabel}
               chargedLabel={chargedLabel}
               onSuccess={onSuccess}
               onOpenChange={onOpenChange}

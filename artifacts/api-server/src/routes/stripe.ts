@@ -150,6 +150,7 @@ router.post("/stripe/create-payment-intent", requireAuth, async (req, res): Prom
 
   const platformFee = Math.floor(contributionAmountInt * TRANSACTION_FEE_RATE);
   const amountInt = contributionAmountInt + platformFee;
+  const transactionFeePercent = Number(TRANSACTION_FEE_RATE * 100).toFixed(0);
 
   const customerId = await ensureStripeCustomer(userId);
   const stripe = await getUncachableStripeClient();
@@ -165,11 +166,15 @@ router.post("/stripe/create-payment-intent", requireAuth, async (req, res): Prom
         aventum_group_id: String(groupId),
         aventum_cycle_id: String(cycleId),
         aventum_group_name: group.name,
+        aventum_contribution_amount: String(contributionAmountInt),
+        aventum_transaction_fee_amount: String(platformFee),
+        aventum_transaction_fee_percent: transactionFeePercent,
+        aventum_total_charge_amount: String(amountInt),
         contribution_amount: String(contributionAmountInt),
         platform_fee: String(platformFee),
         transaction_fee_rate: String(TRANSACTION_FEE_RATE),
       },
-      description: `Contribution – ${group.name} – Cycle #${cycle.cycleNumber}`,
+      description: `Aventum contribution – ${group.name} – Cycle #${cycle.cycleNumber} including ${transactionFeePercent}% transaction fee`,
       automatic_payment_methods: { enabled: true, allow_redirects: "never" },
     });
   } catch (err: any) {
@@ -182,7 +187,9 @@ router.post("/stripe/create-payment-intent", requireAuth, async (req, res): Prom
     amount: groupAmount,
     groupCurrency: groupCurrency.toUpperCase(),
     amountCharged: amountInt,
+    contributionAmountCharged: contributionAmountInt,
     platformFee,
+    feeRate: TRANSACTION_FEE_RATE,
     currency: activeCurrency.toUpperCase(),
     paymentIntentId: paymentIntent.id,
   });
