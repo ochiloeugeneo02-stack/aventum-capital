@@ -8,6 +8,7 @@ import { formatUser } from "./users";
 import { createGroupInvitation } from "./invitations";
 import { sendGroupAddedEmail, sendMemberJoinedNotificationEmail, sendAdminAddedMemberEmail } from "../lib/email";
 import { logger } from "../lib/logger";
+import { getAppBaseUrl } from "../lib/appUrl";
 
 const router: IRouter = Router();
 
@@ -348,10 +349,7 @@ router.post("/groups/:groupId/invite", requireAuth, async (req, res): Promise<vo
       details: existingUser.email,
     });
 
-    const appBaseUrl = (() => {
-      const domain = process.env.REPLIT_DOMAINS?.split(",")[0];
-      return domain ? `https://${domain}` : `http://localhost:${process.env.PORT ?? 8080}`;
-    })();
+    const appBaseUrl = getAppBaseUrl(req);
 
     const newTotalMembers = currentCount + 1;
 

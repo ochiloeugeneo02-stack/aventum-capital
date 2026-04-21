@@ -7,6 +7,7 @@ import { hashPassword, verifyPassword, requireAuth } from "../lib/auth";
 import { createAuditLog } from "../lib/auditLog";
 import { sendPasswordResetEmail, sendOtpEmail } from "../lib/email";
 import { logger } from "../lib/logger";
+import { getAppBaseUrl } from "../lib/appUrl";
 
 const router: IRouter = Router();
 
@@ -194,11 +195,7 @@ router.post("/auth/forgot-password", async (req, res): Promise<void> => {
       passwordResetTokenExpiry: expiry,
     }).where(eq(usersTable.id, user.id));
 
-    const appBaseUrl = process.env.APP_BASE_URL
-      ?? (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}` : null)
-      ?? (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "http://localhost:3000");
-
-    await sendPasswordResetEmail({ email: user.email, name: user.name, token, appBaseUrl });
+    await sendPasswordResetEmail({ email: user.email, name: user.name, token, appBaseUrl: getAppBaseUrl(req) });
     logger.info({ userId: user.id }, "Password reset token generated");
   }
 

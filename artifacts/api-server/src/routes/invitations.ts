@@ -6,14 +6,9 @@ import { createAuditLog } from "../lib/auditLog";
 import { sendInviteEmail, sendGroupAddedEmail, sendAdminAddedMemberEmail, sendMemberJoinedNotificationEmail } from "../lib/email";
 import crypto from "node:crypto";
 import { logger } from "../lib/logger";
+import { getAppBaseUrl } from "../lib/appUrl";
 
 const router: IRouter = Router();
-
-function getAppBaseUrl(req: import("express").Request): string {
-  const domain = process.env.REPLIT_DOMAINS?.split(",")[0];
-  if (domain) return `https://${domain}`;
-  return `${req.protocol}://${req.hostname}`;
-}
 
 router.get("/invitations/:token", async (req, res): Promise<void> => {
   const { token } = req.params;

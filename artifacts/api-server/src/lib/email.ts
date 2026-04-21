@@ -10,9 +10,9 @@ async function sendViaResend(to: string | string[], subject: string, html: strin
   try {
     const { Resend } = await import("resend");
     const resend = new Resend(resendApiKey);
-    const { error } = await resend.emails.send({ from: fromEmail, to, subject, html });
+    const { data, error } = await resend.emails.send({ from: fromEmail, to, subject, html });
     if (error) { logger.error({ error, to, subject }, "Resend delivery error"); return false; }
-    logger.info({ to, subject }, "Email sent via Resend");
+    logger.info({ to, subject, resendEmailId: data?.id }, "Email sent via Resend");
     return true;
   } catch (err) {
     logger.error({ err, to, subject }, "Resend send failed");
@@ -461,7 +461,7 @@ export async function sendInviteEmail(data: InviteEmailData): Promise<boolean> {
       const { Resend } = await import("resend");
       const resend = new Resend(resendApiKey);
 
-      const { error } = await resend.emails.send({
+      const { data: resendData, error } = await resend.emails.send({
         from: fromEmail,
         to: data.inviteeEmail,
         subject,
@@ -473,7 +473,7 @@ export async function sendInviteEmail(data: InviteEmailData): Promise<boolean> {
         return false;
       }
 
-      logger.info({ email: data.inviteeEmail }, "Invite email sent via Resend");
+      logger.info({ email: data.inviteeEmail, inviteUrl, resendEmailId: resendData?.id }, "Invite email sent via Resend");
       return true;
     } catch (err) {
       logger.error({ err }, "Resend send failed");

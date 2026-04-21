@@ -8,6 +8,7 @@ import { formatUser } from "./users";
 import { db as dbImport, usersTable } from "@workspace/db";
 import { sendContributionReceiptEmail, sendContributionActivityEmail } from "../lib/email";
 import { logger } from "../lib/logger";
+import { getAppBaseUrl } from "../lib/appUrl";
 
 const router: IRouter = Router();
 
@@ -228,10 +229,7 @@ router.post("/contributions/pay", requireAuth, async (req, res): Promise<void> =
   const _groupSnap = group;
   Promise.resolve().then(async () => {
     try {
-      const appBaseUrl = (() => {
-        const domain = process.env.REPLIT_DOMAINS?.split(",")[0];
-        return domain ? `https://${domain}` : `http://localhost:${process.env.PORT ?? 8080}`;
-      })();
+      const appBaseUrl = getAppBaseUrl(req);
       const [contributor] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
       if (!contributor) return;
       const amount = `${_groupSnap.currency} ${Number(_groupSnap.contributionAmount).toLocaleString()}`;
