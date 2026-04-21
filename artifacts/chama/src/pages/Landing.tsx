@@ -100,7 +100,7 @@ function HeroLoginPanel() {
       </div>
       <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-500">
         <p className="font-semibold mb-1 text-gray-600">Demo accounts:</p>
-        <p>admin@aventum.co / admin123</p>
+        <p>admin@aventum.co / Aventum2024!</p>
         <p>grace@aventum.co / grace123</p>
         <p>amina@aventum.co / member123</p>
       </div>

@@ -107,16 +107,29 @@ async function ensureAppSchema() {
         reviewed_at timestamp with time zone
       );
     `);
-    // Ensure admin credentials are always usable — safe to run on every start.
-    // Password: Aventum2024!
-    const knownAdminHash = "$2b$12$WwcWYrDPVb4lAJTztWo97.TPJole7vGNvHIr9mFdNIOdfYNqEGgZ.";
+    // Ensure demo credentials are always usable — safe to run on every start.
+    // admin@aventum.co        → Aventum2024!
+    // grace@aventum.co        → grace123
+    // amina / david / fatuma / james → member123
+    const adminHash  = "$2b$12$WwcWYrDPVb4lAJTztWo97.TPJole7vGNvHIr9mFdNIOdfYNqEGgZ.";
+    const graceHash  = "$2b$12$lrA2qDocrvec65hEVzTej.m04rY2.WmLE3a1Z0iQgjodjeSsr07Eq";
+    const memberHash = "$2b$12$aDjjXMeBRQHZupaKCBNvFu1RYZcYXroWqGUeLzG.pLYqIooSHjrMq";
+
     await client.query(
       `UPDATE users SET password_hash = $1, role = 'super_admin' WHERE email = 'admin@aventum.co'`,
-      [knownAdminHash]
+      [adminHash]
     );
     await client.query(
       `UPDATE users SET password_hash = $1 WHERE email = 'ochiloeugeneo02@gmail.com'`,
-      [knownAdminHash]
+      [adminHash]
+    );
+    await client.query(
+      `UPDATE users SET password_hash = $1 WHERE email = 'grace@aventum.co'`,
+      [graceHash]
+    );
+    await client.query(
+      `UPDATE users SET password_hash = $1 WHERE email IN ('amina@aventum.co','david@aventum.co','fatuma@aventum.co','james@aventum.co')`,
+      [memberHash]
     );
 
     logger.info("Migrations complete");
