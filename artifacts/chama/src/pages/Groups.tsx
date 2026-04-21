@@ -4,7 +4,7 @@ import { useListGroups, useCreateGroup, getListGroupsQueryKey } from "@workspace
 import { useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { StatusBadge } from "@/components/StatusBadge";
-import { useRegion, REGIONS } from "@/contexts/RegionContext";
+import { DEFAULT_CURRENCY, useRegion, REGIONS } from "@/contexts/RegionContext";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -25,7 +25,7 @@ const SCHEDULES = [
 ];
 
 export default function Groups() {
-  const { formatGroupAmount, formatDate } = useRegion();
+  const { formatGroupAmount, formatDate, region } = useRegion();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
@@ -37,7 +37,7 @@ export default function Groups() {
     contributionAmount: "",
     schedule: "bi-weekly",
     maxMembers: "5",
-    currency: "KES",
+    currency: region.currency ?? DEFAULT_CURRENCY,
   });
 
   const createGroup = useCreateGroup({
@@ -46,7 +46,7 @@ export default function Groups() {
         toast({ title: "Group created!", description: `${group.name} is ready. Invite members to get started.` });
         queryClient.invalidateQueries({ queryKey: getListGroupsQueryKey() });
         setOpen(false);
-        setForm({ name: "", contributionAmount: "", schedule: "bi-weekly", maxMembers: "5", currency: "KES" });
+        setForm({ name: "", contributionAmount: "", schedule: "bi-weekly", maxMembers: "5", currency: region.currency ?? DEFAULT_CURRENCY });
         navigate(`/groups/${group.id}`);
       },
       onError: (err: any) => {
@@ -113,7 +113,7 @@ export default function Groups() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Contribution</span>
-                    <span className="font-medium">{formatGroupAmount(group.contributionAmount, group.currency ?? "KES")}</span>
+                    <span className="font-medium">{formatGroupAmount(group.contributionAmount, group.currency ?? DEFAULT_CURRENCY)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Members</span>
@@ -165,7 +165,7 @@ export default function Groups() {
               <Input
                 id="group-name"
                 required
-                placeholder="e.g. Nairobi Women's Circle"
+                placeholder="e.g. Family Builders Circle"
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               />

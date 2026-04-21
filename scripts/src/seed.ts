@@ -49,10 +49,11 @@ async function seed() {
   dueDate.setDate(dueDate.getDate() + 14);
 
   const [group] = await db.insert(groupsTable).values({
-    name: "Nairobi Savings Circle",
+    name: "Global Savings Circle",
     adminId: groupAdmin.id,
     organizationId: org.id,
     contributionAmount: "5000",
+    currency: "USD",
     schedule: "bi-weekly",
     maxMembers: 5,
     currentCycle: 1,
@@ -100,7 +101,7 @@ async function seed() {
   console.log("  Member 2:    david@aventum.co / member123");
   console.log("  Member 3:    fatuma@aventum.co / member123");
   console.log("  Member 4:    james@aventum.co / member123");
-  console.log("\nGroup: Nairobi Savings Circle (2/5 paid in cycle 1)");
+  console.log("\nGroup: Global Savings Circle (2/5 paid in cycle 1)");
 }
 
 seed().catch((err) => {

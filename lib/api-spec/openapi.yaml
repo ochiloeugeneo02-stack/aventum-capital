@@ -866,6 +866,9 @@ components:
           nullable: true
         contributionAmount:
           type: number
+        currency:
+          type: string
+          default: USD
         schedule:
           type: string
           enum: [weekly, bi-weekly, monthly]

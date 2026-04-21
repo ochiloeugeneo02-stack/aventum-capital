@@ -62,7 +62,7 @@ function InviteLinkBox({ url, email }: { url: string; email: string }) {
       </div>
       <p className="text-xs text-muted-foreground flex items-center gap-1.5">
         <Mail className="w-3.5 h-3.5" />
-        An invitation email was also sent if SMTP is configured.
+        An invitation email was also sent. If it does not arrive, share this link directly.
       </p>
     </div>
   );
@@ -600,7 +600,7 @@ export default function AdminGroup() {
             <form onSubmit={handleCreate} className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Group name</Label>
-                <Input placeholder="Nairobi Savings Circle" value={createForm.name} onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))} required />
+                <Input placeholder="Family Savings Circle" value={createForm.name} onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))} required />
               </div>
               <div className="space-y-2">
                 <Label>Group currency</Label>
@@ -669,7 +669,7 @@ export default function AdminGroup() {
         ) : (
           <div className="space-y-4">
             {(groups as any[]).map(g => {
-              const groupCurrency = g.currency ?? "KES";
+              const groupCurrency = g.currency ?? "USD";
               const fmtAmt = (n: number) => formatGroupAmount(n, groupCurrency);
               return (
                 <div key={g.id} className="bg-card border border-border rounded-xl p-6">

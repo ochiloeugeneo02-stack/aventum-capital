@@ -192,6 +192,7 @@ export const CreateGroupBodySchedule = {
 
 export interface CreateGroupBody {
   name: string;
+  currency?: string;
   contributionAmount: number;
   schedule?: CreateGroupBodySchedule;
   maxMembers?: number;

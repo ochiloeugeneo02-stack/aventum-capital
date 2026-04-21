@@ -8,6 +8,12 @@ import { formatContribution } from "./contributions";
 
 const router: IRouter = Router();
 
+async function getGroupCurrency(groupId: number | null): Promise<string> {
+  if (!groupId) return "USD";
+  const [group] = await db.select({ currency: groupsTable.currency }).from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
+  return group?.currency ?? "USD";
+}
+
 router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> => {
   const userId = req.session!.userId!;
 
@@ -155,7 +161,7 @@ router.get("/dashboard/activity", requireAuth, async (req, res): Promise<void> =
     activities.push({
       id: idCounter++,
       type: "contribution",
-      description: `Contribution of KES ${parseFloat(c.amount as unknown as string).toLocaleString()} ${c.status}`,
+      description: `Contribution of ${await getGroupCurrency(c.groupId)} ${parseFloat(c.amount as unknown as string).toLocaleString()} ${c.status}`,
       userId: c.userId,
       groupId: c.groupId,
       amount: parseFloat(c.amount as unknown as string),
@@ -167,7 +173,7 @@ router.get("/dashboard/activity", requireAuth, async (req, res): Promise<void> =
     activities.push({
       id: idCounter++,
       type: "payout",
-      description: `Payout of KES ${parseFloat(p.amount as unknown as string).toLocaleString()} - ${p.status}`,
+      description: `Payout of ${await getGroupCurrency(p.groupId)} ${parseFloat(p.amount as unknown as string).toLocaleString()} - ${p.status}`,
       userId: p.recipientId,
       groupId: p.groupId,
       amount: parseFloat(p.amount as unknown as string),

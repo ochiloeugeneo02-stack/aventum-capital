@@ -89,7 +89,7 @@ export default function InviteAccept() {
 
   const g = invite?.group;
 
-  const groupCurrency = g?.currency ?? "KES";
+  const groupCurrency = g?.currency ?? "USD";
   const groupFractionDigits = REGIONS[Object.keys(REGIONS).find(k => REGIONS[k].currency === groupCurrency) ?? ""]?.fractionDigits ?? 0;
 
   const displayContribution = g ? formatAmount(g.contributionAmount, groupCurrency, groupFractionDigits) : "";

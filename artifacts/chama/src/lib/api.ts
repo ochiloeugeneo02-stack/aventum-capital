@@ -2,25 +2,25 @@ export function getApiBaseUrl() {
   return "/api";
 }
 
-let _locale = "en-KE";
-let _currency = "KES";
-let _kesRate = 1;
-let _fractionDigits = 0;
+let _locale = "en-US";
+let _currency = "USD";
+let _usdRate = 1;
+let _fractionDigits = 2;
 
 export function _setRegionConfig(
   locale: string,
   currency: string,
-  kesRate: number,
+  usdRate: number,
   fractionDigits: number
 ) {
   _locale = locale;
   _currency = currency;
-  _kesRate = kesRate;
+  _usdRate = usdRate;
   _fractionDigits = fractionDigits;
 }
 
-export function formatCurrency(amountKES: number): string {
-  const converted = amountKES * _kesRate;
+export function formatCurrency(amount: number): string {
+  const converted = amount * _usdRate;
   return new Intl.NumberFormat(_locale, {
     style: "currency",
     currency: _currency,

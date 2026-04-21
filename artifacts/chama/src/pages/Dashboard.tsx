@@ -104,7 +104,7 @@ export default function Dashboard() {
             </div>
             {summary?.currentGroup && (
               <div className="text-xs text-muted-foreground mt-1">
-                {formatGroupAmount(summary.currentGroup.contributionAmount, (summary.currentGroup as any).currency ?? "KES")} due
+                {formatGroupAmount(summary.currentGroup.contributionAmount, (summary.currentGroup as any).currency ?? "USD")} due
               </div>
             )}
           </div>
@@ -126,7 +126,7 @@ export default function Dashboard() {
             <div className="bg-card border border-border rounded-xl p-6">
               <h3 className="font-semibold mb-1">Pay Contribution</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Contribute {formatGroupAmount(summary.currentGroup.contributionAmount, (summary.currentGroup as any).currency ?? "KES")} for Cycle {summary.currentGroup.currentCycle}
+                Contribute {formatGroupAmount(summary.currentGroup.contributionAmount, (summary.currentGroup as any).currency ?? "USD")} for Cycle {summary.currentGroup.currentCycle}
               </p>
               <div className="mb-4">
                 <div className="flex justify-between text-xs text-muted-foreground mb-1">
@@ -147,7 +147,7 @@ export default function Dashboard() {
                   disabled={payMutation.isPending || !summary.cycleId}
                 >
                   {payMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  Pay {formatGroupAmount(summary.currentGroup.contributionAmount, (summary.currentGroup as any).currency ?? "KES")}
+                  Pay {formatGroupAmount(summary.currentGroup.contributionAmount, (summary.currentGroup as any).currency ?? "USD")}
                 </Button>
               ) : (
                 <Button variant="outline" className="w-full" disabled>
@@ -166,7 +166,7 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <div className="font-semibold">{summary.upcomingRecipient.name}</div>
-                    <div className="text-sm text-muted-foreground">Will receive {formatGroupAmount((summary.currentGroup.contributionAmount ?? 0) * (summary.currentGroup.totalMembers ?? 0), (summary.currentGroup as any).currency ?? "KES")}</div>
+                    <div className="text-sm text-muted-foreground">Will receive {formatGroupAmount((summary.currentGroup.contributionAmount ?? 0) * (summary.currentGroup.totalMembers ?? 0), (summary.currentGroup as any).currency ?? "USD")}</div>
                     <div className="text-xs text-muted-foreground capitalize">{summary.upcomingRecipient.role.replace("_", " ")}</div>
                   </div>
                 </div>

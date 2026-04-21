@@ -11,6 +11,7 @@ import { logger } from "../lib/logger";
 import { getAppBaseUrl } from "../lib/appUrl";
 
 const router: IRouter = Router();
+const DEFAULT_CURRENCY = "USD";
 
 async function getGroupWithCounts(g: typeof groupsTable.$inferSelect) {
   const [memberCount, currentCycle] = await Promise.all([
@@ -37,7 +38,7 @@ async function getGroupWithCounts(g: typeof groupsTable.$inferSelect) {
     name: g.name,
     adminId: g.adminId,
     organizationId: g.organizationId ?? null,
-    currency: g.currency ?? "KES",
+    currency: g.currency ?? DEFAULT_CURRENCY,
     contributionAmount: parseFloat(g.contributionAmount as unknown as string),
     schedule: g.schedule,
     maxMembers: g.maxMembers,
@@ -102,7 +103,7 @@ router.post("/groups", requireAuth, async (req, res): Promise<void> => {
     name,
     adminId: userId,
     organizationId: organizationId ?? null,
-    currency: (currency ?? "KES").toUpperCase(),
+    currency: (currency ?? DEFAULT_CURRENCY).toUpperCase(),
     contributionAmount: String(contributionAmount),
     schedule: schedule ?? "bi-weekly",
     maxMembers: maxMembers ?? 5,

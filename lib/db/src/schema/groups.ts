@@ -7,7 +7,7 @@ export const groupsTable = pgTable("groups", {
   name: text("name").notNull(),
   adminId: integer("admin_id").notNull(),
   organizationId: integer("organization_id"),
-  currency: text("currency").notNull().default("KES"),
+  currency: text("currency").notNull().default("USD"),
   contributionAmount: numeric("contribution_amount", { precision: 12, scale: 2 }).notNull(),
   schedule: text("schedule").notNull().default("bi-weekly"),
   maxMembers: integer("max_members").notNull().default(5),

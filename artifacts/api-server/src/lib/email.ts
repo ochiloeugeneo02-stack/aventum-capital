@@ -518,10 +518,10 @@ export async function sendInviteEmail(data: InviteEmailData): Promise<boolean> {
 }
 
 function fmtDateTime(d: Date): string {
-  return d.toLocaleString("en-KE", {
+  return d.toLocaleString("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
-    timeZone: "Africa/Nairobi",
+    timeZone: "UTC",
   });
 }
 

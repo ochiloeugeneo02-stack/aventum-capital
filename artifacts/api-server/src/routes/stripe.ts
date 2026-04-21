@@ -11,7 +11,7 @@ const router: IRouter = Router();
 /**
  * Aventum Capital platform fee: 2% of each contribution.
  * Applied as a Stripe application_fee_amount on every PaymentIntent.
- * In cents: floor(amountKES * 100 * 0.02)
+ * In the payment currency's smallest unit: floor(amount * 0.02)
  */
 const PLATFORM_FEE_RATE = 0.02;
 
@@ -62,20 +62,19 @@ router.get("/stripe/config", async (_req, res): Promise<void> => {
  * 4. Returns the clientSecret for the frontend to confirm payment
  */
 /**
- * Supported Stripe currencies with conversion config.
- * KES is the canonical DB currency. All amounts are stored as KES.
- * For display/charging in other currencies, we convert at the approximate rate.
+ * Supported Stripe currencies with approximate conversion config.
+ * Group amounts are stored in the group's own currency.
  */
-const STRIPE_CURRENCY_CONFIG: Record<string, { rate: number; zeroDecimal: boolean; sandboxSafe: boolean }> = {
-  kes: { rate: 1,        zeroDecimal: true,  sandboxSafe: false },
-  usd: { rate: 1/130,    zeroDecimal: false, sandboxSafe: true  },
-  eur: { rate: 1/142,    zeroDecimal: false, sandboxSafe: true  },
-  gbp: { rate: 1/165,    zeroDecimal: false, sandboxSafe: true  },
-  cad: { rate: 1/96,     zeroDecimal: false, sandboxSafe: true  },
-  aud: { rate: 1/85,     zeroDecimal: false, sandboxSafe: true  },
-  ngn: { rate: 8.27,     zeroDecimal: true,  sandboxSafe: false },
-  tzs: { rate: 34.48,    zeroDecimal: true,  sandboxSafe: false },
-  ugx: { rate: 29.41,    zeroDecimal: true,  sandboxSafe: false },
+const STRIPE_CURRENCY_CONFIG: Record<string, { unitsPerUsd: number; zeroDecimal: boolean; sandboxSafe: boolean }> = {
+  usd: { unitsPerUsd: 1, zeroDecimal: false, sandboxSafe: true },
+  eur: { unitsPerUsd: 0.92, zeroDecimal: false, sandboxSafe: true },
+  gbp: { unitsPerUsd: 0.79, zeroDecimal: false, sandboxSafe: true },
+  cad: { unitsPerUsd: 1.35, zeroDecimal: false, sandboxSafe: true },
+  aud: { unitsPerUsd: 1.53, zeroDecimal: false, sandboxSafe: true },
+  kes: { unitsPerUsd: 130, zeroDecimal: true, sandboxSafe: false },
+  ngn: { unitsPerUsd: 1600, zeroDecimal: true, sandboxSafe: false },
+  tzs: { unitsPerUsd: 2600, zeroDecimal: true, sandboxSafe: false },
+  ugx: { unitsPerUsd: 3700, zeroDecimal: true, sandboxSafe: false },
 };
 
 router.post("/stripe/create-payment-intent", requireAuth, async (req, res): Promise<void> => {
@@ -128,13 +127,14 @@ router.post("/stripe/create-payment-intent", requireAuth, async (req, res): Prom
     return;
   }
 
-  const amountKES = parseFloat(group.contributionAmount as unknown as string);
+  const groupAmount = parseFloat(group.contributionAmount as unknown as string);
+  const groupCurrency = (group.currency ?? "USD").toLowerCase();
 
   // Determine which currency to charge in.
-  // Frontend passes the user's regional currency preference (e.g. "USD", "KES", "GBP").
+  // Frontend may pass the user's regional currency preference.
   // In sandbox mode, only sandbox-safe currencies (USD, EUR, GBP, CAD, AUD) work reliably.
   const isProduction = process.env.REPLIT_DEPLOYMENT === "1";
-  const preferred = (requestedCurrency ?? "KES").toLowerCase();
+  const preferred = (requestedCurrency ?? groupCurrency).toLowerCase();
   const currencyConfig = STRIPE_CURRENCY_CONFIG[preferred];
 
   // Fall back to USD in sandbox if the preferred currency isn't sandbox-safe
@@ -142,11 +142,13 @@ router.post("/stripe/create-payment-intent", requireAuth, async (req, res): Prom
     ? "usd"
     : (currencyConfig ? preferred : "usd");
   const config = STRIPE_CURRENCY_CONFIG[activeCurrency] ?? STRIPE_CURRENCY_CONFIG.usd;
+  const sourceConfig = STRIPE_CURRENCY_CONFIG[groupCurrency] ?? STRIPE_CURRENCY_CONFIG.usd;
 
-  // Convert from KES to the target currency.
-  // Zero-decimal currencies: amount is in whole units (e.g., KES, NGN)
+  // Convert from the group's currency to the target currency.
+  // Zero-decimal currencies: amount is in whole units (e.g., NGN)
   // Two-decimal currencies: amount is in cents (e.g., USD → multiply by 100)
-  const convertedAmount = amountKES * config.rate;
+  const amountUsd = groupAmount / sourceConfig.unitsPerUsd;
+  const convertedAmount = amountUsd * config.unitsPerUsd;
   const amountInt = config.zeroDecimal
     ? Math.round(convertedAmount)
     : Math.round(convertedAmount * 100);
@@ -179,7 +181,8 @@ router.post("/stripe/create-payment-intent", requireAuth, async (req, res): Prom
 
   res.json({
     clientSecret: paymentIntent.client_secret,
-    amountKES,
+    amount: groupAmount,
+    groupCurrency: groupCurrency.toUpperCase(),
     amountCharged: amountInt,
     platformFee,
     currency: activeCurrency.toUpperCase(),
@@ -363,7 +366,9 @@ router.post("/stripe/create-payout-transfer", requireRole("super_admin", "group_
     return;
   }
 
-  const amountKES = parseFloat(payout.amount as unknown as string);
+  const amount = parseFloat(payout.amount as unknown as string);
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, payout.groupId)).limit(1);
+  const currency = group?.currency ?? "USD";
 
   // Mark payout as paid in our DB
   const [updated] = await db.update(payoutsTable)
@@ -376,7 +381,7 @@ router.post("/stripe/create-payout-transfer", requireRole("super_admin", "group_
     performedBy: req.session!.userId!,
     targetType: "payout",
     targetId: payoutId,
-    details: `Transfer of KES ${amountKES.toLocaleString()} to ${recipient.email}`,
+    details: `Transfer of ${currency} ${amount.toLocaleString()} to ${recipient.email}`,
   });
 
   res.json({
@@ -384,7 +389,7 @@ router.post("/stripe/create-payout-transfer", requireRole("super_admin", "group_
     payoutId: updated.id,
     recipientName: recipient.name,
     recipientEmail: recipient.email,
-    amount: amountKES,
+    amount,
     status: updated.status,
     paidAt: updated.paidAt?.toISOString(),
   });

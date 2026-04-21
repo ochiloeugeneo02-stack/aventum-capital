@@ -508,8 +508,8 @@ export default function GroupDetail() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: "Contribution", value: formatGroupAmount(g.contributionAmount, g.currency ?? "KES") },
-            { label: "Pool size", value: formatGroupAmount(totalPayout, g.currency ?? "KES") },
+            { label: "Contribution", value: formatGroupAmount(g.contributionAmount, g.currency ?? "USD") },
+            { label: "Pool size", value: formatGroupAmount(totalPayout, g.currency ?? "USD") },
             { label: "Members", value: `${g.totalMembers}/${g.maxMembers}` },
             { label: "Paid this cycle", value: `${g.paidCount}/${g.totalMembers}` },
           ].map(stat => (
@@ -549,7 +549,7 @@ export default function GroupDetail() {
             {myStatus !== "paid" ? (
               <Button className="w-full" onClick={handlePay} disabled={payMutation.isPending || g.status !== "active"}>
                 {payMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Pay {formatGroupAmount(g.contributionAmount, g.currency ?? "KES")}
+                Pay {formatGroupAmount(g.contributionAmount, g.currency ?? "USD")}
               </Button>
             ) : (
               <Button variant="outline" className="w-full" disabled>Paid for this cycle</Button>
@@ -566,7 +566,7 @@ export default function GroupDetail() {
                 </div>
                 <div>
                   <div className="font-medium">{g.currentRecipient.name}</div>
-                  <div className="text-sm text-muted-foreground">Will receive {formatGroupAmount(totalPayout, g.currency ?? "KES")}</div>
+                  <div className="text-sm text-muted-foreground">Will receive {formatGroupAmount(totalPayout, g.currency ?? "USD")}</div>
                 </div>
               </div>
             ) : (

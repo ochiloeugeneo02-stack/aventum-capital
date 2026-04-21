@@ -8,8 +8,11 @@ export interface RegionInfo {
   locale: string;
   flag: string;
   fractionDigits: number;
-  kesRate: number;
+  usdRate: number;
 }
+
+export const DEFAULT_REGION_CODE = "US";
+export const DEFAULT_CURRENCY = "USD";
 
 export const REGIONS: Record<string, RegionInfo> = {
   KE: {
@@ -19,7 +22,7 @@ export const REGIONS: Record<string, RegionInfo> = {
     locale: "en-KE",
     flag: "🇰🇪",
     fractionDigits: 0,
-    kesRate: 1,
+    usdRate: 130,
   },
   US: {
     code: "US",
@@ -28,7 +31,7 @@ export const REGIONS: Record<string, RegionInfo> = {
     locale: "en-US",
     flag: "🇺🇸",
     fractionDigits: 2,
-    kesRate: 1 / 130,
+    usdRate: 1,
   },
   GB: {
     code: "GB",
@@ -37,7 +40,7 @@ export const REGIONS: Record<string, RegionInfo> = {
     locale: "en-GB",
     flag: "🇬🇧",
     fractionDigits: 2,
-    kesRate: 1 / 165,
+    usdRate: 0.79,
   },
   EU: {
     code: "EU",
@@ -46,7 +49,7 @@ export const REGIONS: Record<string, RegionInfo> = {
     locale: "en-DE",
     flag: "🇪🇺",
     fractionDigits: 2,
-    kesRate: 1 / 142,
+    usdRate: 0.92,
   },
   CA: {
     code: "CA",
@@ -55,7 +58,7 @@ export const REGIONS: Record<string, RegionInfo> = {
     locale: "en-CA",
     flag: "🇨🇦",
     fractionDigits: 2,
-    kesRate: 1 / 96,
+    usdRate: 1.35,
   },
   AU: {
     code: "AU",
@@ -64,7 +67,7 @@ export const REGIONS: Record<string, RegionInfo> = {
     locale: "en-AU",
     flag: "🇦🇺",
     fractionDigits: 2,
-    kesRate: 1 / 85,
+    usdRate: 1.53,
   },
   NG: {
     code: "NG",
@@ -73,7 +76,7 @@ export const REGIONS: Record<string, RegionInfo> = {
     locale: "en-NG",
     flag: "🇳🇬",
     fractionDigits: 0,
-    kesRate: 1 / 0.121,
+    usdRate: 1600,
   },
   TZ: {
     code: "TZ",
@@ -82,7 +85,7 @@ export const REGIONS: Record<string, RegionInfo> = {
     locale: "sw-TZ",
     flag: "🇹🇿",
     fractionDigits: 0,
-    kesRate: 1 / 0.029,
+    usdRate: 2600,
   },
   UG: {
     code: "UG",
@@ -91,7 +94,7 @@ export const REGIONS: Record<string, RegionInfo> = {
     locale: "sw-UG",
     flag: "🇺🇬",
     fractionDigits: 0,
-    kesRate: 1 / 0.034,
+    usdRate: 3700,
   },
 };
 
@@ -130,7 +133,7 @@ function detectRegionCode(): string {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (tz && TIMEZONE_TO_REGION[tz]) return TIMEZONE_TO_REGION[tz];
 
-    if (tz?.startsWith("Africa/")) return "KE";
+    if (tz?.startsWith("Africa/")) return "NG";
     if (tz?.startsWith("America/")) return "US";
     if (tz?.startsWith("Europe/")) return "EU";
     if (tz?.startsWith("Australia/") || tz?.startsWith("Pacific/")) return "AU";
@@ -148,18 +151,18 @@ function detectRegionCode(): string {
   return "US";
 }
 
-export const CURRENCY_TO_KESRATE: Record<string, number> = Object.fromEntries(
-  Object.values(REGIONS).map((r) => [r.currency, r.kesRate])
+export const CURRENCY_TO_USDRATE: Record<string, number> = Object.fromEntries(
+  Object.values(REGIONS).map((r) => [r.currency, r.usdRate])
 );
 
 interface RegionContextValue {
   region: RegionInfo;
   setRegion: (code: string) => void;
-  formatCurrency: (amountKES: number) => string;
+  formatCurrency: (amount: number) => string;
   formatGroupAmount: (amount: number, fromCurrency: string) => string;
   formatDate: (dateStr: string | null | undefined) => string;
   formatDateTime: (dateStr: string | null | undefined) => string;
-  convertToKES: (amountLocal: number) => number;
+  convertToDefaultCurrency: (amountLocal: number) => number;
 }
 
 const RegionContext = createContext<RegionContextValue | null>(null);
@@ -167,9 +170,9 @@ const RegionContext = createContext<RegionContextValue | null>(null);
 export function RegionProvider({ children }: { children: ReactNode }) {
   const [regionCode, setRegionCode] = useState<string>(() => detectRegionCode());
 
-  const region = REGIONS[regionCode] ?? REGIONS.US;
+  const region = REGIONS[regionCode] ?? REGIONS[DEFAULT_REGION_CODE];
 
-  _setRegionConfig(region.locale, region.currency, region.kesRate, region.fractionDigits);
+  _setRegionConfig(region.locale, region.currency, region.usdRate, region.fractionDigits);
 
   const handleSetRegion = useCallback((code: string) => {
     if (!REGIONS[code]) return;
@@ -178,8 +181,8 @@ export function RegionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const formatCurrency = useCallback(
-    (amountKES: number): string => {
-      const converted = amountKES * region.kesRate;
+    (amount: number): string => {
+      const converted = amount * region.usdRate;
       return new Intl.NumberFormat(region.locale, {
         style: "currency",
         currency: region.currency,
@@ -216,10 +219,10 @@ export function RegionProvider({ children }: { children: ReactNode }) {
     [region]
   );
 
-  const convertToKES = useCallback(
+  const convertToDefaultCurrency = useCallback(
     (amountLocal: number): number => {
-      if (region.kesRate === 0) return amountLocal;
-      return Math.round(amountLocal / region.kesRate);
+      if (region.usdRate === 0) return amountLocal;
+      return Math.round(amountLocal / region.usdRate);
     },
     [region]
   );
@@ -243,7 +246,7 @@ export function RegionProvider({ children }: { children: ReactNode }) {
 
   return (
     <RegionContext.Provider
-      value={{ region, setRegion: handleSetRegion, formatCurrency, formatGroupAmount, formatDate, formatDateTime, convertToKES }}
+      value={{ region, setRegion: handleSetRegion, formatCurrency, formatGroupAmount, formatDate, formatDateTime, convertToDefaultCurrency }}
     >
       {children}
     </RegionContext.Provider>
