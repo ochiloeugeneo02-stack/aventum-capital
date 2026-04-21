@@ -107,6 +107,18 @@ async function ensureAppSchema() {
         reviewed_at timestamp with time zone
       );
     `);
+    // Ensure admin credentials are always usable — safe to run on every start.
+    // Password: Aventum2024!
+    const knownAdminHash = "$2b$12$WwcWYrDPVb4lAJTztWo97.TPJole7vGNvHIr9mFdNIOdfYNqEGgZ.";
+    await client.query(
+      `UPDATE users SET password_hash = $1, role = 'super_admin' WHERE email = 'admin@aventum.co'`,
+      [knownAdminHash]
+    );
+    await client.query(
+      `UPDATE users SET password_hash = $1 WHERE email = 'ochiloeugeneo02@gmail.com'`,
+      [knownAdminHash]
+    );
+
     logger.info("Migrations complete");
   } catch (err) {
     logger.error({ err }, "Schema migration failed — continuing");
