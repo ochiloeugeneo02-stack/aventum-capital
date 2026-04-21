@@ -45,17 +45,17 @@ function InviteLinkBox({ url, email }: { url: string; email: string }) {
   };
 
   return (
-    <div className="mt-3 p-4 bg-[#3A5A40]/5 border border-[#3A5A40]/20 rounded-xl space-y-3">
-      <div className="flex items-center gap-2 text-sm font-medium text-[#344E41]">
+    <div className="mt-3 p-3 sm:p-4 bg-[#3A5A40]/5 border border-[#3A5A40]/20 rounded-xl space-y-3">
+      <div className="flex items-center gap-2 text-sm font-medium text-[#344E41] min-w-0">
         <Link2 className="w-4 h-4" />
-        Invitation link created for <span className="font-semibold">{email}</span>
+        <span className="min-w-0">Invitation link created for <span className="font-semibold break-all">{email}</span></span>
       </div>
       <p className="text-xs text-muted-foreground">
         They haven't registered yet — share this link so they can sign up and join the group directly.
       </p>
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <Input readOnly value={url} className="font-mono text-xs flex-1" />
-        <Button size="sm" variant="outline" onClick={copy} className="gap-1.5 shrink-0">
+        <Button size="sm" variant="outline" onClick={copy} className="gap-1.5 shrink-0 w-full sm:w-auto">
           {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
           {copied ? "Copied!" : "Copy"}
         </Button>
@@ -74,13 +74,13 @@ function GroupMembersList({ groupId }: { groupId: number }) {
   return (
     <div className="mt-3 space-y-2">
       {members.map((m: any) => (
-        <div key={m.id} className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
-          <div className="flex items-center gap-2">
+        <div key={m.id} className="flex items-center justify-between gap-3 p-3 bg-muted/40 rounded-lg">
+          <div className="flex items-center gap-2 min-w-0">
             <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
               {m.user?.name?.charAt(0) ?? "?"}
             </div>
-            <div>
-              <div className="text-sm font-medium">{m.user?.name}</div>
+            <div className="min-w-0">
+              <div className="text-sm font-medium truncate">{m.user?.name}</div>
               <div className="text-xs text-muted-foreground">Order #{m.rotationOrder + 1}</div>
             </div>
           </div>
@@ -119,9 +119,11 @@ function GroupExitRequests({ groupId }: { groupId: number }) {
   useEffect(() => { loadRequests(); }, [loadRequests]);
 
   const pending = requests.filter(r => r.status === "pending");
+  useEffect(() => {
+    if (pending.length > 0) setExpanded(true);
+  }, [pending.length]);
 
   if (loading) return null;
-  if (requests.length === 0) return null;
 
   const statusIcon = (s: string) => {
     if (s === "pending") return <Clock className="w-3.5 h-3.5 text-amber-500" />;
@@ -137,9 +139,9 @@ function GroupExitRequests({ groupId }: { groupId: number }) {
       >
         <LogOut className="w-4 h-4 text-destructive" />
         <span className="text-sm font-medium">Exit Requests</span>
-        {pending.length > 0 && (
-          <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">{pending.length} pending</span>
-        )}
+        <span className={cn("text-xs px-1.5 py-0.5 rounded-full", pending.length > 0 ? "bg-amber-100 text-amber-700" : "bg-muted text-muted-foreground")}>
+          {pending.length > 0 ? `${pending.length} pending` : "No pending"}
+        </span>
         <span className="ml-auto text-muted-foreground">
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </span>
@@ -156,17 +158,21 @@ function GroupExitRequests({ groupId }: { groupId: number }) {
             </div>
           </div>
 
-          {[...pending, ...requests.filter(r => r.status !== "pending")].map(req => (
-            <div key={req.id} className={cn("rounded-xl border p-4 space-y-2", req.status === "pending" ? "border-amber-200 bg-amber-50/40" : "border-border bg-muted/20")}>
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2">
+          {requests.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-muted/20 p-4 text-sm text-muted-foreground">
+              No leave group requests have been submitted for this group yet.
+            </div>
+          ) : [...pending, ...requests.filter(r => r.status !== "pending")].map(req => (
+            <div key={req.id} className={cn("rounded-xl border p-3 sm:p-4 space-y-2", req.status === "pending" ? "border-amber-200 bg-amber-50/40" : "border-border bg-muted/20")}>
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                   {statusIcon(req.status)}
-                  <div>
-                    <div className="text-sm font-medium">{req.userName ?? "Unknown"}</div>
-                    <div className="text-xs text-muted-foreground">{req.userEmail}</div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{req.userName ?? "Unknown"}</div>
+                    <div className="text-xs text-muted-foreground break-all">{req.userEmail}</div>
                   </div>
                 </div>
-                <span className={cn("text-[11px] font-medium px-2 py-0.5 rounded-full capitalize", {
+                <span className={cn("text-[11px] font-medium px-2 py-0.5 rounded-full capitalize w-fit", {
                   "bg-amber-100 text-amber-700": req.status === "pending",
                   "bg-green-100 text-green-700": req.status === "approved" || req.status === "auto_approved",
                   "bg-red-100 text-red-700": req.status === "denied",
@@ -259,10 +265,12 @@ function GroupSwapRequests({ groupId }: { groupId: number }) {
     }
   };
 
-  if (loading) return null;
-  if (requests.length === 0) return null;
-
   const pending = requests.filter(r => r.status === "pending");
+  useEffect(() => {
+    if (pending.length > 0) setExpanded(true);
+  }, [pending.length]);
+
+  if (loading) return null;
 
   return (
     <div className="border-t border-border pt-4 mt-4">
@@ -272,9 +280,9 @@ function GroupSwapRequests({ groupId }: { groupId: number }) {
       >
         <ArrowLeftRight className="w-4 h-4 text-[#3A5A40]" />
         <span className="text-sm font-medium">Turn Swap Requests</span>
-        {pending.length > 0 && (
-          <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">{pending.length} pending</span>
-        )}
+        <span className={cn("text-xs px-1.5 py-0.5 rounded-full", pending.length > 0 ? "bg-amber-100 text-amber-700" : "bg-muted text-muted-foreground")}>
+          {pending.length > 0 ? `${pending.length} pending` : "No pending"}
+        </span>
         <span className="ml-auto text-muted-foreground">
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </span>
@@ -282,21 +290,25 @@ function GroupSwapRequests({ groupId }: { groupId: number }) {
 
       {expanded && (
         <div className="mt-3 space-y-3">
-          {[...pending, ...requests.filter(r => r.status !== "pending")].map(req => (
+          {requests.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-muted/20 p-4 text-sm text-muted-foreground">
+              No turn swap requests have been submitted for this group yet.
+            </div>
+          ) : [...pending, ...requests.filter(r => r.status !== "pending")].map(req => (
             <div key={req.id} className={cn(
-              "rounded-xl border p-4 space-y-2",
+              "rounded-xl border p-3 sm:p-4 space-y-2",
               req.status === "pending" ? "border-amber-200 bg-amber-50/40" : "border-border bg-muted/20"
             )}>
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="text-sm font-medium flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium flex items-center gap-2 flex-wrap">
                     {req.requesterName ?? "Unknown"}
                     <ArrowLeftRight className="w-3.5 h-3.5 text-muted-foreground" />
                     {req.targetMemberName ?? "Unknown"}
                   </div>
                   <div className="text-xs text-muted-foreground">Swap rotation positions</div>
                 </div>
-                <span className={cn("text-[11px] font-medium px-2 py-0.5 rounded-full capitalize", {
+                <span className={cn("text-[11px] font-medium px-2 py-0.5 rounded-full capitalize w-fit", {
                   "bg-amber-100 text-amber-700": req.status === "pending",
                   "bg-green-100 text-green-700": req.status === "approved",
                   "bg-red-100 text-red-700": req.status === "denied",
@@ -311,10 +323,10 @@ function GroupSwapRequests({ groupId }: { groupId: number }) {
               )}
 
               {req.status === "pending" && (
-                <div className="flex gap-2 pt-1">
+                <div className="flex flex-col sm:flex-row gap-2 pt-1">
                   <Button
                     size="sm"
-                    className="bg-[#3A5A40] hover:bg-[#344E41] h-7 text-xs"
+                    className="bg-[#3A5A40] hover:bg-[#344E41] h-8 text-xs w-full sm:w-auto"
                     disabled={processingId === req.id}
                     onClick={() => handleApprove(req.id)}
                   >
@@ -324,7 +336,7 @@ function GroupSwapRequests({ groupId }: { groupId: number }) {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-7 text-xs text-destructive border-destructive/30 hover:bg-destructive/5"
+                    className="h-8 text-xs text-destructive border-destructive/30 hover:bg-destructive/5 w-full sm:w-auto"
                     disabled={processingId === req.id}
                     onClick={() => handleDeny(req.id)}
                   >
@@ -583,19 +595,23 @@ export default function AdminGroup() {
     <DashboardLayout>
       <div className="space-y-6">
         <BackButton to="/groups" label="All Groups" />
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">Group Admin</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">Group Admin</h1>
             <p className="text-muted-foreground text-sm mt-1">Manage your savings groups</p>
           </div>
-          <Button onClick={() => setShowCreate(!showCreate)} className="gap-2 bg-[#3A5A40] hover:bg-[#344E41]">
+          <Button onClick={() => setShowCreate(!showCreate)} className="gap-2 bg-[#3A5A40] hover:bg-[#344E41] w-full sm:w-auto">
             <Plus className="w-4 h-4" /> New Group
           </Button>
+        </div>
+        <div className="rounded-xl border border-[#A3B18A]/40 bg-[#A3B18A]/10 p-4 text-sm text-[#344E41]">
+          <p className="font-semibold">Request inbox</p>
+          <p className="mt-1 text-[#344E41]/80">Leave group and turn swap requests now stay visible on every group card. Pending requests open automatically and email the group admin when they are submitted.</p>
         </div>
 
         {/* Create form */}
         {showCreate && (
-          <div className="bg-card border border-border rounded-xl p-6">
+          <div className="bg-card border border-border rounded-xl p-4 sm:p-6">
             <h3 className="font-semibold mb-4">Create a new group</h3>
             <form onSubmit={handleCreate} className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -647,12 +663,12 @@ export default function AdminGroup() {
                 <Label>Max members</Label>
                 <Input type="number" min="2" max="20" value={createForm.maxMembers} onChange={e => setCreateForm(f => ({ ...f, maxMembers: e.target.value }))} />
               </div>
-              <div className="md:col-span-2 flex gap-3">
-                <Button type="submit" disabled={createMutation.isPending} className="bg-[#3A5A40] hover:bg-[#344E41]">
+              <div className="md:col-span-2 flex flex-col sm:flex-row gap-3">
+                <Button type="submit" disabled={createMutation.isPending} className="bg-[#3A5A40] hover:bg-[#344E41] w-full sm:w-auto">
                   {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   Create group
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => setShowCreate(false)} className="w-full sm:w-auto">Cancel</Button>
               </div>
             </form>
           </div>
@@ -672,50 +688,50 @@ export default function AdminGroup() {
               const groupCurrency = g.currency ?? "USD";
               const fmtAmt = (n: number) => formatGroupAmount(n, groupCurrency);
               return (
-                <div key={g.id} className="bg-card border border-border rounded-xl p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-lg">{g.name}</h3>
+                <div key={g.id} className="bg-card border border-border rounded-xl p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <h3 className="font-semibold text-base sm:text-lg break-words">{g.name}</h3>
                         <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{groupCurrency}</span>
                       </div>
                       <p className="text-sm text-muted-foreground capitalize">{g.schedule} • {g.totalMembers}/{g.maxMembers} members • Cycle {g.currentCycle}</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <StatusBadgeSmall status={g.status} />
                       {g.status === "active" ? (
-                        <Button size="sm" variant="outline" onClick={() => pauseMutation.mutate({ groupId: g.id })} disabled={pauseMutation.isPending}>
+                        <Button size="sm" variant="outline" onClick={() => pauseMutation.mutate({ groupId: g.id })} disabled={pauseMutation.isPending} className="flex-1 sm:flex-none">
                           Pause
                         </Button>
                       ) : g.status === "paused" ? (
-                        <Button size="sm" variant="outline" onClick={() => resumeMutation.mutate({ groupId: g.id })} disabled={resumeMutation.isPending}>
+                        <Button size="sm" variant="outline" onClick={() => resumeMutation.mutate({ groupId: g.id })} disabled={resumeMutation.isPending} className="flex-1 sm:flex-none">
                           Resume
                         </Button>
                       ) : null}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
                     <div className="text-center p-3 bg-muted/40 rounded-lg">
-                      <div className="font-bold">{fmtAmt(g.contributionAmount)}</div>
+                      <div className="font-bold text-sm sm:text-base break-words">{fmtAmt(g.contributionAmount)}</div>
                       <div className="text-xs text-muted-foreground">Per cycle</div>
                     </div>
                     <div className="text-center p-3 bg-muted/40 rounded-lg">
-                      <div className="font-bold">{g.paidCount}/{g.totalMembers}</div>
+                      <div className="font-bold text-sm sm:text-base">{g.paidCount}/{g.totalMembers}</div>
                       <div className="text-xs text-muted-foreground">Paid</div>
                     </div>
                     <div className="text-center p-3 bg-muted/40 rounded-lg">
-                      <div className="font-bold">{fmtAmt(g.contributionAmount * g.totalMembers)}</div>
+                      <div className="font-bold text-sm sm:text-base break-words">{fmtAmt(g.contributionAmount * g.totalMembers)}</div>
                       <div className="text-xs text-muted-foreground">Pool size</div>
                     </div>
                   </div>
 
                   {/* Members */}
                   <div className="border-t border-border pt-4">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between gap-3 mb-2">
                       <span className="text-sm font-medium">Members</span>
                       <button
-                        className="text-xs text-[#3A5A40] hover:underline font-medium"
+                        className="text-xs text-[#3A5A40] hover:underline font-medium shrink-0"
                         onClick={() => {
                           setInviteGroupId(inviteGroupId === g.id ? null : g.id);
                           setPendingInvite(null);
@@ -728,7 +744,7 @@ export default function AdminGroup() {
 
                     {inviteGroupId === g.id && (
                       <div className="mb-3">
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <Input
                             placeholder="member@example.com"
                             value={inviteEmail}
@@ -740,7 +756,7 @@ export default function AdminGroup() {
                             size="sm"
                             onClick={() => handleInvite(g.id)}
                             disabled={inviteMutation.isPending || !inviteEmail}
-                            className="bg-[#3A5A40] hover:bg-[#344E41]"
+                            className="bg-[#3A5A40] hover:bg-[#344E41] w-full sm:w-auto"
                           >
                             {inviteMutation.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
                             Send invite

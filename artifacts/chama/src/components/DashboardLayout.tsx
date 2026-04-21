@@ -153,7 +153,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
         {/* Page content — key forces re-render on region/location change and triggers entrance animation */}
         <main className="flex-1 overflow-auto">
-          <div key={`${location}-${region.code}`} className="p-6 page-enter">
+          <div key={`${location}-${region.code}`} className="p-4 sm:p-6 page-enter">
             {children}
           </div>
         </main>

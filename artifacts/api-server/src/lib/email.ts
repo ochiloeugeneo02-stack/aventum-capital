@@ -679,3 +679,66 @@ export async function sendContributionActivityEmail(opts: {
   });
   return sendViaResend(opts.email, `${opts.contributorName} made a contribution to ${opts.groupName}`, html);
 }
+
+export async function sendExitRequestNotificationToAdmin(opts: {
+  email: string;
+  adminName: string;
+  groupName: string;
+  requesterName: string;
+  requesterEmail: string;
+  reason: string | null;
+  submittedAt: Date;
+  appBaseUrl: string;
+}): Promise<boolean> {
+  const adminUrl = `${opts.appBaseUrl}/admin/group`;
+  const html = buildEmailWrapper({
+    headerTitle: "Member exit request",
+    headerSubtitle: `Action visibility for ${opts.groupName}`,
+    bodyHtml: `
+      <p style="font-size:15px;color:#374151;margin:0 0 20px;">Hi <strong>${opts.adminName}</strong>,</p>
+      <p style="font-size:15px;color:#374151;margin:0 0 24px;">
+        <strong>${opts.requesterName}</strong> submitted a request to leave <strong>${opts.groupName}</strong>.
+        Aventum Capital will handle the approval review, but this request is visible to you as the group admin.
+      </p>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:16px 20px;margin-bottom:24px;">
+        <div style="font-size:12px;font-weight:600;color:#92400e;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Request details</div>
+        <div style="font-size:14px;color:#374151;margin-bottom:6px;"><strong>Member:</strong> ${opts.requesterName}</div>
+        <div style="font-size:14px;color:#374151;margin-bottom:6px;"><strong>Email:</strong> ${opts.requesterEmail}</div>
+        <div style="font-size:14px;color:#374151;margin-bottom:6px;"><strong>Submitted:</strong> ${fmtDateTime(opts.submittedAt)}</div>
+        <div style="font-size:14px;color:#374151;"><strong>Reason:</strong> ${opts.reason?.trim() || "No reason provided"}</div>
+      </div>
+      <a href="${adminUrl}" style="display:block;background:linear-gradient(135deg,#3A5A40 0%,#344E41 100%);color:#ffffff;text-decoration:none;text-align:center;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:600;">View admin requests →</a>`,
+  });
+  return sendViaResend(opts.email, `Exit request — ${opts.groupName}`, html);
+}
+
+export async function sendSwapRequestNotificationToAdmin(opts: {
+  email: string;
+  adminName: string;
+  groupName: string;
+  requesterName: string;
+  targetMemberName: string;
+  reason: string | null;
+  submittedAt: Date;
+  appBaseUrl: string;
+}): Promise<boolean> {
+  const adminUrl = `${opts.appBaseUrl}/admin/group`;
+  const html = buildEmailWrapper({
+    headerTitle: "Turn swap request",
+    headerSubtitle: `Approval needed for ${opts.groupName}`,
+    bodyHtml: `
+      <p style="font-size:15px;color:#374151;margin:0 0 20px;">Hi <strong>${opts.adminName}</strong>,</p>
+      <p style="font-size:15px;color:#374151;margin:0 0 24px;">
+        <strong>${opts.requesterName}</strong> requested to swap rotation positions with <strong>${opts.targetMemberName}</strong> in <strong>${opts.groupName}</strong>.
+      </p>
+      <div style="background:#f8faf8;border:1px solid #e5e7eb;border-radius:12px;padding:16px 20px;margin-bottom:24px;">
+        <div style="font-size:12px;font-weight:600;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Request details</div>
+        <div style="font-size:14px;color:#374151;margin-bottom:6px;"><strong>Requested by:</strong> ${opts.requesterName}</div>
+        <div style="font-size:14px;color:#374151;margin-bottom:6px;"><strong>Swap with:</strong> ${opts.targetMemberName}</div>
+        <div style="font-size:14px;color:#374151;margin-bottom:6px;"><strong>Submitted:</strong> ${fmtDateTime(opts.submittedAt)}</div>
+        <div style="font-size:14px;color:#374151;"><strong>Reason:</strong> ${opts.reason?.trim() || "No reason provided"}</div>
+      </div>
+      <a href="${adminUrl}" style="display:block;background:linear-gradient(135deg,#3A5A40 0%,#344E41 100%);color:#ffffff;text-decoration:none;text-align:center;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:600;">Review request →</a>`,
+  });
+  return sendViaResend(opts.email, `Turn swap request — ${opts.groupName}`, html);
+}

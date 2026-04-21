@@ -3,6 +3,8 @@ import { db, turnSwapRequestsTable, groupMembersTable, groupsTable, usersTable }
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { requireAuth } from "../lib/auth";
 import { logger } from "../lib/logger";
+import { getAppBaseUrl } from "../lib/appUrl";
+import { sendSwapRequestNotificationToAdmin } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -35,6 +37,9 @@ router.post("/groups/:groupId/swap-requests", requireAuth, async (req, res): Pro
   const targetMembership = await getMembership(targetId, groupId);
   if (!targetMembership) { res.status(400).json({ error: "Target member is not in this group" }); return; }
 
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
+  if (!group) { res.status(404).json({ error: "Group not found" }); return; }
+
   const existing = await db
     .select()
     .from(turnSwapRequestsTable)
@@ -59,6 +64,29 @@ router.post("/groups/:groupId/swap-requests", requireAuth, async (req, res): Pro
   }).returning();
 
   logger.info({ requesterId, groupId, targetId }, "Turn swap request created");
+  Promise.resolve().then(async () => {
+    try {
+      const appBaseUrl = getAppBaseUrl(req);
+      const [requester, targetMember, admin] = await Promise.all([
+        db.select().from(usersTable).where(eq(usersTable.id, requesterId)).limit(1).then(r => r[0]),
+        db.select().from(usersTable).where(eq(usersTable.id, targetId)).limit(1).then(r => r[0]),
+        db.select().from(usersTable).where(eq(usersTable.id, group.adminId)).limit(1).then(r => r[0]),
+      ]);
+      if (!requester || !targetMember || !admin || admin.id === requester.id) return;
+      await sendSwapRequestNotificationToAdmin({
+        email: admin.email,
+        adminName: admin.name,
+        groupName: group.name,
+        requesterName: requester.name,
+        targetMemberName: targetMember.name,
+        reason: reason?.trim() || null,
+        submittedAt: swapRequest.createdAt ?? new Date(),
+        appBaseUrl,
+      });
+    } catch (err) {
+      logger.error({ err, groupId, requesterId, targetId }, "swap request admin notification failed");
+    }
+  });
   res.status(201).json(swapRequest);
 });
 

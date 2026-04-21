@@ -3,6 +3,9 @@ import { db, exitRequestsTable, groupMembersTable, groupsTable, usersTable } fro
 import { eq, and, sql } from "drizzle-orm";
 import { requireAuth } from "../lib/auth";
 import { createAuditLog } from "../lib/auditLog";
+import { getAppBaseUrl } from "../lib/appUrl";
+import { sendExitRequestNotificationToAdmin } from "../lib/email";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -65,6 +68,29 @@ router.post("/groups/:groupId/exit-request", requireAuth, async (req, res): Prom
     targetType: "group",
     targetId: groupId,
     details: reason ?? "No reason provided",
+  });
+
+  Promise.resolve().then(async () => {
+    try {
+      const appBaseUrl = getAppBaseUrl(req);
+      const [requester, admin] = await Promise.all([
+        db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1).then(r => r[0]),
+        db.select().from(usersTable).where(eq(usersTable.id, group.adminId)).limit(1).then(r => r[0]),
+      ]);
+      if (!requester || !admin || admin.id === requester.id) return;
+      await sendExitRequestNotificationToAdmin({
+        email: admin.email,
+        adminName: admin.name,
+        groupName: group.name,
+        requesterName: requester.name,
+        requesterEmail: requester.email,
+        reason: reason ?? null,
+        submittedAt: request.createdAt ?? new Date(),
+        appBaseUrl,
+      });
+    } catch (err) {
+      logger.error({ err, groupId, userId }, "exit request admin notification failed");
+    }
   });
 
   res.status(201).json({

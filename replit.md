@@ -15,6 +15,7 @@ Digital rotational savings (chama) platform. Members contribute on a rotating sc
 - **Extended user profile:** `users` table has `username` (unique), `location`, `emailMarketing`, `passwordResetToken`, `passwordResetTokenExpiry` columns. Signup step 3 collects username, phone, location (geolocation), email marketing consent. Settings page has full profile editor + change password form.
 - **Login normalization:** `/auth/login` trims/lowercases the submitted identifier and accepts either email or username. `thewave` is treated as an alias for `thewave.grpevents@gmail.com`.
 - **Group popups:** Group invite, exit, and turn-swap dialogs use a single Radix modal shell with an image-backed community panel (`attached_assets/pexels-pixabay-461049_1776748558410.jpg` imported via `@assets`) to avoid nested/double-box rendering.
+- **Group admin requests:** Group admins can see leave/exit and turn-swap request sections on every group card in `/admin/group`, including empty states. New exit/swap requests email the group admin immediately with a link back to the admin area.
 
 ## Group Deletion Requests
 - DB table: `group_delete_requests` (id, group_id, requested_by, reason, status, reviewed_by, review_note, disbursement_note, requested_at, reviewed_at)

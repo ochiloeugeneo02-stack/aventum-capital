@@ -36,8 +36,8 @@ function HeroLoginPanel() {
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm">
-      <h3 className="text-xl font-bold text-gray-900 mb-6">Welcome back!</h3>
+    <div className="bg-white rounded-2xl shadow-2xl p-5 sm:p-8 w-full max-w-full sm:max-w-sm">
+      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-5 sm:mb-6">Welcome back!</h3>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -98,7 +98,7 @@ function HeroLoginPanel() {
           </button>
         </p>
       </div>
-      <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-500">
+      <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-500 hidden sm:block">
         <p className="font-semibold mb-1 text-gray-600">Demo accounts:</p>
         <p>admin@aventum.co / Aventum2024!</p>
         <p>grace@aventum.co / grace123</p>
@@ -146,7 +146,7 @@ export default function Landing() {
 
       {/* ── Navbar ──────────────────────────────────────────── */}
       <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <a href="/" className="flex items-center">
             <Logo variant="dark" />
           </a>
@@ -157,7 +157,7 @@ export default function Landing() {
             <a href="#footer" className="hover:text-[#3A5A40] transition-colors">Contact</a>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {isAuthenticated ? (
               <a href="/dashboard" className="bg-[#3A5A40] text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-[#344E41] transition-colors">
                 Dashboard
@@ -165,7 +165,7 @@ export default function Landing() {
             ) : (
               <>
                 <a href="#hero-login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Login</a>
-                <a href="/signup" className="bg-[#3A5A40] text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-[#344E41] transition-colors">
+                <a href="/signup" className="bg-[#3A5A40] text-white text-sm font-medium px-3 sm:px-4 py-2 rounded-lg hover:bg-[#344E41] transition-colors">
                   Get Started
                 </a>
               </>
@@ -177,7 +177,7 @@ export default function Landing() {
       {/* ── Hero ────────────────────────────────────────────── */}
       <section
         id="hero-login"
-        className="relative min-h-[520px] flex items-center"
+        className="relative flex items-center"
         style={{ background: "linear-gradient(135deg, #344E41 0%, #3A5A40 40%, #3A5A40 70%, #2B3E35 100%)" }}
       >
         <div
@@ -186,12 +186,12 @@ export default function Landing() {
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.5'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E")`,
           }}
         />
-        <div className="relative max-w-7xl mx-auto px-6 py-20 w-full flex flex-col lg:flex-row items-center justify-between gap-12">
-          <div className="flex-1 max-w-xl hero-copy">
-            <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-4">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20 w-full flex flex-col lg:flex-row items-center justify-between gap-8 sm:gap-12">
+          <div className="flex-1 max-w-xl hero-copy text-center lg:text-left">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight mb-4">
               Simple, Transparent,<br />and Affordable savings
             </h1>
-            <p className="text-white/70 text-base leading-relaxed max-w-md">
+            <p className="text-white/75 text-sm sm:text-base leading-relaxed max-w-md mx-auto lg:mx-0">
               Join trusted rotational savings groups and achieve your financial goals together with like-minded individuals.
             </p>
           </div>
@@ -202,9 +202,9 @@ export default function Landing() {
       </section>
 
       {/* ── How Aventum Works ───────────────────────────────── */}
-      <section id="how" className="bg-gray-50 py-16">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-12 reveal">How Aventum Works</h2>
+      <section id="how" className="bg-gray-50 py-12 sm:py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-center text-gray-900 mb-10 sm:mb-12 reveal">How Aventum Works</h2>
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { num: "1", emoji: "👥", title: "Join a Group", desc: "Create or join a Chama group with 5 trusted members." },
@@ -225,10 +225,10 @@ export default function Landing() {
       </section>
 
       {/* ── Why Choose ──────────────────────────────────────── */}
-      <section id="why" className="bg-white py-16">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-12 reveal">Why Choose Aventum Capital</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <section id="why" className="bg-white py-12 sm:py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-center text-gray-900 mb-10 sm:mb-12 reveal">Why Choose Aventum Capital</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             {[
               {
                 icon: <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>,
@@ -239,7 +239,7 @@ export default function Landing() {
               { icon: <Zap className="w-7 h-7" />, title: "Automated Payments", desc: "Never miss a contribution" },
               { icon: <Settings className="w-7 h-7" />, title: "Group Management", desc: "Efficient group coordination" },
             ].map((item, i) => (
-              <div key={item.title} className={`text-center p-6 rounded-xl border border-gray-100 hover:border-[#3A5A40]/30 hover:shadow-sm transition-all reveal reveal-d${i + 1}`}>
+              <div key={item.title} className={`text-center p-5 sm:p-6 rounded-xl border border-gray-100 hover:border-[#3A5A40]/30 hover:shadow-sm transition-all reveal reveal-d${i + 1}`}>
                 <div className="text-[#3A5A40] flex justify-center mb-3">{item.icon}</div>
                 <h3 className="font-semibold text-gray-900 text-sm mb-1">{item.title}</h3>
                 <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
@@ -251,10 +251,10 @@ export default function Landing() {
 
       {/* ── What We Do Best ─────────────────────────────────── */}
       <section
-        className="relative py-20"
+        className="relative py-12 sm:py-20"
         style={{ background: "linear-gradient(135deg, #344E41 0%, #3A5A40 60%, #3A5A40 100%)" }}
       >
-        <div className="max-w-6xl mx-auto px-6 flex flex-col lg:flex-row items-center gap-12 reveal">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col lg:flex-row items-center gap-8 sm:gap-12 reveal">
           <div className="w-full lg:w-1/2 aspect-video rounded-2xl overflow-hidden relative shadow-2xl">
             <img
               src="/community.jpg"

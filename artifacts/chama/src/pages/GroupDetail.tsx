@@ -429,18 +429,18 @@ export default function GroupDetail() {
       <div className="space-y-6">
         <BackButton to="/groups" label="All Groups" />
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-bold">{g.name}</h1>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold break-words">{g.name}</h1>
             <p className="text-muted-foreground text-sm mt-1 capitalize">{g.schedule} contributions • Cycle {g.currentCycle}</p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
             <StatusBadge status={g.status} />
             {/* Invite button — group admin only */}
             {isAdmin && (
               <Button
                 size="sm"
-                className="gap-2"
+                className="gap-2 flex-1 sm:flex-none"
                 onClick={() => { setInviteResult(null); setInviteEmail(""); setShowInviteDialog(true); }}
               >
                 <UserPlus className="w-3.5 h-3.5" />
@@ -452,7 +452,7 @@ export default function GroupDetail() {
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-2 border-destructive text-destructive hover:bg-destructive/5"
+                className="gap-2 border-destructive text-destructive hover:bg-destructive/5 flex-1 sm:flex-none"
                 onClick={() => setShowExitModal(true)}
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -506,23 +506,23 @@ export default function GroupDetail() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           {[
             { label: "Contribution", value: formatGroupAmount(g.contributionAmount, g.currency ?? "USD") },
             { label: "Pool size", value: formatGroupAmount(totalPayout, g.currency ?? "USD") },
             { label: "Members", value: `${g.totalMembers}/${g.maxMembers}` },
             { label: "Paid this cycle", value: `${g.paidCount}/${g.totalMembers}` },
           ].map(stat => (
-            <div key={stat.label} className="bg-card border border-border rounded-xl p-4 text-center">
-              <div className="text-xl font-bold">{stat.value}</div>
+            <div key={stat.label} className="bg-card border border-border rounded-xl p-3 sm:p-4 text-center min-w-0">
+              <div className="text-base sm:text-xl font-bold break-words">{stat.value}</div>
               <div className="text-xs text-muted-foreground mt-0.5">{stat.label}</div>
             </div>
           ))}
         </div>
 
         {/* Progress bar */}
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex justify-between text-sm mb-2">
+        <div className="bg-card border border-border rounded-xl p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row sm:justify-between gap-1 text-sm mb-2">
             <span className="font-medium">Cycle progress</span>
             <span className="text-muted-foreground">{g.paidCount} of {g.totalMembers} members paid</span>
           </div>
@@ -539,7 +539,7 @@ export default function GroupDetail() {
 
         {/* Two column: pay + recipient */}
         <div className="grid lg:grid-cols-2 gap-4">
-          <div className="bg-card border border-border rounded-xl p-5">
+          <div className="bg-card border border-border rounded-xl p-4 sm:p-5">
             <h3 className="font-semibold mb-1">Your Contribution</h3>
             <p className="text-sm text-muted-foreground mb-3">Pay for the current cycle to keep the rotation going</p>
             <div className="flex items-center gap-3 mb-4">
@@ -556,17 +556,17 @@ export default function GroupDetail() {
             )}
           </div>
 
-          <div className="bg-card border border-border rounded-xl p-5">
+          <div className="bg-card border border-border rounded-xl p-4 sm:p-5">
             <h3 className="font-semibold mb-1">Current Recipient</h3>
             <p className="text-sm text-muted-foreground mb-3">Who receives the payout when all members pay</p>
             {g.currentRecipient ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
                   {g.currentRecipient.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
                 </div>
-                <div>
-                  <div className="font-medium">{g.currentRecipient.name}</div>
-                  <div className="text-sm text-muted-foreground">Will receive {formatGroupAmount(totalPayout, g.currency ?? "USD")}</div>
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{g.currentRecipient.name}</div>
+                  <div className="text-sm text-muted-foreground break-words">Will receive {formatGroupAmount(totalPayout, g.currency ?? "USD")}</div>
                 </div>
               </div>
             ) : (
@@ -577,7 +577,7 @@ export default function GroupDetail() {
 
         {/* Members & Rotation */}
         <div className="bg-card border border-border rounded-xl">
-          <div className="p-5 border-b border-border flex items-center justify-between">
+          <div className="p-4 sm:p-5 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-muted-foreground" />
               <h3 className="font-semibold">Members & Rotation Order</h3>
@@ -586,7 +586,7 @@ export default function GroupDetail() {
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-2 text-xs"
+                className="gap-2 text-xs w-full sm:w-auto"
                 onClick={() => setShowSwapModal(true)}
               >
                 <ArrowLeftRight className="w-3.5 h-3.5" />
@@ -597,26 +597,26 @@ export default function GroupDetail() {
           <div className="divide-y divide-border">
             {g.members?.length > 0 ? (
               g.members.map((member: any, idx: number) => (
-                <div key={member.id} className="flex items-center justify-between px-5 py-4">
-                  <div className="flex items-center gap-3">
+                <div key={member.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-5 py-4">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
                       {idx + 1}
                     </div>
                     <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-semibold">
                       {member.user?.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) ?? "?"}
                     </div>
-                    <div>
-                      <div className="text-sm font-medium flex items-center gap-2">
-                        {member.user?.name ?? "Unknown"}
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium flex items-center gap-2 flex-wrap">
+                        <span className="truncate">{member.user?.name ?? "Unknown"}</span>
                         {member.userId === user?.id && <span className="text-xs text-muted-foreground">(you)</span>}
                       </div>
-                      <div className="text-xs text-muted-foreground">{member.user?.email}</div>
+                      <div className="text-xs text-muted-foreground break-all">{member.user?.email}</div>
                     </div>
                     {member.rotationOrder === g.currentRotationIndex && (
                       <span className="text-xs bg-accent/20 text-accent-foreground px-2 py-0.5 rounded-full">Next</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 sm:justify-end">
                     {member.hasReceivedPayout && (
                       <span className="text-xs text-muted-foreground">Received payout</span>
                     )}
@@ -632,14 +632,14 @@ export default function GroupDetail() {
 
         {/* Group Chat */}
         <div className="bg-card border border-border rounded-xl flex flex-col">
-          <div className="p-5 border-b border-border flex items-center gap-2">
+          <div className="p-4 sm:p-5 border-b border-border flex items-center gap-2">
             <MessageCircle className="w-4 h-4 text-muted-foreground" />
             <h3 className="font-semibold">Group Chat</h3>
             <span className="ml-auto text-xs text-muted-foreground">{messages.length} message{messages.length !== 1 ? "s" : ""}</span>
           </div>
 
           {/* Message list */}
-          <div className="flex flex-col gap-0 px-5 py-4 min-h-[280px] max-h-[420px] overflow-y-auto">
+          <div className="flex flex-col gap-0 px-4 sm:px-5 py-4 min-h-[240px] sm:min-h-[280px] max-h-[420px] overflow-y-auto">
             {chatLoading ? (
               <div className="flex-1 flex items-center justify-center">
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
@@ -669,7 +669,7 @@ export default function GroupDetail() {
                           </div>
                         )}
                         {!isMe && isSameSender && <div className="w-7 shrink-0" />}
-                        <div className={cn("max-w-[70%]", isMe ? "items-end" : "items-start", "flex flex-col")}>
+                        <div className={cn("max-w-[82%] sm:max-w-[70%]", isMe ? "items-end" : "items-start", "flex flex-col")}>
                           {!isSameSender && !isMe && (
                             <span className="text-xs text-muted-foreground mb-1 ml-1">{msg.userName}</span>
                           )}
@@ -693,7 +693,7 @@ export default function GroupDetail() {
           </div>
 
           {/* Message input */}
-          <div className="p-4 border-t border-border">
+          <div className="p-3 sm:p-4 border-t border-border">
             <form onSubmit={handleSendMessage} className="flex gap-2">
               <Input
                 value={newMessage}
@@ -717,8 +717,8 @@ export default function GroupDetail() {
 
         {/* Leave group */}
         {!isAdmin && myMembership && exitRequestLoaded && (!myExitRequest || myExitRequest.status === "cancelled" || myExitRequest.status === "denied") && (
-          <div className="bg-card border border-border rounded-xl p-5">
-            <div className="flex items-start justify-between">
+          <div className="bg-card border border-border rounded-xl p-4 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div>
                 <h3 className="font-semibold text-destructive">Leave this group</h3>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -728,7 +728,7 @@ export default function GroupDetail() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-destructive text-destructive hover:bg-destructive/5 gap-2 shrink-0"
+                className="border-destructive text-destructive hover:bg-destructive/5 gap-2 shrink-0 w-full sm:w-auto"
                 onClick={() => setShowExitModal(true)}
               >
                 <LogOut className="w-4 h-4" />
@@ -810,7 +810,7 @@ export default function GroupDetail() {
             contentClassName="max-h-[82vh] overflow-y-auto"
           >
           <div className="space-y-5 py-2">
-            <div className="bg-muted/40 rounded-xl p-4 border border-border">
+            <div className="bg-muted/40 rounded-xl p-3 sm:p-4 border border-border">
               <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-500" />
                 Terms & Conditions for Group Exit
@@ -842,7 +842,7 @@ export default function GroupDetail() {
               </span>
             </label>
 
-            <div className="flex gap-3 pt-1">
+            <div className="flex flex-col sm:flex-row gap-3 pt-1">
               <Button variant="outline" className="flex-1" onClick={() => setShowExitModal(false)} disabled={submittingExit}>Cancel</Button>
               <Button className="flex-1 bg-destructive hover:bg-destructive/90" disabled={!termsChecked || submittingExit} onClick={handleSubmitExit}>
                 {submittingExit && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
