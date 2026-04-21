@@ -41,6 +41,7 @@ function CommunityDialogFrame({
   children,
   contentClassName,
   imagePanelClassName,
+  gridClassName,
 }: {
   eyebrow: string;
   title: ReactNode;
@@ -48,10 +49,11 @@ function CommunityDialogFrame({
   children: ReactNode;
   contentClassName?: string;
   imagePanelClassName?: string;
+  gridClassName?: string;
 }) {
   return (
     <div className="overflow-hidden bg-white text-[#1f2f27]">
-      <div className="grid sm:grid-cols-[260px_1fr]">
+      <div className={cn("grid sm:grid-cols-[260px_minmax(0,1fr)]", gridClassName)}>
         <div className={cn("relative h-44 sm:h-auto min-h-full overflow-hidden bg-[#344E41]", imagePanelClassName)}>
           <img
             src={handsTogetherImage}
@@ -739,13 +741,14 @@ export default function GroupDetail() {
 
       {/* ── Invite Member Dialog ──────────────────────────────────── */}
       <Dialog open={showInviteDialog} onOpenChange={open => { setShowInviteDialog(open); if (!open) { setInviteResult(null); setInviteEmail(""); } }}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-3xl overflow-hidden border-0 bg-white p-0 shadow-2xl sm:rounded-2xl">
+        <DialogContent className="w-[calc(100vw-2rem)] sm:w-[880px] sm:max-w-none overflow-hidden border-0 bg-white p-0 shadow-2xl sm:rounded-2xl">
           {!inviteResult ? (
             <CommunityDialogFrame
               eyebrow="Grow your chama"
               title={<span className="inline-flex items-center gap-2"><UserPlus className="w-5 h-5 text-primary" />Invite a member</span>}
               description="Enter their email. If they already have an account they're added instantly — otherwise you'll get a shareable link."
               imagePanelClassName="sm:min-h-[390px]"
+              gridClassName="sm:grid-cols-[330px_minmax(0,1fr)]"
             >
               <form onSubmit={handleInvite} className="space-y-3">
                 <div className="space-y-1.5">
@@ -770,23 +773,24 @@ export default function GroupDetail() {
               title={<span className="inline-flex items-center gap-2"><Check className="w-5 h-5 text-green-600" />Invite link ready</span>}
               description={<>Share this link with <strong className="text-[#1f2f27]">{inviteResult.email}</strong>. It's valid for 7 days.</>}
               imagePanelClassName="sm:min-h-[390px]"
+              gridClassName="sm:grid-cols-[330px_minmax(0,1fr)]"
             >
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
-                  <span className="text-xs text-muted-foreground truncate flex-1 font-mono select-all">{inviteResult.url}</span>
+              <div className="space-y-4">
+                <div className="rounded-xl border border-border bg-muted/40 p-3">
+                  <span className="block break-all text-xs leading-relaxed text-muted-foreground font-mono select-all">{inviteResult.url}</span>
                   <button
                     onClick={copyInviteLink}
-                    className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap"
+                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap"
                   >
                     {copiedInvite ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                     {copiedInvite ? "Copied!" : "Copy link"}
                   </button>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" onClick={() => { setInviteResult(null); setInviteEmail(""); }}>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Button variant="outline" className="w-full" onClick={() => { setInviteResult(null); setInviteEmail(""); }}>
                     Invite another
                   </Button>
-                  <Button className="flex-1" onClick={() => { setShowInviteDialog(false); setInviteResult(null); setInviteEmail(""); }}>
+                  <Button className="w-full" onClick={() => { setShowInviteDialog(false); setInviteResult(null); setInviteEmail(""); }}>
                     Done
                   </Button>
                 </div>
