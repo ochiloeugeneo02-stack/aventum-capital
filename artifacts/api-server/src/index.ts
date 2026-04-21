@@ -120,10 +120,6 @@ async function ensureAppSchema() {
       [adminHash]
     );
     await client.query(
-      `UPDATE users SET password_hash = $1 WHERE email = 'ochiloeugeneo02@gmail.com'`,
-      [adminHash]
-    );
-    await client.query(
       `UPDATE users SET password_hash = $1 WHERE email = 'grace@aventum.co'`,
       [graceHash]
     );
