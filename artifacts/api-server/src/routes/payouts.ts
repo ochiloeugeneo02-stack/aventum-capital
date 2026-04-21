@@ -6,6 +6,7 @@ import { createAuditLog } from "../lib/auditLog";
 import { formatUser } from "./users";
 
 const router: IRouter = Router();
+const TRANSACTION_FEE_RATE = 0.03;
 
 async function formatPayout(p: typeof payoutsTable.$inferSelect) {
   const [recipient] = await db.select().from(usersTable).where(eq(usersTable.id, p.recipientId)).limit(1);
@@ -136,6 +137,11 @@ router.post("/payouts/:payoutId/complete", requireRole("super_admin", "group_adm
     return;
   }
 
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, payout.groupId)).limit(1);
+  const amount = parseFloat(payout.amount as unknown as string);
+  const transactionFee = Number((amount * TRANSACTION_FEE_RATE).toFixed(2));
+  const netAmount = Number((amount - transactionFee).toFixed(2));
+
   const [updated] = await db.update(payoutsTable)
     .set({ status: "paid", paidAt: new Date() })
     .where(eq(payoutsTable.id, payoutId))
@@ -146,9 +152,15 @@ router.post("/payouts/:payoutId/complete", requireRole("super_admin", "group_adm
     performedBy: sessionUserId,
     targetType: "payout",
     targetId: updated.id,
+    details: `Gross payout: ${group?.currency ?? "USD"} ${amount.toLocaleString()}; transaction fee: ${transactionFee.toLocaleString()} (${Number(TRANSACTION_FEE_RATE * 100).toFixed(0)}%); net payout: ${netAmount.toLocaleString()}`,
   });
 
-  res.json(await formatPayout(updated));
+  res.json({
+    ...(await formatPayout(updated)),
+    transactionFee,
+    netAmount,
+    feeRate: TRANSACTION_FEE_RATE,
+  });
 });
 
 export { formatPayout };

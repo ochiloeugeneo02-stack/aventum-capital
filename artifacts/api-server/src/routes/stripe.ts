@@ -8,12 +8,7 @@ import { formatUser } from "./users";
 
 const router: IRouter = Router();
 
-/**
- * Aventum Capital platform fee: 2% of each contribution.
- * Applied as a Stripe application_fee_amount on every PaymentIntent.
- * In the payment currency's smallest unit: floor(amount * 0.02)
- */
-const PLATFORM_FEE_RATE = 0.02;
+const TRANSACTION_FEE_RATE = 0.03;
 
 /** Ensure a Stripe customer exists for the user, creating one if needed. */
 async function ensureStripeCustomer(userId: number): Promise<string> {
@@ -149,11 +144,12 @@ router.post("/stripe/create-payment-intent", requireAuth, async (req, res): Prom
   // Two-decimal currencies: amount is in cents (e.g., USD → multiply by 100)
   const amountUsd = groupAmount / sourceConfig.unitsPerUsd;
   const convertedAmount = amountUsd * config.unitsPerUsd;
-  const amountInt = config.zeroDecimal
+  const contributionAmountInt = config.zeroDecimal
     ? Math.round(convertedAmount)
     : Math.round(convertedAmount * 100);
 
-  const platformFee = Math.floor(amountInt * PLATFORM_FEE_RATE);
+  const platformFee = Math.floor(contributionAmountInt * TRANSACTION_FEE_RATE);
+  const amountInt = contributionAmountInt + platformFee;
 
   const customerId = await ensureStripeCustomer(userId);
   const stripe = await getUncachableStripeClient();
@@ -169,7 +165,9 @@ router.post("/stripe/create-payment-intent", requireAuth, async (req, res): Prom
         aventum_group_id: String(groupId),
         aventum_cycle_id: String(cycleId),
         aventum_group_name: group.name,
+        contribution_amount: String(contributionAmountInt),
         platform_fee: String(platformFee),
+        transaction_fee_rate: String(TRANSACTION_FEE_RATE),
       },
       description: `Contribution – ${group.name} – Cycle #${cycle.cycleNumber}`,
       automatic_payment_methods: { enabled: true, allow_redirects: "never" },
@@ -267,7 +265,7 @@ router.post("/stripe/confirm-contribution", requireAuth, async (req, res): Promi
     performedBy: userId,
     targetType: "contribution",
     targetId: contribution.id,
-    details: `Stripe PaymentIntent ${paymentIntentId} — Amount: ${group.contributionAmount}`,
+    details: `Stripe PaymentIntent ${paymentIntentId} — Amount: ${group.contributionAmount}; transaction fee: ${intent.metadata.platform_fee ?? "0"} (${Number(TRANSACTION_FEE_RATE * 100).toFixed(0)}%)`,
   });
 
   // Check if the whole cycle is now fully paid — trigger cycle advance
@@ -369,6 +367,8 @@ router.post("/stripe/create-payout-transfer", requireRole("super_admin", "group_
   const amount = parseFloat(payout.amount as unknown as string);
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, payout.groupId)).limit(1);
   const currency = group?.currency ?? "USD";
+  const transactionFee = Number((amount * TRANSACTION_FEE_RATE).toFixed(2));
+  const netAmount = Number((amount - transactionFee).toFixed(2));
 
   // Mark payout as paid in our DB
   const [updated] = await db.update(payoutsTable)
@@ -381,7 +381,7 @@ router.post("/stripe/create-payout-transfer", requireRole("super_admin", "group_
     performedBy: req.session!.userId!,
     targetType: "payout",
     targetId: payoutId,
-    details: `Transfer of ${currency} ${amount.toLocaleString()} to ${recipient.email}`,
+    details: `Transfer of ${currency} ${netAmount.toLocaleString()} to ${recipient.email}; transaction fee ${currency} ${transactionFee.toLocaleString()} (${Number(TRANSACTION_FEE_RATE * 100).toFixed(0)}%)`,
   });
 
   res.json({
@@ -390,6 +390,9 @@ router.post("/stripe/create-payout-transfer", requireRole("super_admin", "group_
     recipientName: recipient.name,
     recipientEmail: recipient.email,
     amount,
+    transactionFee,
+    netAmount,
+    feeRate: TRANSACTION_FEE_RATE,
     status: updated.status,
     paidAt: updated.paidAt?.toISOString(),
   });
