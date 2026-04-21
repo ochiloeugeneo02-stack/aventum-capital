@@ -697,7 +697,7 @@ export default function GroupDetail() {
       <Dialog open={showInviteDialog} onOpenChange={open => { setShowInviteDialog(open); if (!open) { setInviteResult(null); setInviteEmail(""); } }}>
         <DialogContent className="sm:max-w-md">
           {!inviteResult ? (
-            <>
+            <div className="flex flex-col gap-4">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <UserPlus className="w-5 h-5 text-primary" />
@@ -707,7 +707,7 @@ export default function GroupDetail() {
                   Enter their email. If they already have an account they're added instantly — otherwise you'll get a shareable link.
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleInvite} className="space-y-3 mt-2">
+              <form onSubmit={handleInvite} className="space-y-3">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">Email address</label>
                   <Input
@@ -723,9 +723,9 @@ export default function GroupDetail() {
                   {invitingMember ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Sending…</> : <><Mail className="w-4 h-4 mr-2" />Send invite</>}
                 </Button>
               </form>
-            </>
+            </div>
           ) : (
-            <>
+            <div className="flex flex-col gap-4">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Check className="w-5 h-5 text-green-600" />
@@ -735,7 +735,7 @@ export default function GroupDetail() {
                   Share this link with <strong className="text-foreground">{inviteResult.email}</strong>. It's valid for 7 days.
                 </DialogDescription>
               </DialogHeader>
-              <div className="mt-2 space-y-4">
+              <div className="space-y-3">
                 <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
                   <span className="text-xs text-muted-foreground truncate flex-1 font-mono select-all">{inviteResult.url}</span>
                   <button
@@ -755,7 +755,7 @@ export default function GroupDetail() {
                   </Button>
                 </div>
               </div>
-            </>
+            </div>
           )}
         </DialogContent>
       </Dialog>
