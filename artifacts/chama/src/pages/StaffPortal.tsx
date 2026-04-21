@@ -279,9 +279,7 @@ export default function StaffPortal() {
                 <p className="text-[10px] text-white/20 uppercase tracking-wider mb-2.5">Quick sign in</p>
                 <div className="flex flex-col gap-1.5">
                   {[
-                    { name: "James Odhiambo", title: "Operations Lead", initials: "JO", email: "admin@aventum.co", password: "admin123" },
-                    { name: "Amara Nkosi", title: "Compliance Officer", initials: "AN", email: "admin@aventum.co", password: "admin123" },
-                    { name: "Priya Sharma", title: "Finance Manager", initials: "PS", email: "admin@aventum.co", password: "admin123" },
+                    { name: "Super Admin", title: "admin@aventum.co", initials: "SA", email: "admin@aventum.co", password: "Aventum2024!" },
                   ].map(emp => (
                     <button
                       key={emp.name}
