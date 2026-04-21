@@ -12,13 +12,16 @@ import { BackButton } from "@/components/BackButton";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 import { useRegion } from "@/contexts/RegionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
 import {
   Loader2, Users, LogOut, AlertTriangle, CheckCircle2, Clock,
-  MessageCircle, Send, ArrowLeftRight, X, ChevronDown,
+  MessageCircle, Send, ArrowLeftRight, X, ChevronDown, UserPlus, Copy, Check, Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -88,6 +91,13 @@ export default function GroupDetail() {
   const [submittingSwap, setSubmittingSwap] = useState(false);
   const [mySwapRequest, setMySwapRequest] = useState<SwapRequest | null>(null);
   const [cancellingSwap, setCancellingSwap] = useState(false);
+
+  // Invite state
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [invitingMember, setInvitingMember] = useState(false);
+  const [inviteResult, setInviteResult] = useState<{ url: string; email: string } | null>(null);
+  const [copiedInvite, setCopiedInvite] = useState(false);
 
   const { data: group, isLoading } = useGetGroup(groupId, {
     query: { queryKey: getGetGroupQueryKey(groupId), enabled: !!groupId },
@@ -264,6 +274,39 @@ export default function GroupDetail() {
     }
   };
 
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail.trim()) return;
+    setInvitingMember(true);
+    try {
+      const result = await apiRequest<any>(`/api/groups/${groupId}/invite`, {
+        method: "POST",
+        body: JSON.stringify({ email: inviteEmail.trim() }),
+        headers: { "Content-Type": "application/json" },
+      });
+      if (result.inviteUrl) {
+        setInviteResult({ url: result.inviteUrl, email: inviteEmail.trim() });
+        toast({ title: "Invite link generated", description: result.emailSent ? `Invite email sent to ${inviteEmail}` : "Share the link below with your contact." });
+      } else {
+        toast({ title: "Member added!", description: result.message ?? `${inviteEmail} joined the group.` });
+        setShowInviteDialog(false);
+        setInviteEmail("");
+        queryClient.invalidateQueries({ queryKey: getGetGroupQueryKey(groupId) });
+      }
+    } catch (err: any) {
+      toast({ title: "Invite failed", description: err?.data?.error ?? "Could not send invite.", variant: "destructive" });
+    } finally {
+      setInvitingMember(false);
+    }
+  };
+
+  const copyInviteLink = async () => {
+    if (!inviteResult?.url) return;
+    await navigator.clipboard.writeText(inviteResult.url);
+    setCopiedInvite(true);
+    setTimeout(() => setCopiedInvite(false), 2000);
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -340,12 +383,37 @@ export default function GroupDetail() {
       <div className="space-y-6">
         <BackButton to="/groups" label="All Groups" />
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold">{g.name}</h1>
             <p className="text-muted-foreground text-sm mt-1 capitalize">{g.schedule} contributions • Cycle {g.currentCycle}</p>
           </div>
-          <StatusBadge status={g.status} />
+          <div className="flex items-center gap-2 flex-wrap">
+            <StatusBadge status={g.status} />
+            {/* Invite button — group admin only */}
+            {isAdmin && (
+              <Button
+                size="sm"
+                className="gap-2"
+                onClick={() => { setInviteResult(null); setInviteEmail(""); setShowInviteDialog(true); }}
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                Invite Member
+              </Button>
+            )}
+            {/* Exit request button — non-admin members only */}
+            {!isAdmin && myMembership && exitRequestLoaded && (!myExitRequest || myExitRequest.status === "cancelled" || myExitRequest.status === "denied") && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2 border-destructive text-destructive hover:bg-destructive/5"
+                onClick={() => setShowExitModal(true)}
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Request to leave
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Exit request status banner */}
@@ -625,115 +693,173 @@ export default function GroupDetail() {
         )}
       </div>
 
-      {/* Exit request modal */}
-      {showExitModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
-          <div className="bg-background rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-border">
-              <div className="flex items-center gap-3 mb-1">
-                <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
-                  <LogOut className="w-5 h-5 text-destructive" />
-                </div>
-                <h2 className="text-lg font-bold">Request to leave group</h2>
-              </div>
-              <p className="text-sm text-muted-foreground ml-13">
-                Your request will be reviewed by Aventum Capital. Please read and agree to the terms below.
-              </p>
-            </div>
-            <div className="p-6 space-y-5">
-              <div className="bg-muted/40 rounded-xl p-4 border border-border">
-                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-500" />
-                  Terms & Conditions for Group Exit
-                </h3>
-                <ul className="space-y-2.5">
-                  {EXIT_TERMS.map((term, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-xs text-muted-foreground leading-relaxed">
-                      <span className="w-4 h-4 rounded-full bg-border flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">{i + 1}</span>
-                      {term}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+      {/* ── Invite Member Dialog ──────────────────────────────────── */}
+      <Dialog open={showInviteDialog} onOpenChange={open => { setShowInviteDialog(open); if (!open) { setInviteResult(null); setInviteEmail(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-primary" />
+              Invite a member
+            </DialogTitle>
+            <DialogDescription>
+              Enter their email address. If they have an account they'll be added instantly; otherwise we'll generate a shareable link.
+            </DialogDescription>
+          </DialogHeader>
+
+          {!inviteResult ? (
+            <form onSubmit={handleInvite} className="space-y-4 pt-1">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Reason for leaving (optional)</label>
-                <textarea
-                  className="w-full h-20 px-3 py-2 rounded-lg border border-input bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  placeholder="Tell us why you want to leave..."
-                  value={exitReason}
-                  onChange={e => setExitReason(e.target.value)}
-                />
-              </div>
-              <label className="flex items-start gap-3 cursor-pointer select-none">
-                <div className="mt-0.5">
-                  <input type="checkbox" checked={termsChecked} onChange={e => setTermsChecked(e.target.checked)} className="w-4 h-4 accent-[#3A5A40]" />
+                <label className="text-sm font-medium">Email address</label>
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    required
+                    placeholder="friend@example.com"
+                    value={inviteEmail}
+                    onChange={e => setInviteEmail(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button type="submit" disabled={invitingMember || !inviteEmail.trim()}>
+                    {invitingMember ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                  </Button>
                 </div>
-                <span className="text-sm text-muted-foreground leading-relaxed">
-                  I have read and agree to the terms above.
-                </span>
-              </label>
+              </div>
+            </form>
+          ) : (
+            <div className="space-y-4 pt-1">
+              <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-3">
+                <p className="text-sm font-medium text-foreground">Share this link with <span className="text-primary">{inviteResult.email}</span></p>
+                <div className="flex items-center gap-2 bg-background rounded-lg border border-border px-3 py-2">
+                  <span className="text-xs text-muted-foreground truncate flex-1 font-mono">{inviteResult.url}</span>
+                  <button
+                    onClick={copyInviteLink}
+                    className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                  >
+                    {copiedInvite ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedInvite ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => { setInviteResult(null); setInviteEmail(""); }}>
+                  Invite another
+                </Button>
+                <Button className="flex-1" onClick={() => { setShowInviteDialog(false); setInviteResult(null); setInviteEmail(""); }}>
+                  Done
+                </Button>
+              </div>
             </div>
-            <div className="p-6 border-t border-border flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => { setShowExitModal(false); setExitReason(""); setTermsChecked(false); }} disabled={submittingExit}>Cancel</Button>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Exit Request Dialog ───────────────────────────────────── */}
+      <Dialog open={showExitModal} onOpenChange={open => { setShowExitModal(open); if (!open) { setExitReason(""); setTermsChecked(false); } }}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                <LogOut className="w-4 h-4 text-destructive" />
+              </div>
+              Request to leave group
+            </DialogTitle>
+            <DialogDescription>
+              Your request will be reviewed by Aventum Capital. Please read and agree to the terms below.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            <div className="bg-muted/40 rounded-xl p-4 border border-border">
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                Terms & Conditions for Group Exit
+              </h3>
+              <ul className="space-y-2.5">
+                {EXIT_TERMS.map((term, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-xs text-muted-foreground leading-relaxed">
+                    <span className="w-4 h-4 rounded-full bg-border flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">{i + 1}</span>
+                    {term}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Reason for leaving <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <textarea
+                className="w-full h-20 px-3 py-2 rounded-lg border border-input bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                placeholder="Tell us why you want to leave..."
+                value={exitReason}
+                onChange={e => setExitReason(e.target.value)}
+              />
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer select-none">
+              <input type="checkbox" checked={termsChecked} onChange={e => setTermsChecked(e.target.checked)} className="w-4 h-4 mt-0.5 accent-[#3A5A40]" />
+              <span className="text-sm text-muted-foreground leading-relaxed">
+                I have read and agree to the terms above.
+              </span>
+            </label>
+
+            <div className="flex gap-3 pt-1">
+              <Button variant="outline" className="flex-1" onClick={() => setShowExitModal(false)} disabled={submittingExit}>Cancel</Button>
               <Button className="flex-1 bg-destructive hover:bg-destructive/90" disabled={!termsChecked || submittingExit} onClick={handleSubmitExit}>
                 {submittingExit && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Submit exit request
               </Button>
             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
-      {/* Turn Swap Request modal */}
-      {showSwapModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
-          <div className="bg-background rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="p-6 border-b border-border flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#3A5A40]/10 flex items-center justify-center">
-                  <ArrowLeftRight className="w-5 h-5 text-[#3A5A40]" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold">Request turn swap</h2>
-                  <p className="text-xs text-muted-foreground">Ask to swap your payout position with another member</p>
-                </div>
+      {/* ── Turn Swap Dialog ──────────────────────────────────────── */}
+      <Dialog open={showSwapModal} onOpenChange={setShowSwapModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <ArrowLeftRight className="w-4 h-4 text-primary" />
               </div>
-              <button onClick={() => setShowSwapModal(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="w-5 h-5" />
-              </button>
+              Request turn swap
+            </DialogTitle>
+            <DialogDescription>
+              Ask to swap your payout position with another member. The group admin will review your request.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Swap with</label>
+              <div className="relative">
+                <select
+                  className="w-full appearance-none rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 pr-8"
+                  value={swapTargetId ?? ""}
+                  onChange={e => setSwapTargetId(e.target.value ? parseInt(e.target.value) : null)}
+                >
+                  <option value="">Select a member…</option>
+                  {otherMembers.map((m: any) => (
+                    <option key={m.userId} value={m.userId}>{m.user?.name ?? "Unknown"}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              </div>
+              <p className="text-xs text-muted-foreground">Your rotation positions will be swapped if approved</p>
             </div>
-            <div className="p-6 space-y-5">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Swap with</label>
-                <div className="relative">
-                  <select
-                    className="w-full appearance-none rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3A5A40]/30 pr-8"
-                    value={swapTargetId ?? ""}
-                    onChange={e => setSwapTargetId(e.target.value ? parseInt(e.target.value) : null)}
-                  >
-                    <option value="">Select a member…</option>
-                    {otherMembers.map((m: any) => (
-                      <option key={m.userId} value={m.userId}>{m.user?.name ?? "Unknown"}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                </div>
-                <p className="text-xs text-muted-foreground">Your rotation positions will be swapped if approved</p>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Reason <span className="text-muted-foreground font-normal">(optional)</span></label>
-                <textarea
-                  className="w-full h-20 px-3 py-2 rounded-lg border border-input bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#3A5A40]/30"
-                  placeholder="Why do you need to change your turn?"
-                  value={swapReason}
-                  onChange={e => setSwapReason(e.target.value)}
-                />
-              </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Reason <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <textarea
+                className="w-full h-20 px-3 py-2 rounded-lg border border-input bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                placeholder="Why do you need to change your turn?"
+                value={swapReason}
+                onChange={e => setSwapReason(e.target.value)}
+              />
             </div>
-            <div className="p-6 border-t border-border flex gap-3">
+
+            <div className="flex gap-3 pt-1">
               <Button variant="outline" className="flex-1" onClick={() => setShowSwapModal(false)}>Cancel</Button>
               <Button
-                className="flex-1 bg-[#3A5A40] hover:bg-[#344E41]"
+                className="flex-1"
                 disabled={!swapTargetId || submittingSwap}
                 onClick={handleSubmitSwap}
               >
@@ -742,8 +868,8 @@ export default function GroupDetail() {
               </Button>
             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
