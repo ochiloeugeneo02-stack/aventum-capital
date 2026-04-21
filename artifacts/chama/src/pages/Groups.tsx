@@ -6,8 +6,17 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useRegion, REGIONS } from "@/contexts/RegionContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Users, ArrowRight, Plus, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Loader2, Users, ArrowRight, Plus } from "lucide-react";
 
 const SCHEDULES = [
   { value: "weekly", label: "Weekly" },
@@ -22,7 +31,7 @@ export default function Groups() {
   const [, navigate] = useLocation();
   const { data, isLoading } = useListGroups({ query: { queryKey: getListGroupsQueryKey() } });
 
-  const [showCreate, setShowCreate] = useState(false);
+  const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
     contributionAmount: "",
@@ -36,12 +45,12 @@ export default function Groups() {
       onSuccess: (group: any) => {
         toast({ title: "Group created!", description: `${group.name} is ready. Invite members to get started.` });
         queryClient.invalidateQueries({ queryKey: getListGroupsQueryKey() });
-        setShowCreate(false);
+        setOpen(false);
         setForm({ name: "", contributionAmount: "", schedule: "bi-weekly", maxMembers: "5", currency: "KES" });
         navigate(`/groups/${group.id}`);
       },
       onError: (err: any) => {
-        toast({ title: "Failed to create group", description: err?.data?.error ?? "Please check your details", variant: "destructive" });
+        toast({ title: "Failed to create group", description: err?.data?.error ?? "Please check your details and try again.", variant: "destructive" });
       },
     },
   });
@@ -62,20 +71,19 @@ export default function Groups() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">My Groups</h1>
             <p className="text-muted-foreground text-sm mt-1">All savings groups you belong to</p>
           </div>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
-          >
+          <Button onClick={() => setOpen(true)} className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
             Create Group
-          </button>
+          </Button>
         </div>
 
+        {/* Group list */}
         {isLoading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -85,13 +93,10 @@ export default function Groups() {
             <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
             <h3 className="font-semibold mb-1">No groups yet</h3>
             <p className="text-muted-foreground text-sm mb-4">Create your own group or ask a group admin to invite you.</p>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
-            >
+            <Button onClick={() => setOpen(true)} className="flex items-center gap-2 mx-auto">
               <Plus className="w-4 h-4" />
               Create your first group
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -145,102 +150,97 @@ export default function Groups() {
         )}
       </div>
 
-      {/* Create Group Modal */}
-      {showCreate && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setShowCreate(false)} />
-          <div className="relative bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between p-6 border-b border-border">
-              <div>
-                <h2 className="text-lg font-bold">Create a savings group</h2>
-                <p className="text-sm text-muted-foreground mt-0.5">You'll be the group admin</p>
-              </div>
-              <button onClick={() => setShowCreate(false)} className="p-2 hover:bg-muted rounded-lg transition-colors">
-                <X className="w-4 h-4" />
-              </button>
+      {/* Create Group Dialog — rendered via Portal, always above everything */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create a savings group</DialogTitle>
+            <DialogDescription>
+              You'll be set as the group admin. Invite members after creation.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+            {/* Group name */}
+            <div className="space-y-1.5">
+              <Label htmlFor="group-name">Group name</Label>
+              <Input
+                id="group-name"
+                required
+                placeholder="e.g. Nairobi Women's Circle"
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              />
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1.5">Group name</label>
-                <input
-                  type="text"
+            {/* Currency + Amount */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="currency">Currency</Label>
+                <select
+                  id="currency"
+                  value={form.currency}
+                  onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  {Object.values(REGIONS).map(r => (
+                    <option key={r.currency} value={r.currency}>{r.currency} — {r.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="amount">Contribution amount</Label>
+                <Input
+                  id="amount"
+                  type="number"
                   required
-                  placeholder="e.g. Nairobi Women's Circle"
-                  value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  min="1"
+                  placeholder="5000"
+                  value={form.contributionAmount}
+                  onChange={e => setForm(f => ({ ...f, contributionAmount: e.target.value }))}
                 />
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">Currency</label>
-                  <select
-                    value={form.currency}
-                    onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                  >
-                    {Object.values(REGIONS).map(r => (
-                      <option key={r.currency} value={r.currency}>{r.currency} — {r.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">Contribution amount</label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    placeholder="5000"
-                    value={form.contributionAmount}
-                    onChange={e => setForm(f => ({ ...f, contributionAmount: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">Schedule</label>
-                  <select
-                    value={form.schedule}
-                    onChange={e => setForm(f => ({ ...f, schedule: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                  >
-                    {SCHEDULES.map(s => (
-                      <option key={s.value} value={s.value}>{s.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">Max members</label>
-                  <input
-                    type="number"
-                    required
-                    min="2"
-                    max="50"
-                    value={form.maxMembers}
-                    onChange={e => setForm(f => ({ ...f, maxMembers: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={createGroup.isPending}
-                  className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2"
+            {/* Schedule + Max members */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="schedule">Schedule</Label>
+                <select
+                  id="schedule"
+                  value={form.schedule}
+                  onChange={e => setForm(f => ({ ...f, schedule: e.target.value }))}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
-                  {createGroup.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                  {createGroup.isPending ? "Creating…" : "Create group"}
-                </button>
+                  {SCHEDULES.map(s => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
+                  ))}
+                </select>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+              <div className="space-y-1.5">
+                <Label htmlFor="max-members">Max members</Label>
+                <Input
+                  id="max-members"
+                  type="number"
+                  required
+                  min="2"
+                  max="50"
+                  value={form.maxMembers}
+                  onChange={e => setForm(f => ({ ...f, maxMembers: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <Button type="submit" disabled={createGroup.isPending} className="w-full mt-2">
+              {createGroup.isPending ? (
+                <><Loader2 className="w-4 h-4 animate-spin mr-2" />Creating…</>
+              ) : (
+                <><Plus className="w-4 h-4 mr-2" />Create group</>
+              )}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
