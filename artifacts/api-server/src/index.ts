@@ -106,6 +106,11 @@ async function ensureAppSchema() {
         requested_at timestamp with time zone NOT NULL DEFAULT now(),
         reviewed_at timestamp with time zone
       );
+
+      CREATE TABLE IF NOT EXISTS app_maintenance_events (
+        key text PRIMARY KEY,
+        applied_at timestamp with time zone NOT NULL DEFAULT now()
+      );
     `);
     // Ensure demo credentials are always usable — safe to run on every start.
     // admin@aventum.co        → Aventum2024!
@@ -134,6 +139,23 @@ async function ensureAppSchema() {
        ON CONFLICT (email) DO NOTHING`,
       [theWaveHash]
     );
+    const theWaveRemoval = await client.query(
+      `WITH marker AS (
+         INSERT INTO app_maintenance_events (key)
+         VALUES ('remove-thewave-from-groups-2026-04-21')
+         ON CONFLICT (key) DO NOTHING
+         RETURNING key
+       )
+       DELETE FROM group_members gm
+       USING users u
+       WHERE EXISTS (SELECT 1 FROM marker)
+         AND gm.user_id = u.id
+         AND lower(u.email) = 'thewave.grpevents@gmail.com'
+       RETURNING gm.id, gm.group_id`
+    );
+    if (theWaveRemoval.rowCount > 0) {
+      logger.info({ removedMemberships: theWaveRemoval.rowCount }, "Removed TheWave from groups for invite retest");
+    }
 
     logger.info("Migrations complete");
   } catch (err) {
