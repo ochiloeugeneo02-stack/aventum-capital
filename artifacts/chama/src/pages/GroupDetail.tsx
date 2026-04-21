@@ -40,21 +40,23 @@ function CommunityDialogFrame({
   description,
   children,
   contentClassName,
+  imagePanelClassName,
 }: {
   eyebrow: string;
   title: ReactNode;
   description: ReactNode;
   children: ReactNode;
   contentClassName?: string;
+  imagePanelClassName?: string;
 }) {
   return (
     <div className="overflow-hidden bg-white text-[#1f2f27]">
-      <div className="grid sm:grid-cols-[190px_1fr]">
-        <div className="relative h-36 sm:h-auto min-h-full overflow-hidden bg-[#344E41]">
+      <div className="grid sm:grid-cols-[260px_1fr]">
+        <div className={cn("relative h-44 sm:h-auto min-h-full overflow-hidden bg-[#344E41]", imagePanelClassName)}>
           <img
             src={handsTogetherImage}
             alt="Hands joined together"
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover object-center"
           />
           <div className="absolute inset-0 bg-[#344E41]/25" />
           <div className="absolute bottom-4 left-4 right-4">
@@ -737,12 +739,13 @@ export default function GroupDetail() {
 
       {/* ── Invite Member Dialog ──────────────────────────────────── */}
       <Dialog open={showInviteDialog} onOpenChange={open => { setShowInviteDialog(open); if (!open) { setInviteResult(null); setInviteEmail(""); } }}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl overflow-hidden border-0 bg-white p-0 shadow-2xl sm:rounded-2xl">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-3xl overflow-hidden border-0 bg-white p-0 shadow-2xl sm:rounded-2xl">
           {!inviteResult ? (
             <CommunityDialogFrame
               eyebrow="Grow your chama"
               title={<span className="inline-flex items-center gap-2"><UserPlus className="w-5 h-5 text-primary" />Invite a member</span>}
               description="Enter their email. If they already have an account they're added instantly — otherwise you'll get a shareable link."
+              imagePanelClassName="sm:min-h-[390px]"
             >
               <form onSubmit={handleInvite} className="space-y-3">
                 <div className="space-y-1.5">
@@ -766,6 +769,7 @@ export default function GroupDetail() {
               eyebrow="Invite ready"
               title={<span className="inline-flex items-center gap-2"><Check className="w-5 h-5 text-green-600" />Invite link ready</span>}
               description={<>Share this link with <strong className="text-[#1f2f27]">{inviteResult.email}</strong>. It's valid for 7 days.</>}
+              imagePanelClassName="sm:min-h-[390px]"
             >
               <div className="space-y-3">
                 <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
