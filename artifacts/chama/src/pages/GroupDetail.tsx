@@ -3,13 +3,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 import {
   useGetGroup,
-  usePayContribution,
   getGetGroupQueryKey,
   getGetDashboardSummaryQueryKey,
 } from "@workspace/api-client-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { BackButton } from "@/components/BackButton";
 import { StatusBadge } from "@/components/StatusBadge";
+import { ContributionPaymentDialog } from "@/components/ContributionPaymentDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -106,7 +106,7 @@ interface SwapRequest {
 }
 
 export default function GroupDetail() {
-  const { formatGroupAmount, formatDate } = useRegion();
+  const { region, formatGroupAmount, formatDate } = useRegion();
   const [, params] = useRoute("/groups/:id");
   const groupId = parseInt(params?.id ?? "0", 10);
   const { user } = useAuth();
@@ -144,22 +144,10 @@ export default function GroupDetail() {
   const [invitingMember, setInvitingMember] = useState(false);
   const [inviteResult, setInviteResult] = useState<{ url: string; email: string } | null>(null);
   const [copiedInvite, setCopiedInvite] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
 
   const { data: group, isLoading } = useGetGroup(groupId, {
     query: { queryKey: getGetGroupQueryKey(groupId), enabled: !!groupId },
-  });
-
-  const payMutation = usePayContribution({
-    mutation: {
-      onSuccess: () => {
-        toast({ title: "Contribution paid!", description: "Your payment has been recorded." });
-        queryClient.invalidateQueries({ queryKey: getGetGroupQueryKey(groupId) });
-        queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
-      },
-      onError: (e: any) => {
-        toast({ title: "Payment failed", description: e?.response?.data?.error ?? "Could not process payment", variant: "destructive" });
-      },
-    },
   });
 
   // Load exit request
@@ -379,8 +367,8 @@ export default function GroupDetail() {
   const otherMembers = (g.members ?? []).filter((m: any) => m.userId !== user?.id);
 
   const handlePay = () => {
-    if (!g.id) return;
-    payMutation.mutate({ data: { groupId: g.id, cycleId: g.currentCycle } });
+    if (!g.id || !g.currentCycleId) return;
+    setPaymentOpen(true);
   };
 
   const exitStatusConfig: Record<string, { label: string; color: string; icon: any }> = {
@@ -547,8 +535,7 @@ export default function GroupDetail() {
               <StatusBadge status={myStatus} />
             </div>
             {myStatus !== "paid" ? (
-              <Button className="w-full" onClick={handlePay} disabled={payMutation.isPending || g.status !== "active"}>
-                {payMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              <Button className="w-full" onClick={handlePay} disabled={g.status !== "active" || !g.currentCycleId}>
                 Pay {formatGroupAmount(g.contributionAmount, g.currency ?? "USD")}
               </Button>
             ) : (
@@ -906,6 +893,19 @@ export default function GroupDetail() {
           </CommunityDialogFrame>
         </DialogContent>
       </Dialog>
+      <ContributionPaymentDialog
+        open={paymentOpen}
+        onOpenChange={setPaymentOpen}
+        groupId={g.id}
+        cycleId={g.currentCycleId}
+        amountLabel={formatGroupAmount(g.contributionAmount, g.currency ?? "USD")}
+        groupName={g.name}
+        currency={region.currency}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: getGetGroupQueryKey(groupId) });
+          queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+        }}
+      />
     </DashboardLayout>
   );
 }

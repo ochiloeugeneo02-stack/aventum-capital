@@ -172,7 +172,7 @@ router.post("/stripe/create-payment-intent", requireAuth, async (req, res): Prom
         platform_fee: String(platformFee),
       },
       description: `Contribution – ${group.name} – Cycle #${cycle.cycleNumber}`,
-      automatic_payment_methods: { enabled: true },
+      automatic_payment_methods: { enabled: true, allow_redirects: "never" },
     });
   } catch (err: any) {
     res.status(400).json({ error: err.message || "Failed to create payment intent" });

@@ -80,6 +80,11 @@ router.post("/contributions/pay", requireAuth, async (req, res): Promise<void> =
 
   const { groupId, cycleId } = parsed.data;
   const userId = req.session!.userId!;
+  const isProduction = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
+  if (isProduction && req.session!.userRole !== "super_admin") {
+    res.status(403).json({ error: "Use secure card payment to record contributions" });
+    return;
+  }
 
   // Must be a member of the group
   const [membership] = await db.select().from(groupMembersTable)

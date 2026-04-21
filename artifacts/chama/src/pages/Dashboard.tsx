@@ -1,40 +1,28 @@
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetDashboardSummary,
-  usePayContribution,
   getGetDashboardSummaryQueryKey,
 } from "@workspace/api-client-react";
+import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
+import { ContributionPaymentDialog } from "@/components/ContributionPaymentDialog";
 import { useRegion } from "@/contexts/RegionContext";
-import { useToast } from "@/hooks/use-toast";
 import { CreditCard, DollarSign, TrendingUp, Clock, Loader2, Users } from "lucide-react";
 
 export default function Dashboard() {
-  const { formatCurrency, formatGroupAmount, formatDate } = useRegion();
-  const { toast } = useToast();
+  const { region, formatCurrency, formatGroupAmount, formatDate } = useRegion();
   const queryClient = useQueryClient();
+  const [paymentOpen, setPaymentOpen] = useState(false);
 
   const { data, isLoading, error } = useGetDashboardSummary({
     query: { queryKey: getGetDashboardSummaryQueryKey() },
   });
 
-  const payMutation = usePayContribution({
-    mutation: {
-      onSuccess: () => {
-        toast({ title: "Contribution paid!", description: "Your payment has been recorded successfully." });
-        queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
-      },
-      onError: (e: any) => {
-        toast({ title: "Payment failed", description: e?.response?.data?.error ?? "Could not process payment", variant: "destructive" });
-      },
-    },
-  });
-
   const handlePay = () => {
     if (!data?.currentGroup || !data?.cycleId) return;
-    payMutation.mutate({ data: { groupId: data.currentGroup.id, cycleId: data.cycleId } });
+    setPaymentOpen(true);
   };
 
   if (isLoading) {
@@ -144,9 +132,8 @@ export default function Dashboard() {
                 <Button
                   className="w-full"
                   onClick={handlePay}
-                  disabled={payMutation.isPending || !summary.cycleId}
+                  disabled={!summary.cycleId}
                 >
-                  {payMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   Pay {formatGroupAmount(summary.currentGroup.contributionAmount, (summary.currentGroup as any).currency ?? "USD")}
                 </Button>
               ) : (
@@ -225,6 +212,18 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+        {summary?.currentGroup && (
+          <ContributionPaymentDialog
+            open={paymentOpen}
+            onOpenChange={setPaymentOpen}
+            groupId={summary.currentGroup.id}
+            cycleId={summary.cycleId}
+            amountLabel={formatGroupAmount(summary.currentGroup.contributionAmount, (summary.currentGroup as any).currency ?? "USD")}
+            groupName={summary.currentGroup.name}
+            currency={region.currency}
+            onSuccess={() => queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() })}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
