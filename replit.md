@@ -20,9 +20,21 @@ Digital rotational savings (chama) platform. Members contribute on a rotating sc
 - Super admin: `GET /api/admin/delete-requests`, `POST /api/admin/delete-requests/:id/approve`, `POST /api/admin/delete-requests/:id/reject`
 - UI: `GroupDeleteSection` component in `AdminGroup.tsx` (collapsible, shows form/status), Delete Requests section in SuperAdmin control panel
 
+## Group Creation (Member side)
+- Members can create groups from `Groups.tsx` via a "Create Group" button in the header
+- Empty state also shows a CTA button for creating the first group
+- Modal form: group name, currency, contribution amount, schedule, max members
+- Creator automatically becomes group_admin; redirected to new group on success
+
+## Super Admin Group Chat Monitoring
+- Groups section in `/staff` panel has a "Monitor Chat" button per group row
+- Opens a right-side panel showing full group chat history
+- Super admin can read all messages and send messages to the group (visible to members)
+- Backend (`groupChat.ts`) already treated `super_admin` role as a virtual member for this
+
 ## Super Admin Control Panel (`/admin`)
 - Full-page layout with dark forest green sidebar navigation (no `DashboardLayout`)
-- Sections: Overview (KPIs + quick actions), Users, Groups (with status filters), Contributions, Payouts, Delete Requests, Exit Requests, Swap Requests, Audit Log
+- Sections: Overview (KPIs + quick actions), Users, Groups (with status filters + chat monitor), Contributions, Payouts, Delete Requests, Exit Requests, Swap Requests, Audit Log
 - Pending request badges show on sidebar nav items for actionable items
 - All approve/reject actions wired to existing API endpoints
 
