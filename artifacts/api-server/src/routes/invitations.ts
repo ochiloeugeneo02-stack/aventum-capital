@@ -212,19 +212,34 @@ export async function createGroupInvitation(opts: {
   inviterName: string;
   totalMembers: number;
 }): Promise<{ token: string; inviteUrl: string; emailSent: boolean }> {
-  const token = crypto.randomBytes(24).toString("hex");
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-  await db.insert(invitationsTable).values({
-    token,
-    email: opts.email,
-    groupId: opts.groupId,
-    invitedBy: opts.invitedBy,
-    status: "pending",
-    expiresAt,
-  });
-
   const appBaseUrl = getAppBaseUrl(opts.req);
+
+  const [existingPendingInvite] = await db.select().from(invitationsTable)
+    .where(and(
+      eq(invitationsTable.groupId, opts.groupId),
+      eq(invitationsTable.email, opts.email),
+      eq(invitationsTable.status, "pending")
+    ))
+    .limit(1);
+
+  const token = existingPendingInvite?.token ?? crypto.randomBytes(24).toString("hex");
+
+  if (existingPendingInvite) {
+    await db.update(invitationsTable)
+      .set({ invitedBy: opts.invitedBy, expiresAt })
+      .where(eq(invitationsTable.id, existingPendingInvite.id));
+  } else {
+    await db.insert(invitationsTable).values({
+      token,
+      email: opts.email,
+      groupId: opts.groupId,
+      invitedBy: opts.invitedBy,
+      status: "pending",
+      expiresAt,
+    });
+  }
+
   const inviteUrl = `${appBaseUrl}/invite/${token}`;
 
   const emailSent = await sendInviteEmail({
