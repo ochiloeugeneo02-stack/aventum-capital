@@ -181,8 +181,8 @@ export default function Groups() {
                     onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
                     className="w-full px-3 py-2.5 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   >
-                    {REGIONS.map(r => (
-                      <option key={r.currency} value={r.currency}>{r.currency} — {r.country}</option>
+                    {Object.values(REGIONS).map(r => (
+                      <option key={r.currency} value={r.currency}>{r.currency} — {r.name}</option>
                     ))}
                   </select>
                 </div>
