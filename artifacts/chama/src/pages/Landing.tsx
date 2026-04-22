@@ -322,7 +322,7 @@ export default function Landing() {
 
       {/* ── Sticky white navbar ──────────────────────────────── */}
       <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 sm:px-10 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 sm:px-10 h-20 flex items-center justify-between">
           <a href="/" className="select-none">
             <Logo />
           </a>
@@ -351,11 +351,11 @@ export default function Landing() {
         <div className="absolute top-[-120px] right-[-120px] w-[500px] h-[500px] rounded-full opacity-15" style={{ background: "radial-gradient(circle, #A3B18A 0%, transparent 70%)" }} />
         <div className="absolute bottom-[-80px] left-[-80px] w-[400px] h-[400px] rounded-full opacity-10" style={{ background: "radial-gradient(circle, #3A5A40 0%, transparent 70%)" }} />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pb-16 pt-4 w-full">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 w-full">
+          <div className="grid lg:grid-cols-[1fr_1fr_380px] gap-8 items-center">
 
-            {/* Left: copy */}
-            <div className="hero-copy">
+            {/* Col 1: Hero copy */}
+            <div className="hero-copy lg:pr-4">
               <div
                 className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6 text-xs font-semibold"
                 style={{ background: "rgba(163,177,138,0.15)", border: "1px solid rgba(163,177,138,0.3)", color: "#A3B18A" }}
@@ -363,14 +363,14 @@ export default function Landing() {
                 <span className="w-1.5 h-1.5 rounded-full bg-[#A3B18A] animate-pulse" />
                 Trusted by savers worldwide
               </div>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white leading-[1.05] mb-6">
+              <h1 className="text-4xl sm:text-5xl font-black text-white leading-[1.05] mb-6">
                 Save together.<br />
                 <span className="text-white/90">Win together.</span>
               </h1>
-              <p className="text-white/60 text-base sm:text-lg leading-relaxed max-w-md mb-8">
+              <p className="text-white/60 text-base leading-relaxed max-w-sm mb-8">
                 Join trusted rotational savings circles and receive your full group payout — transparently, automatically, and on time.
               </p>
-              <div className="flex flex-wrap gap-3 mb-10">
+              <div className="flex flex-wrap gap-3">
                 <a
                   href="/signup"
                   className="inline-flex items-center gap-2 font-bold px-6 py-3.5 rounded-xl text-sm transition-all hover:opacity-90 hover:scale-105"
@@ -386,40 +386,39 @@ export default function Landing() {
                   See how it works
                 </a>
               </div>
+            </div>
 
-              {/* 3D elements — mobile only */}
-              <div className="relative h-52 sm:h-64 lg:hidden">
-                <div className="absolute left-0 top-4 animate-[float_4s_ease-in-out_infinite]">
-                  <CoinStack3D className="w-28 h-28 drop-shadow-2xl" />
-                </div>
-                <div className="absolute left-32 top-0 animate-[float_5s_ease-in-out_0.8s_infinite]">
-                  <SavingsCard3D className="w-44 drop-shadow-2xl" />
-                </div>
-                <div className="absolute right-0 top-8 animate-[float_3.5s_ease-in-out_1.5s_infinite]">
-                  <Trophy3D className="w-20 h-24 drop-shadow-2xl" />
-                </div>
+            {/* Col 2: 3D floating elements — desktop */}
+            <div className="hidden lg:flex relative h-80 items-center justify-center">
+              <div className="absolute top-4 left-6 animate-[float_4s_ease-in-out_infinite]">
+                <CoinStack3D className="w-28 h-28 drop-shadow-2xl" />
+              </div>
+              <div className="absolute top-0 left-24 animate-[float_5s_ease-in-out_0.8s_infinite]">
+                <SavingsCard3D className="w-52 drop-shadow-2xl" />
+              </div>
+              <div className="absolute bottom-4 right-4 animate-[float_3.5s_ease-in-out_1.2s_infinite]">
+                <Trophy3D className="w-24 h-28 drop-shadow-2xl" />
               </div>
             </div>
 
-            {/* Right: 3D elements + login */}
-            <div className="hero-panel flex flex-col items-center lg:items-end gap-8">
-              <div className="hidden lg:block relative w-full">
-                <div className="absolute top-0 left-4 animate-[float_4s_ease-in-out_infinite]">
-                  <CoinStack3D className="w-32 h-32 drop-shadow-2xl" />
-                </div>
-                <div className="absolute top-6 left-36 animate-[float_5s_ease-in-out_0.8s_infinite]">
-                  <SavingsCard3D className="w-52 drop-shadow-2xl" />
-                </div>
-                <div className="absolute top-2 right-2 animate-[float_3.5s_ease-in-out_1.2s_infinite]">
-                  <Trophy3D className="w-24 h-28 drop-shadow-2xl" />
-                </div>
-                <div className="pt-40" />
+            {/* Mobile: 3D elements before sign-in */}
+            <div className="relative h-48 lg:hidden">
+              <div className="absolute left-0 top-4 animate-[float_4s_ease-in-out_infinite]">
+                <CoinStack3D className="w-24 h-24 drop-shadow-2xl" />
               </div>
-              <div className="w-full max-w-sm hidden lg:block">
-                <GroupCard3D name="Alpha Savers" amount="$1,250 / mo" members={5} gradient="linear-gradient(135deg, #2D5F38 0%, #1a3a22 100%)" />
+              <div className="absolute left-24 top-0 animate-[float_5s_ease-in-out_0.8s_infinite]">
+                <SavingsCard3D className="w-40 drop-shadow-2xl" />
               </div>
+              <div className="absolute right-0 top-8 animate-[float_3.5s_ease-in-out_1.5s_infinite]">
+                <Trophy3D className="w-20 h-24 drop-shadow-2xl" />
+              </div>
+            </div>
+
+            {/* Col 3: Sign-in form */}
+            <div className="w-full">
               <HeroLoginPanel />
             </div>
+
           </div>
         </div>
 
