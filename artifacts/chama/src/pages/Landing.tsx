@@ -320,14 +320,19 @@ export default function Landing() {
   return (
     <div className="min-h-screen font-sans overflow-x-hidden" style={{ background: "#1a3a22" }}>
 
-      {/* ── Navbar — solid dark green, always on brand ──────── */}
-      <nav className="sticky top-0 z-50" style={{ background: "#1a3a22" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      {/* ── Hero — full screen, no separate navbar ──────────── */}
+      <section
+        id="hero-login"
+        className="relative min-h-screen flex items-center overflow-hidden"
+        style={{ background: "linear-gradient(155deg, #1a3a22 0%, #2D5F38 35%, #3A5A40 65%, #1a3a22 100%)" }}
+      >
+        {/* Floating header overlay */}
+        <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 sm:px-10 pt-6">
           <a href="/" className="flex flex-col leading-none select-none">
-            <span className="text-[22px] font-light tracking-wide text-white leading-tight">Aventum</span>
-            <span className="text-[10px] font-light tracking-[0.18em] text-white/55 mt-0.5">capital</span>
+            <span className="text-[26px] font-light tracking-wide text-white leading-tight">Aventum</span>
+            <span className="text-[11px] font-light tracking-[0.22em] text-white/55 mt-0.5">capital</span>
           </a>
-          <div className="flex items-center gap-3">
+          <div>
             {isAuthenticated ? (
               <a href="/dashboard" className="nav-cta-btn">Dashboard</a>
             ) : (
@@ -335,14 +340,6 @@ export default function Landing() {
             )}
           </div>
         </div>
-      </nav>
-
-      {/* ── Hero ────────────────────────────────────────────── */}
-      <section
-        id="hero-login"
-        className="relative min-h-[92vh] flex items-center overflow-hidden"
-        style={{ background: "linear-gradient(155deg, #1a3a22 0%, #2D5F38 35%, #3A5A40 65%, #1a3a22 100%)" }}
-      >
         {/* Dot grid */}
         <div
           className="absolute inset-0 opacity-[0.07]"
@@ -352,7 +349,7 @@ export default function Landing() {
         <div className="absolute top-[-120px] right-[-120px] w-[500px] h-[500px] rounded-full opacity-15" style={{ background: "radial-gradient(circle, #A3B18A 0%, transparent 70%)" }} />
         <div className="absolute bottom-[-80px] left-[-80px] w-[400px] h-[400px] rounded-full opacity-10" style={{ background: "radial-gradient(circle, #3A5A40 0%, transparent 70%)" }} />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-20 w-full">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-20 w-full">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
 
             {/* Left: copy */}
