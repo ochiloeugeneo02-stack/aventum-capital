@@ -209,4 +209,84 @@ router.get("/admin/groups", requireRole("super_admin"), asyncHandler(async (req,
   })));
 }));
 
+// Transfer group admin to another user (super_admin only)
+router.put("/admin/groups/:groupId/admin", requireRole("super_admin"), asyncHandler(async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId, 10);
+  const { newAdminId } = req.body as { newAdminId: number };
+
+  if (!newAdminId) {
+    res.status(400).json({ error: "newAdminId is required" });
+    return;
+  }
+
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
+  if (!group) { res.status(404).json({ error: "Group not found" }); return; }
+
+  const [newAdmin] = await db.select().from(usersTable).where(eq(usersTable.id, newAdminId)).limit(1);
+  if (!newAdmin) { res.status(404).json({ error: "User not found" }); return; }
+
+  // Remove old admin from members if they were auto-added (rotationOrder 0) and aren't the new admin
+  if (group.adminId !== newAdminId) {
+    const [oldAdminMembership] = await db.select().from(groupMembersTable)
+      .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, group.adminId))).limit(1);
+
+    const [newAdminMembership] = await db.select().from(groupMembersTable)
+      .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, newAdminId))).limit(1);
+
+    if (oldAdminMembership) {
+      await db.delete(groupMembersTable)
+        .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, group.adminId)));
+    }
+
+    if (!newAdminMembership) {
+      await db.insert(groupMembersTable).values({
+        userId: newAdminId,
+        groupId,
+        rotationOrder: 0,
+        hasReceivedPayout: false,
+      });
+    } else {
+      await db.update(groupMembersTable)
+        .set({ rotationOrder: 0 })
+        .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, newAdminId)));
+    }
+  }
+
+  await db.update(groupsTable).set({ adminId: newAdminId }).where(eq(groupsTable.id, groupId));
+
+  await createAuditLog({
+    action: "group.admin_transfer",
+    performedBy: req.session!.userId!,
+    targetType: "group",
+    targetId: groupId,
+    details: `new admin: ${newAdmin.email}`,
+  });
+
+  res.json({ success: true, groupId, newAdminId, newAdminName: newAdmin.name });
+}));
+
+// Delete a group entirely (super_admin only)
+router.delete("/admin/groups/:groupId", requireRole("super_admin"), asyncHandler(async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId, 10);
+
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
+  if (!group) { res.status(404).json({ error: "Group not found" }); return; }
+
+  await db.delete(contributionsTable).where(eq(contributionsTable.groupId, groupId));
+  await db.delete(payoutsTable).where(eq(payoutsTable.groupId, groupId));
+  await db.delete(contributionCyclesTable).where(eq(contributionCyclesTable.groupId, groupId));
+  await db.delete(groupMembersTable).where(eq(groupMembersTable.groupId, groupId));
+  await db.delete(groupsTable).where(eq(groupsTable.id, groupId));
+
+  await createAuditLog({
+    action: "group.delete_force",
+    performedBy: req.session!.userId!,
+    targetType: "group",
+    targetId: groupId,
+    details: group.name,
+  });
+
+  res.json({ success: true, deleted: groupId });
+}));
+
 export default router;

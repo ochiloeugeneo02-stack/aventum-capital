@@ -97,11 +97,17 @@ router.post("/groups", requireAuth, async (req, res): Promise<void> => {
   }
 
   const { name, contributionAmount, schedule, maxMembers, organizationId, currency } = parsed.data;
-  const userId = req.session!.userId!;
+  const sessionUserId = req.session!.userId!;
+  const sessionRole = req.session!.userRole;
+
+  // Super admins may specify a different group admin via body.adminId
+  const adminId = (sessionRole === "super_admin" && req.body.adminId)
+    ? parseInt(String(req.body.adminId), 10)
+    : sessionUserId;
 
   const [group] = await db.insert(groupsTable).values({
     name,
-    adminId: userId,
+    adminId,
     organizationId: organizationId ?? null,
     currency: (currency ?? DEFAULT_CURRENCY).toUpperCase(),
     contributionAmount: String(contributionAmount),
@@ -110,7 +116,7 @@ router.post("/groups", requireAuth, async (req, res): Promise<void> => {
   }).returning();
 
   await db.insert(groupMembersTable).values({
-    userId,
+    userId: adminId,
     groupId: group.id,
     rotationOrder: 0,
     hasReceivedPayout: false,
