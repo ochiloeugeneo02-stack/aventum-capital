@@ -318,13 +318,17 @@ export default function Landing() {
   }, []);
 
   return (
-    <div className="min-h-screen font-sans overflow-x-hidden" style={{ background: "#f8f6f0" }}>
+    <div className="min-h-screen font-sans overflow-x-hidden" style={{ background: "#1a3a22" }}>
 
-      {/* ── Navbar — white bar, full green logo ────────────── */}
-      <nav className="sticky top-0 z-50 bg-white">
+      {/* ── Navbar — transparent over hero ──────────────────── */}
+      <nav className="sticky top-0 z-50" style={{ background: "transparent" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <a href="/" className="flex items-center">
-            <Logo variant="dark" />
+          <a href="/" className="inline-flex items-center gap-2.5">
+            <img src="/logo-icon-sage.png" alt="Aventum Capital" className="h-8 w-8 rounded-lg shrink-0" />
+            <div className="flex flex-col leading-none">
+              <span className="text-[17px] font-light tracking-wide text-white">Aventum</span>
+              <span className="text-[9px] font-light tracking-[0.22em] uppercase text-white/55 mt-0.5">capital</span>
+            </div>
           </a>
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
@@ -754,15 +758,14 @@ export default function Landing() {
           font-weight: 600;
           padding: 0.625rem 1.25rem;
           border-radius: 0.75rem;
-          background: #3A5A40;
-          color: white;
-          border: 1px solid #3A5A40;
+          background: white;
+          color: #1a3a22;
+          border: 1px solid white;
           text-decoration: none;
-          transition: background 0.2s, border-color 0.2s;
+          transition: opacity 0.2s;
         }
         .nav-cta-btn:hover {
-          background: #2D5F38;
-          border-color: #2D5F38;
+          opacity: 0.88;
         }
       `}</style>
     </div>
