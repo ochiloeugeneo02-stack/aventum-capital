@@ -131,7 +131,7 @@ router.post("/groups", requireAuth, async (req, res): Promise<void> => {
     dueDate,
   });
 
-  await createAuditLog({ action: "group.create", performedBy: userId, targetType: "group", targetId: group.id });
+  await createAuditLog({ action: "group.create", performedBy: sessionUserId, targetType: "group", targetId: group.id });
 
   res.status(201).json(await getGroupWithCounts(group));
 });
