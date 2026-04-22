@@ -82,7 +82,13 @@ function PaymentForm({
         throw new Error(result.error.message ?? "Payment could not be completed");
       }
 
-      const confirmedIntentId = result.paymentIntent?.id ?? paymentIntentId;
+      if (!result.paymentIntent || result.paymentIntent.status !== "succeeded") {
+        throw new Error(
+          `Payment was not completed — status: ${result.paymentIntent?.status ?? "unknown"}. Please try again.`
+        );
+      }
+
+      const confirmedIntentId = result.paymentIntent.id;
       await apiRequest("/api/stripe/confirm-contribution", {
         method: "POST",
         body: JSON.stringify({ groupId, cycleId, paymentIntentId: confirmedIntentId }),
