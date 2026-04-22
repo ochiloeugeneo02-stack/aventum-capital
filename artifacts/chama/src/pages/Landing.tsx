@@ -192,12 +192,12 @@ function HeroLoginPanel() {
           <label className="block text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5">Email or username</label>
           <input
             type="text"
+            autoComplete="username"
             placeholder="email@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none"
-            style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}
+            className="login-input w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none"
           />
         </div>
         <div>
@@ -205,12 +205,12 @@ function HeroLoginPanel() {
           <div className="relative">
             <input
               type={showPw ? "text" : "password"}
+              autoComplete="current-password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none pr-10"
-              style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}
+              className="login-input w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none pr-10"
             />
             <button
               type="button"
@@ -323,12 +323,9 @@ export default function Landing() {
       {/* ── Navbar — transparent over hero ──────────────────── */}
       <nav className="sticky top-0 z-50" style={{ background: "transparent" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <a href="/" className="inline-flex items-center gap-2.5">
-            <img src="/logo-icon-sage.png" alt="Aventum Capital" className="h-8 w-8 rounded-lg shrink-0" />
-            <div className="flex flex-col leading-none">
-              <span className="text-[17px] font-light tracking-wide text-white">Aventum</span>
-              <span className="text-[9px] font-light tracking-[0.22em] uppercase text-white/55 mt-0.5">capital</span>
-            </div>
+          <a href="/" className="flex flex-col leading-none select-none">
+            <span className="text-[22px] font-light tracking-wide text-white leading-tight">Aventum</span>
+            <span className="text-[10px] font-light tracking-[0.18em] text-white/55 mt-0.5">capital</span>
           </a>
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
@@ -766,6 +763,20 @@ export default function Landing() {
         }
         .nav-cta-btn:hover {
           opacity: 0.88;
+        }
+        .login-input {
+          background: rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.15);
+        }
+        .login-input:-webkit-autofill,
+        .login-input:-webkit-autofill:hover,
+        .login-input:-webkit-autofill:focus,
+        .login-input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0px 1000px rgba(45,95,56,0.9) inset !important;
+          -webkit-text-fill-color: white !important;
+          caret-color: white;
+          border: 1px solid rgba(255,255,255,0.15) !important;
+          transition: background-color 9999s ease-in-out 0s;
         }
       `}</style>
     </div>
