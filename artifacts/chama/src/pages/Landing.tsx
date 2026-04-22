@@ -320,11 +320,11 @@ export default function Landing() {
   return (
     <div className="min-h-screen font-sans overflow-x-hidden" style={{ background: "#f8f6f0" }}>
 
-      {/* ── Navbar — logo only, transparent over hero ──────── */}
-      <nav className="sticky top-0 z-50" style={{ background: "transparent" }}>
+      {/* ── Navbar — white bar, full green logo ────────────── */}
+      <nav className="sticky top-0 z-50 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <a href="/" className="flex items-center">
-            <Logo variant="white" />
+            <Logo variant="dark" />
           </a>
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
@@ -754,15 +754,15 @@ export default function Landing() {
           font-weight: 600;
           padding: 0.625rem 1.25rem;
           border-radius: 0.75rem;
-          background: rgba(255,255,255,0.15);
+          background: #3A5A40;
           color: white;
-          border: 1px solid rgba(255,255,255,0.25);
+          border: 1px solid #3A5A40;
           text-decoration: none;
           transition: background 0.2s, border-color 0.2s;
         }
         .nav-cta-btn:hover {
-          background: rgba(255,255,255,0.25);
-          border-color: rgba(255,255,255,0.4);
+          background: #2D5F38;
+          border-color: #2D5F38;
         }
       `}</style>
     </div>
