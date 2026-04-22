@@ -5,7 +5,7 @@ import { eq, or } from "drizzle-orm";
 import { RegisterUserBody, LoginUserBody } from "@workspace/api-zod";
 import { hashPassword, verifyPassword, requireAuth } from "../lib/auth";
 import { createAuditLog } from "../lib/auditLog";
-import { sendPasswordResetEmail, sendOtpEmail } from "../lib/email";
+import { sendPasswordResetEmail, sendOtpEmail, sendWelcomeEmail } from "../lib/email";
 import { logger } from "../lib/logger";
 import { getAppBaseUrl } from "../lib/appUrl";
 
@@ -106,6 +106,11 @@ router.post("/auth/register", async (req, res): Promise<void> => {
   req.session.userRole = user.role;
 
   await createAuditLog({ action: "user.register", performedBy: user.id, targetType: "user", targetId: user.id });
+
+  // Welcome email — fire and forget
+  Promise.resolve().then(() =>
+    sendWelcomeEmail({ email: user.email, name: user.name, appBaseUrl: getAppBaseUrl(req) }).catch(() => {})
+  );
 
   res.status(201).json({ user: formatUser(user), message: "Account created successfully" });
 });

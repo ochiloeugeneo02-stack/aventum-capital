@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
 import {
   Loader2, Users, LogOut, AlertTriangle, CheckCircle2, Clock,
-  MessageCircle, Send, ArrowLeftRight, X, ChevronDown, UserPlus, Copy, Check, Mail,
+  MessageCircle, Send, ArrowLeftRight, X, ChevronDown, UserPlus, Copy, Check, Mail, PlayCircle, PauseCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import handsTogetherImage from "@assets/pexels-pixabay-461049_1776748558410.jpg";
@@ -137,6 +137,10 @@ export default function GroupDetail() {
   const [submittingSwap, setSubmittingSwap] = useState(false);
   const [mySwapRequest, setMySwapRequest] = useState<SwapRequest | null>(null);
   const [cancellingSwap, setCancellingSwap] = useState(false);
+
+  // Cycle approval state
+  const [approvingCycle, setApprovingCycle] = useState(false);
+  const [denyingCycle, setDenyingCycle] = useState(false);
 
   // Invite state
   const [showInviteDialog, setShowInviteDialog] = useState(false);
@@ -305,6 +309,34 @@ export default function GroupDetail() {
       toast({ title: "Error", description: err?.data?.error ?? "Could not cancel", variant: "destructive" });
     } finally {
       setCancellingSwap(false);
+    }
+  };
+
+  const handleApproveNextCycle = async () => {
+    if (!groupId) return;
+    setApprovingCycle(true);
+    try {
+      await apiRequest(`/api/groups/${groupId}/approve-next-cycle`, { method: "POST" });
+      queryClient.invalidateQueries({ queryKey: getGetGroupQueryKey(groupId) });
+      toast({ title: "Cycle approved!", description: "The next cycle has started. Members can now contribute." });
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Could not approve cycle", variant: "destructive" });
+    } finally {
+      setApprovingCycle(false);
+    }
+  };
+
+  const handleDenyNextCycle = async () => {
+    if (!groupId) return;
+    setDenyingCycle(true);
+    try {
+      await apiRequest(`/api/groups/${groupId}/deny-next-cycle`, { method: "POST" });
+      queryClient.invalidateQueries({ queryKey: getGetGroupQueryKey(groupId) });
+      toast({ title: "Cycle paused", description: "The group has been paused. You can approve a new cycle any time." });
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Could not deny cycle", variant: "destructive" });
+    } finally {
+      setDenyingCycle(false);
     }
   };
 
@@ -490,6 +522,50 @@ export default function GroupDetail() {
                 {cancellingSwap ? <Loader2 className="w-3 h-3 animate-spin" /> : "Cancel"}
               </button>
             )}
+          </div>
+        )}
+
+        {/* Cycle approval banner — shown to admins when cycle is awaiting approval */}
+        {g.status === "awaiting_cycle_approval" && isAdmin && (
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 rounded-xl border-2 border-amber-300 bg-amber-50 text-amber-900">
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              <Clock className="w-5 h-5 mt-0.5 shrink-0 text-amber-600" />
+              <div className="min-w-0">
+                <p className="font-semibold text-sm">All members have paid — Cycle {g.currentCycle} is ready to begin</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  As the group admin, you need to approve the next cycle to let contributions resume. The next payout will go to the next member in rotation.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 sm:shrink-0">
+              <Button
+                size="sm"
+                onClick={handleApproveNextCycle}
+                disabled={approvingCycle || denyingCycle}
+                className="gap-2 bg-green-700 hover:bg-green-800 text-white border-0"
+              >
+                {approvingCycle ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PlayCircle className="w-3.5 h-3.5" />}
+                Approve Cycle {g.currentCycle}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleDenyNextCycle}
+                disabled={approvingCycle || denyingCycle}
+                className="gap-2 border-amber-400 text-amber-800 hover:bg-amber-100"
+              >
+                {denyingCycle ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PauseCircle className="w-3.5 h-3.5" />}
+                Pause group
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Cycle awaiting approval — info banner for non-admin members */}
+        {g.status === "awaiting_cycle_approval" && !isAdmin && (
+          <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50 text-sm text-amber-800">
+            <Clock className="w-4 h-4 mt-0.5 shrink-0" />
+            <p className="font-medium">All members have contributed this cycle. Waiting for the group admin to approve the next cycle before contributions resume.</p>
           </div>
         )}
 

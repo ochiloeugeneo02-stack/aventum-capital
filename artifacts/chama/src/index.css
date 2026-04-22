@@ -104,62 +104,63 @@
   --elevate-2: rgba(0,0,0, .08);
 
   /*
-    Official Aventum Capital palette
-    #344E41 → hsl(150, 20%, 25%)  — deep forest  (darkest)
-    #3A5A40 → hsl(131, 22%, 29%)  — forest green
-    #588157 → hsl(119, 20%, 42%)  — mid green
-    #A3B18A → hsl(82,  20%, 62%)  — sage
-    #DAD7CD → hsl(46,  15%, 83%)  — warm sand    (lightest)
+    Aventum Capital — Refreshed palette (livelier, richer saturation)
+    Base hues kept true to brand; saturation + chroma lifted for energy.
+    #2D5016 — deep forest anchor
+    #3A6B41 — forest green (primary)
+    #52894E — mid-green (chart/accent)
+    #A8C490 — sage highlight
+    #F5F0E8 — warm parchment background
   */
-  --background: 46 10% 98%;
-  --foreground: 150 20% 15%;
+  --background: 42 28% 97%;
+  --foreground: 148 28% 13%;
 
-  --border: 82 12% 83%;
-  --input: 82 12% 78%;
-  --ring: 131 22% 35%;
+  --border: 90 16% 80%;
+  --input: 90 14% 75%;
+  --ring: 130 30% 38%;
 
   --card: 0 0% 100%;
-  --card-foreground: 150 20% 15%;
-  --card-border: 82 12% 87%;
+  --card-foreground: 148 28% 13%;
+  --card-border: 90 16% 85%;
 
-  /* Sidebar — deep forest #344E41 */
-  --sidebar: 150 20% 25%;
-  --sidebar-foreground: 46 15% 92%;
-  --sidebar-border: 150 18% 31%;
-  --sidebar-primary: 82 20% 56%;
-  --sidebar-primary-foreground: 150 20% 12%;
-  --sidebar-accent: 150 18% 32%;
-  --sidebar-accent-foreground: 46 15% 92%;
-  --sidebar-ring: 82 20% 56%;
+  /* Sidebar — deep forest, slightly richer */
+  --sidebar: 148 28% 22%;
+  --sidebar-foreground: 45 20% 93%;
+  --sidebar-border: 148 22% 29%;
+  --sidebar-primary: 90 26% 58%;
+  --sidebar-primary-foreground: 148 28% 10%;
+  --sidebar-accent: 148 22% 30%;
+  --sidebar-accent-foreground: 45 20% 93%;
+  --sidebar-ring: 90 26% 58%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 150 20% 15%;
-  --popover-border: 82 12% 83%;
+  --popover-foreground: 148 28% 13%;
+  --popover-border: 90 16% 80%;
 
-  /* Primary buttons — forest green #3A5A40 */
-  --primary: 131 22% 29%;
+  /* Primary buttons — richer forest green */
+  --primary: 130 32% 31%;
   --primary-foreground: 0 0% 100%;
 
-  /* Secondary — warm sand tint */
-  --secondary: 46 12% 92%;
-  --secondary-foreground: 150 20% 20%;
+  /* Secondary — warm parchment tint */
+  --secondary: 42 24% 91%;
+  --secondary-foreground: 148 28% 18%;
 
-  /* Muted — light warm */
-  --muted: 46 10% 94%;
-  --muted-foreground: 150 12% 45%;
+  /* Muted — soft warm */
+  --muted: 42 18% 93%;
+  --muted-foreground: 148 14% 43%;
 
-  /* Accent — sage #A3B18A */
-  --accent: 82 20% 62%;
-  --accent-foreground: 150 20% 15%;
+  /* Accent — livelier sage */
+  --accent: 90 28% 60%;
+  --accent-foreground: 148 28% 12%;
 
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
 
-  --chart-1: 131 22% 29%;
-  --chart-2: 119 20% 42%;
-  --chart-3: 82 20% 62%;
-  --chart-4: 46 15% 60%;
-  --chart-5: 340 65% 55%;
+  --chart-1: 130 32% 31%;
+  --chart-2: 119 26% 42%;
+  --chart-3: 90 28% 58%;
+  --chart-4: 42 32% 55%;
+  --chart-5: 340 68% 54%;
 
   --app-font-sans: 'NeueHaasDisplay', 'Inter', sans-serif;
   --app-font-serif: Georgia, serif;

@@ -6,7 +6,7 @@ import { CreateGroupBody, UpdateGroupBody, InviteMemberBody } from "@workspace/a
 import { createAuditLog } from "../lib/auditLog";
 import { formatUser } from "./users";
 import { createGroupInvitation } from "./invitations";
-import { sendGroupAddedEmail, sendMemberJoinedNotificationEmail, sendAdminAddedMemberEmail } from "../lib/email";
+import { sendGroupAddedEmail, sendMemberJoinedNotificationEmail, sendAdminAddedMemberEmail, sendMemberRemovedEmail, sendCycleApprovalRequestEmail } from "../lib/email";
 import { logger } from "../lib/logger";
 import { getAppBaseUrl } from "../lib/appUrl";
 
@@ -481,7 +481,96 @@ router.delete("/groups/:groupId/members/:userId", requireAuth, async (req, res):
     details: `Removed user ${targetUserId}`,
   });
 
+  // Notify the removed member — fire and forget
+  Promise.resolve().then(async () => {
+    try {
+      const [removedUser] = await db.select().from(usersTable).where(eq(usersTable.id, targetUserId)).limit(1);
+      if (removedUser) {
+        await sendMemberRemovedEmail({
+          email: removedUser.email,
+          memberName: removedUser.name,
+          groupName: group.name,
+          appBaseUrl: getAppBaseUrl(req),
+        });
+      }
+    } catch { /* fire-and-forget */ }
+  });
+
   res.json({ success: true });
+});
+
+router.post("/groups/:groupId/approve-next-cycle", requireAuth, async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId, 10);
+
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
+  if (!group) { res.status(404).json({ error: "Group not found" }); return; }
+
+  const sessionUserId = req.session!.userId!;
+  const isAdmin = group.adminId === sessionUserId || req.session?.userRole === "super_admin";
+  if (!isAdmin) { res.status(403).json({ error: "Only the group admin can approve the next cycle" }); return; }
+
+  if (group.status !== "awaiting_cycle_approval") {
+    res.status(400).json({ error: `Group is ${group.status} — not awaiting cycle approval` });
+    return;
+  }
+
+  const dueDate = new Date();
+  if (group.schedule === "weekly") dueDate.setDate(dueDate.getDate() + 7);
+  else if (group.schedule === "monthly") dueDate.setMonth(dueDate.getMonth() + 1);
+  else dueDate.setDate(dueDate.getDate() + 14);
+
+  await db.insert(contributionCyclesTable).values({
+    groupId,
+    cycleNumber: group.currentCycle,
+    status: "active",
+    dueDate,
+  });
+
+  const [updated] = await db.update(groupsTable)
+    .set({ status: "active" })
+    .where(eq(groupsTable.id, groupId))
+    .returning();
+
+  await createAuditLog({
+    action: "group.approve_next_cycle",
+    performedBy: sessionUserId,
+    targetType: "group",
+    targetId: groupId,
+    details: `Approved start of cycle ${group.currentCycle}`,
+  });
+
+  res.json(await getGroupWithCounts(updated));
+});
+
+router.post("/groups/:groupId/deny-next-cycle", requireAuth, async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId, 10);
+
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
+  if (!group) { res.status(404).json({ error: "Group not found" }); return; }
+
+  const sessionUserId = req.session!.userId!;
+  const isAdmin = group.adminId === sessionUserId || req.session?.userRole === "super_admin";
+  if (!isAdmin) { res.status(403).json({ error: "Only the group admin can manage cycle approval" }); return; }
+
+  if (group.status !== "awaiting_cycle_approval") {
+    res.status(400).json({ error: `Group is ${group.status} — not awaiting cycle approval` });
+    return;
+  }
+
+  const [updated] = await db.update(groupsTable)
+    .set({ status: "paused" })
+    .where(eq(groupsTable.id, groupId))
+    .returning();
+
+  await createAuditLog({
+    action: "group.deny_next_cycle",
+    performedBy: sessionUserId,
+    targetType: "group",
+    targetId: groupId,
+    details: `Denied start of cycle ${group.currentCycle} — group set to paused`,
+  });
+
+  res.json(await getGroupWithCounts(updated));
 });
 
 router.post("/groups/:groupId/pause", requireAuth, async (req, res): Promise<void> => {

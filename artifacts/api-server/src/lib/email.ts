@@ -588,6 +588,162 @@ export async function sendExitRequestNotificationToAdmin(opts: {
   return sendViaResend(opts.email, `Exit request — ${opts.groupName}`, html);
 }
 
+export async function sendWelcomeEmail(opts: {
+  email: string;
+  name: string;
+  appBaseUrl: string;
+}): Promise<boolean> {
+  const html = buildEmailWrapper({
+    headerTitle: "Welcome to Aventum Capital.",
+    headerSubtitle: "Your account is ready. Start saving together with your circle.",
+    bodyHtml: `
+      <p style="font-size:15px;color:#374151;margin:0 0 20px;">Hi <strong>${opts.name}</strong>,</p>
+      <p style="font-size:15px;color:#374151;margin:0 0 24px;">
+        Your Aventum Capital account has been created. You can now join or create rotating savings groups, track contributions, and receive payouts — all in one place.
+      </p>
+      <div style="background:#fbfaf7;border:1px solid #ebe8df;border-radius:16px;padding:18px 22px;margin-bottom:24px;">
+        <div style="font-size:13px;color:#6b7280;line-height:1.7;margin:0;">
+          <strong style="color:#344E41;">How it works:</strong> Everyone in your group contributes a fixed amount each cycle. The full pool goes to one member at a time — rotating until everyone has received their share.
+        </div>
+      </div>
+      <a href="${opts.appBaseUrl}/dashboard" style="display:inline-block;background:#3A5A40;color:#ffffff;text-decoration:none;text-align:center;padding:14px 28px;border-radius:8px;font-size:14px;font-weight:700;">Go to my dashboard</a>`,
+  });
+  return sendViaResend(opts.email, "Welcome to Aventum Capital", html);
+}
+
+export async function sendCycleApprovalRequestEmail(opts: {
+  email: string;
+  adminName: string;
+  groupName: string;
+  groupId: number;
+  nextCycleNumber: number;
+  nextRecipientName: string;
+  memberCount: number;
+  contributionAmount: string;
+  schedule: string;
+  appBaseUrl: string;
+}): Promise<boolean> {
+  const groupUrl = `${opts.appBaseUrl}/groups/${opts.groupId}`;
+  const html = buildEmailWrapper({
+    headerTitle: "Cycle complete — approve the next one?",
+    headerSubtitle: `${opts.groupName} is ready to advance`,
+    bodyHtml: `
+      <p style="font-size:15px;color:#374151;margin:0 0 20px;">Hi <strong>${opts.adminName}</strong>,</p>
+      <p style="font-size:15px;color:#374151;margin:0 0 24px;">
+        All members of <strong>${opts.groupName}</strong> have paid cycle ${opts.nextCycleNumber - 1}. The group is now waiting for you to approve the start of <strong>Cycle ${opts.nextCycleNumber}</strong>.
+      </p>
+      <div style="background:#fbfaf7;border:1px solid #ebe8df;border-radius:16px;overflow:hidden;margin-bottom:24px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td width="50%" style="padding:16px 20px;border-right:1px solid #ebe8df;">
+              <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Next cycle</div>
+              <div style="font-size:18px;font-weight:700;color:#344E41;">#${opts.nextCycleNumber}</div>
+            </td>
+            <td width="50%" style="padding:16px 20px;">
+              <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Next recipient</div>
+              <div style="font-size:18px;font-weight:700;color:#344E41;">${opts.nextRecipientName}</div>
+            </td>
+          </tr>
+          <tr><td colspan="2" style="padding:12px 20px 16px;border-top:1px solid #ebe8df;">
+            <div style="font-size:13px;color:#6b7280;">${opts.memberCount} members · ${opts.contributionAmount} ${scheduleLabel(opts.schedule)}</div>
+          </td></tr>
+        </table>
+      </div>
+      <p style="font-size:14px;color:#6b7280;margin:0 0 20px;">
+        If you approve, the next cycle will start immediately and members will be notified. If you decline, the group remains paused until you decide to restart it.
+      </p>
+      <a href="${groupUrl}" style="display:inline-block;background:#3A5A40;color:#ffffff;text-decoration:none;text-align:center;padding:14px 28px;border-radius:8px;font-size:14px;font-weight:700;">Review &amp; approve</a>`,
+  });
+  return sendViaResend(opts.email, `Action needed — approve Cycle ${opts.nextCycleNumber} for ${opts.groupName}`, html);
+}
+
+export async function sendMemberRemovedEmail(opts: {
+  email: string;
+  memberName: string;
+  groupName: string;
+  appBaseUrl: string;
+}): Promise<boolean> {
+  const html = buildEmailWrapper({
+    headerTitle: "You have been removed from a group.",
+    headerSubtitle: `Your membership in ${opts.groupName} has ended`,
+    bodyHtml: `
+      <p style="font-size:15px;color:#374151;margin:0 0 20px;">Hi <strong>${opts.memberName}</strong>,</p>
+      <p style="font-size:15px;color:#374151;margin:0 0 24px;">
+        Your membership in <strong>${opts.groupName}</strong> has been ended by the group administrator. You will no longer receive contribution reminders or payouts from this group.
+      </p>
+      <p style="font-size:14px;color:#6b7280;margin:0 0 24px;">If you believe this was a mistake, please contact your group admin or reach out to Aventum Capital support.</p>
+      <a href="${opts.appBaseUrl}/groups" style="display:inline-block;background:#3A5A40;color:#ffffff;text-decoration:none;text-align:center;padding:14px 28px;border-radius:8px;font-size:14px;font-weight:700;">View my groups</a>`,
+  });
+  return sendViaResend(opts.email, `You've been removed from ${opts.groupName}`, html);
+}
+
+export async function sendCycleDueReminderEmail(opts: {
+  email: string;
+  adminName: string;
+  groupName: string;
+  groupId: number;
+  cycleNumber: number;
+  dueDate: Date;
+  paidCount: number;
+  totalMembers: number;
+  appBaseUrl: string;
+}): Promise<boolean> {
+  const groupUrl = `${opts.appBaseUrl}/groups/${opts.groupId}`;
+  const daysLeft = Math.ceil((opts.dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const urgency = daysLeft <= 2 ? "⚠️ Urgent — " : daysLeft <= 5 ? "Reminder — " : "";
+  const html = buildEmailWrapper({
+    headerTitle: `Cycle ${opts.cycleNumber} is due in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}.`,
+    headerSubtitle: `Contribution reminder for ${opts.groupName}`,
+    bodyHtml: `
+      <p style="font-size:15px;color:#374151;margin:0 0 20px;">Hi <strong>${opts.adminName}</strong>,</p>
+      <p style="font-size:15px;color:#374151;margin:0 0 24px;">
+        Cycle <strong>#${opts.cycleNumber}</strong> for <strong>${opts.groupName}</strong> is due on <strong>${fmtDateTime(opts.dueDate)}</strong>.
+        So far <strong>${opts.paidCount} of ${opts.totalMembers}</strong> members have contributed.
+      </p>
+      <div style="background:${daysLeft <= 3 ? "#fff7ed" : "#fbfaf7"};border:1px solid ${daysLeft <= 3 ? "#fed7aa" : "#ebe8df"};border-radius:16px;padding:18px 22px;margin-bottom:24px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Due date</div>
+            <div style="font-size:16px;font-weight:700;color:#344E41;">${fmtDateTime(opts.dueDate)}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Paid</div>
+            <div style="font-size:16px;font-weight:700;color:#344E41;">${opts.paidCount} / ${opts.totalMembers}</div>
+          </div>
+        </div>
+      </div>
+      <a href="${groupUrl}" style="display:inline-block;background:#3A5A40;color:#ffffff;text-decoration:none;text-align:center;padding:14px 28px;border-radius:8px;font-size:14px;font-weight:700;">View group status</a>`,
+  });
+  return sendViaResend(opts.email, `${urgency}Cycle #${opts.cycleNumber} due in ${daysLeft} days — ${opts.groupName}`, html);
+}
+
+export async function sendPayoutNotificationEmail(opts: {
+  email: string;
+  recipientName: string;
+  groupName: string;
+  amount: string;
+  cycleNumber: number;
+  appBaseUrl: string;
+}): Promise<boolean> {
+  const html = buildEmailWrapper({
+    headerTitle: "Your payout is on its way!",
+    headerSubtitle: `Cycle ${opts.cycleNumber} disbursement for ${opts.groupName}`,
+    bodyHtml: `
+      <p style="font-size:15px;color:#374151;margin:0 0 20px;">Hi <strong>${opts.recipientName}</strong>,</p>
+      <p style="font-size:15px;color:#374151;margin:0 0 24px;">
+        Congratulations! All members of <strong>${opts.groupName}</strong> have contributed for Cycle <strong>#${opts.cycleNumber}</strong> and your payout is being processed.
+      </p>
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:16px;padding:24px 22px;margin-bottom:24px;text-align:center;">
+        <div style="font-size:11px;font-weight:600;color:#6b7280;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">Your payout</div>
+        <div style="font-size:38px;font-weight:800;color:#166534;letter-spacing:-1px;">${opts.amount}</div>
+        <div style="font-size:13px;color:#16a34a;margin-top:6px;">Cycle #${opts.cycleNumber} · ${opts.groupName}</div>
+      </div>
+      <p style="font-size:13px;color:#6b7280;margin:0 0 24px;">Funds will be transferred to your registered account. Processing time may vary based on your bank.</p>
+      <a href="${opts.appBaseUrl}/payouts" style="display:inline-block;background:#3A5A40;color:#ffffff;text-decoration:none;text-align:center;padding:14px 28px;border-radius:8px;font-size:14px;font-weight:700;">View my payouts</a>`,
+  });
+  return sendViaResend(opts.email, `Your payout from ${opts.groupName} is being processed`, html);
+}
+
 export async function sendSwapRequestNotificationToAdmin(opts: {
   email: string;
   adminName: string;

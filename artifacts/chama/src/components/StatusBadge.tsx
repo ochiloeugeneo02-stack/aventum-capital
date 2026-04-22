@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { getStatusColor } from "@/lib/api";
+import { getStatusColor, getStatusLabel } from "@/lib/api";
 
 export function StatusBadge({ status }: { status: string }) {
   return (
@@ -9,7 +9,7 @@ export function StatusBadge({ status }: { status: string }) {
         getStatusColor(status)
       )}
     >
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {getStatusLabel(status)}
     </span>
   );
 }

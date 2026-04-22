@@ -47,6 +47,33 @@ Digital rotational savings (chama) platform. Members contribute on a rotating sc
 - `CreateGroupBody` — includes `currency?: string`
 - `ListGroupsResponseItem` / `GetGroupResponse` — include `currency: string`
 
+## Cycle Restart Approval Flow
+- After all members pay a cycle, the group moves to `awaiting_cycle_approval` status instead of auto-starting the next cycle
+- Group admin sees a prominent amber banner in GroupDetail with **Approve Cycle N** and **Pause group** action buttons
+- Non-admin members see an informational banner explaining the group is waiting for admin approval
+- **Approve endpoint:** `POST /api/groups/:groupId/approve-next-cycle` — creates the new cycle with computed due date, sets group to `active`
+- **Deny endpoint:** `POST /api/groups/:groupId/deny-next-cycle` — sets group to `paused` for admin to restart later
+- Admin receives a `sendCycleApprovalRequestEmail` as soon as the group enters awaiting state (fire-and-forget)
+- StatusBadge now renders `awaiting_cycle_approval` → "Awaiting approval" (orange badge) using new `getStatusLabel()` helper in `api.ts`
+
+## Expanded Notification System
+All new email functions added to `lib/email.ts`:
+- **`sendWelcomeEmail`** — triggered on registration (`auth.ts`); explains how chamas work, links to dashboard
+- **`sendCycleApprovalRequestEmail`** — triggered when all members pay (both `stripe.ts` and `contributions.ts`); shows next cycle #, next recipient, member count + schedule
+- **`sendMemberRemovedEmail`** — triggered in `DELETE /api/groups/:groupId/members/:userId` when admin removes a member; fire-and-forget
+- **`sendCycleDueReminderEmail`** — utility function available for future scheduler or manual admin trigger; parameterised for days-left urgency
+- **`sendPayoutNotificationEmail`** — triggered in both `stripe.ts` and `contributions.ts` when payout is created; shows payout amount prominently in green
+
+Existing `sendContributionReceiptEmail` and `sendContributionActivityEmail` are now also called from `stripe.ts`'s confirm-contribution path.
+
+## UI Color Refresh
+Updated `index.css` HSL palette with richer saturation (keeping Aventum brand):
+- Background: warmer parchment (`42 28% 97%`) instead of near-white
+- Primary: `130 32% 31%` (richer forest green) vs old `131 22% 29%`
+- Sidebar: `148 28% 22%` deeper forest with better contrast
+- Accent: `90 28% 60%` livelier sage vs old `82 20% 62%`
+- Border/input: slightly greener hues for brand consistency
+
 ---
 
 # Workspace

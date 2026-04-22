@@ -76,9 +76,27 @@ export function getStatusColor(status: string): string {
       return "text-green-700 bg-green-50 border-green-200";
     case "paused":
       return "text-amber-700 bg-amber-50 border-amber-200";
+    case "awaiting_cycle_approval":
+      return "text-orange-700 bg-orange-50 border-orange-200";
     case "completed":
       return "text-blue-700 bg-blue-50 border-blue-200";
+    case "deleted":
+      return "text-red-700 bg-red-50 border-red-200";
     default:
       return "text-gray-700 bg-gray-50 border-gray-200";
+  }
+}
+
+export function getStatusLabel(status: string): string {
+  switch (status) {
+    case "awaiting_cycle_approval": return "Awaiting approval";
+    case "active": return "Active";
+    case "paused": return "Paused";
+    case "completed": return "Completed";
+    case "deleted": return "Deleted";
+    case "paid": return "Paid";
+    case "pending": return "Pending";
+    case "failed": return "Failed";
+    default: return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ");
   }
 }

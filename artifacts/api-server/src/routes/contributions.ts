@@ -6,7 +6,7 @@ import { PayContributionBody } from "@workspace/api-zod";
 import { createAuditLog } from "../lib/auditLog";
 import { formatUser } from "./users";
 import { db as dbImport, usersTable } from "@workspace/db";
-import { sendContributionReceiptEmail, sendContributionActivityEmail } from "../lib/email";
+import { sendContributionReceiptEmail, sendContributionActivityEmail, sendCycleApprovalRequestEmail, sendPayoutNotificationEmail } from "../lib/email";
 import { logger } from "../lib/logger";
 import { getAppBaseUrl } from "../lib/appUrl";
 
@@ -197,33 +197,68 @@ router.post("/contributions/pay", requireAuth, async (req, res): Promise<void> =
 
     // Determine group status after advance: if everyone has received a payout, mark complete
     const allPaidOut = nextRotationIndex >= allMembers.length;
-    const newGroupStatus = allPaidOut ? "completed" : "active";
 
-    // Open the next cycle (unless all rotations are done)
-    if (!allPaidOut) {
-      const dueDate = new Date();
-      if (group.schedule === "weekly") {
-        dueDate.setDate(dueDate.getDate() + 7);
-      } else if (group.schedule === "monthly") {
-        dueDate.setMonth(dueDate.getMonth() + 1);
-      } else {
-        dueDate.setDate(dueDate.getDate() + 14); // bi-weekly default
-      }
+    if (allPaidOut) {
+      // All rotations done — group is fully complete
+      await db.update(groupsTable).set({
+        currentCycle: nextCycleNumber,
+        currentRotationIndex: nextRotationIndex,
+        status: "completed",
+      }).where(eq(groupsTable.id, groupId));
+    } else {
+      // More rotations remain — pause for admin approval before starting next cycle
+      await db.update(groupsTable).set({
+        currentCycle: nextCycleNumber,
+        currentRotationIndex: nextRotationIndex,
+        status: "awaiting_cycle_approval",
+      }).where(eq(groupsTable.id, groupId));
 
-      await db.insert(contributionCyclesTable).values({
-        groupId,
-        cycleNumber: nextCycleNumber,
-        status: "active",
-        dueDate,
+      // Notify admin to approve next cycle
+      const appBaseUrl = getAppBaseUrl(req);
+      Promise.resolve().then(async () => {
+        try {
+          const [admin] = await db.select().from(usersTable).where(eq(usersTable.id, group.adminId)).limit(1);
+          if (!admin) return;
+          const nextRotationMember = allMembers.find((m) => m.rotationOrder === nextRotationIndex);
+          const [nextRecipient] = nextRotationMember
+            ? await db.select().from(usersTable).where(eq(usersTable.id, nextRotationMember.userId)).limit(1)
+            : [null];
+          const groupAmount = parseFloat(group.contributionAmount as unknown as string);
+          await sendCycleApprovalRequestEmail({
+            email: admin.email,
+            adminName: admin.name,
+            groupName: group.name,
+            groupId: group.id,
+            nextCycleNumber,
+            nextRecipientName: nextRecipient?.name ?? "Next member",
+            memberCount: allMembers.length,
+            contributionAmount: `${group.currency} ${groupAmount.toLocaleString()}`,
+            schedule: group.schedule,
+            appBaseUrl,
+          });
+        } catch { /* fire-and-forget */ }
       });
     }
 
-    // Advance the group's cycle and rotation counters
-    await db.update(groupsTable).set({
-      currentCycle: nextCycleNumber,
-      currentRotationIndex: nextRotationIndex,
-      status: newGroupStatus,
-    }).where(eq(groupsTable.id, groupId));
+    // Notify payout recipient if applicable
+    if (rotationMember) {
+      const appBaseUrl = getAppBaseUrl(req);
+      Promise.resolve().then(async () => {
+        try {
+          const [recipient] = await db.select().from(usersTable).where(eq(usersTable.id, rotationMember.userId)).limit(1);
+          if (!recipient) return;
+          const totalPayout = parseFloat(group.contributionAmount as unknown as string) * allMembers.length;
+          await sendPayoutNotificationEmail({
+            email: recipient.email,
+            recipientName: recipient.name,
+            groupName: group.name,
+            amount: `${group.currency} ${totalPayout.toLocaleString()}`,
+            cycleNumber: group.currentCycle,
+            appBaseUrl,
+          });
+        } catch { /* fire-and-forget */ }
+      });
+    }
   }
 
   // Fire-and-forget contribution email notifications

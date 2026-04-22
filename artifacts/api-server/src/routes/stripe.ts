@@ -1,10 +1,17 @@
 import { Router, type IRouter } from "express";
 import { db, usersTable, groupsTable, groupMembersTable, contributionCyclesTable, contributionsTable, payoutsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { requireAuth, requireRole } from "../lib/auth";
 import { getUncachableStripeClient, getStripePublishableKey } from "../lib/stripeClient";
 import { createAuditLog } from "../lib/auditLog";
 import { formatUser } from "./users";
+import {
+  sendContributionReceiptEmail,
+  sendContributionActivityEmail,
+  sendCycleApprovalRequestEmail,
+  sendPayoutNotificationEmail,
+} from "../lib/email";
+import { getAppBaseUrl } from "../lib/appUrl";
 
 const router: IRouter = Router();
 
@@ -280,8 +287,12 @@ router.post("/stripe/confirm-contribution", requireAuth, async (req, res): Promi
   const paidContribs = await db.select().from(contributionsTable)
     .where(and(eq(contributionsTable.cycleId, cycleId), eq(contributionsTable.status, "paid")));
 
+  const appBaseUrl = getAppBaseUrl(req);
+
   if (paidContribs.length >= allMembers.length) {
     const rotationMember = allMembers.find((m) => m.rotationOrder === group.currentRotationIndex);
+    let payoutRecipientId: number | null = null;
+
     if (rotationMember) {
       const totalPayout = parseFloat(group.contributionAmount as unknown as string) * allMembers.length;
       await db.insert(payoutsTable).values({
@@ -294,6 +305,7 @@ router.post("/stripe/confirm-contribution", requireAuth, async (req, res): Promi
       await db.update(groupMembersTable)
         .set({ hasReceivedPayout: true })
         .where(eq(groupMembersTable.id, rotationMember.id));
+      payoutRecipientId = rotationMember.userId;
     }
 
     await db.update(contributionCyclesTable)
@@ -304,26 +316,110 @@ router.post("/stripe/confirm-contribution", requireAuth, async (req, res): Promi
     const nextRotationIndex = group.currentRotationIndex + 1;
     const allPaidOut = nextRotationIndex >= allMembers.length;
 
-    if (!allPaidOut) {
-      const dueDate = new Date();
-      if (group.schedule === "weekly") dueDate.setDate(dueDate.getDate() + 7);
-      else if (group.schedule === "monthly") dueDate.setMonth(dueDate.getMonth() + 1);
-      else dueDate.setDate(dueDate.getDate() + 14);
+    if (allPaidOut) {
+      // All rotations done — group is fully complete
+      await db.update(groupsTable).set({
+        currentCycle: nextCycleNumber,
+        currentRotationIndex: nextRotationIndex,
+        status: "completed",
+      }).where(eq(groupsTable.id, groupId));
+    } else {
+      // More rotations remain — pause for admin approval before starting next cycle
+      await db.update(groupsTable).set({
+        currentCycle: nextCycleNumber,
+        currentRotationIndex: nextRotationIndex,
+        status: "awaiting_cycle_approval",
+      }).where(eq(groupsTable.id, groupId));
 
-      await db.insert(contributionCyclesTable).values({
-        groupId,
-        cycleNumber: nextCycleNumber,
-        status: "active",
-        dueDate,
+      // Notify admin to approve next cycle
+      Promise.resolve().then(async () => {
+        try {
+          const [admin] = await db.select().from(usersTable).where(eq(usersTable.id, group.adminId)).limit(1);
+          if (!admin) return;
+          const nextRotationMember = allMembers.find((m) => m.rotationOrder === nextRotationIndex);
+          const [nextRecipient] = nextRotationMember
+            ? await db.select().from(usersTable).where(eq(usersTable.id, nextRotationMember.userId)).limit(1)
+            : [null];
+          const groupAmount = parseFloat(group.contributionAmount as unknown as string);
+          await sendCycleApprovalRequestEmail({
+            email: admin.email,
+            adminName: admin.name,
+            groupName: group.name,
+            groupId: group.id,
+            nextCycleNumber,
+            nextRecipientName: nextRecipient?.name ?? "Next member",
+            memberCount: allMembers.length,
+            contributionAmount: `${group.currency} ${groupAmount.toLocaleString()}`,
+            schedule: group.schedule,
+            appBaseUrl,
+          });
+        } catch (err) { /* fire-and-forget */ }
       });
     }
 
-    await db.update(groupsTable).set({
-      currentCycle: nextCycleNumber,
-      currentRotationIndex: nextRotationIndex,
-      status: allPaidOut ? "completed" : "active",
-    }).where(eq(groupsTable.id, groupId));
+    // Notify payout recipient
+    if (payoutRecipientId) {
+      Promise.resolve().then(async () => {
+        try {
+          const [recipient] = await db.select().from(usersTable).where(eq(usersTable.id, payoutRecipientId!)).limit(1);
+          if (!recipient) return;
+          const totalPayout = parseFloat(group.contributionAmount as unknown as string) * allMembers.length;
+          await sendPayoutNotificationEmail({
+            email: recipient.email,
+            recipientName: recipient.name,
+            groupName: group.name,
+            amount: `${group.currency} ${totalPayout.toLocaleString()}`,
+            cycleNumber: group.currentCycle,
+            appBaseUrl,
+          });
+        } catch (err) { /* fire-and-forget */ }
+      });
+    }
   }
+
+  // Send receipt + group activity emails (fire-and-forget)
+  Promise.resolve().then(async () => {
+    try {
+      const [contributor] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+      if (!contributor) return;
+      const [currentCycleRow] = await db.select().from(contributionCyclesTable)
+        .where(eq(contributionCyclesTable.id, cycleId)).limit(1);
+      const groupAmount = parseFloat(group.contributionAmount as unknown as string);
+
+      // Receipt to payer
+      await sendContributionReceiptEmail({
+        email: contributor.email,
+        name: contributor.name,
+        groupName: group.name,
+        amount: `${group.currency} ${groupAmount.toLocaleString()}`,
+        cycleNumber: currentCycleRow?.cycleNumber ?? group.currentCycle,
+        paidAt: contribution.paidAt ?? new Date(),
+        appBaseUrl,
+      });
+
+      // Activity email to all other members
+      const otherMembers = allMembers.filter((m) => m.userId !== userId);
+      if (otherMembers.length > 0) {
+        const otherUsers = await db.select().from(usersTable)
+          .where(inArray(usersTable.id, otherMembers.map((m) => m.userId)));
+        const paidCount = paidContribs.length;
+        for (const u of otherUsers) {
+          await sendContributionActivityEmail({
+            email: u.email,
+            recipientName: u.name,
+            contributorName: contributor.name,
+            groupName: group.name,
+            amount: `${group.currency} ${groupAmount.toLocaleString()}`,
+            cycleNumber: currentCycleRow?.cycleNumber ?? group.currentCycle,
+            paidAt: contribution.paidAt ?? new Date(),
+            paidCount,
+            totalMembers: allMembers.length,
+            appBaseUrl,
+          }).catch(() => {});
+        }
+      }
+    } catch (err) { /* fire-and-forget */ }
+  });
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   res.status(201).json({
