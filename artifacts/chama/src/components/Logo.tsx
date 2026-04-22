@@ -1,5 +1,4 @@
-import logoTransparent from "@/assets/logo-transparent.png";
-import logoDark from "@/assets/logo-source.png";
+import logoSrc from "@/assets/logo-source.png";
 
 interface LogoProps {
   variant?: "dark" | "white";
@@ -7,6 +6,11 @@ interface LogoProps {
   iconOnly?: boolean;
 }
 
+/**
+ * variant="dark"  → your uploaded logo as-is (black text, ideal on white/light nav)
+ * variant="white" → same logo inverted to white (for dark green sidebar / dark backgrounds)
+ * iconOnly        → sage icon tile only
+ */
 export function Logo({ variant = "dark", className = "", iconOnly = false }: LogoProps) {
   if (iconOnly) {
     return (
@@ -18,33 +22,24 @@ export function Logo({ variant = "dark", className = "", iconOnly = false }: Log
     );
   }
 
-  if (variant === "white") {
-    /* Crop wrapper: shows only the text area of the 500×500 logo */
-    return (
-      <div
-        className={className}
-        style={{ overflow: "hidden", height: "52px", display: "inline-block", lineHeight: 0 }}
-      >
-        <img
-          src={logoTransparent}
-          alt="Aventum Capital"
-          style={{
-            height: "172px",
-            width: "auto",
-            display: "block",
-            filter: "brightness(0) invert(1)",
-          }}
-        />
-      </div>
-    );
-  }
+  const isWhite = variant === "white";
 
+  /* Crop wrapper: the 500×500 source PNG has text in the top ~35% */
   return (
-    <img
-      src={logoDark}
-      alt="Aventum Capital"
+    <div
       className={className}
-      style={{ height: "40px", width: "auto" }}
-    />
+      style={{ overflow: "hidden", height: "44px", display: "inline-block", lineHeight: 0 }}
+    >
+      <img
+        src={logoSrc}
+        alt="Aventum Capital"
+        style={{
+          height: "148px",
+          width: "auto",
+          display: "block",
+          filter: isWhite ? "brightness(0) invert(1)" : "none",
+        }}
+      />
+    </div>
   );
 }

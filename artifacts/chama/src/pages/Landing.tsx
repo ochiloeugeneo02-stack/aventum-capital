@@ -320,16 +320,11 @@ export default function Landing() {
   return (
     <div className="min-h-screen font-sans overflow-x-hidden" style={{ background: "#1a3a22" }}>
 
-      {/* ── Hero — full screen, no separate navbar ──────────── */}
-      <section
-        id="hero-login"
-        className="relative min-h-screen flex flex-col overflow-hidden"
-        style={{ background: "linear-gradient(155deg, #1a3a22 0%, #2D5F38 35%, #3A5A40 65%, #1a3a22 100%)" }}
-      >
-        {/* Header row — natural flow, always visible */}
-        <div className="relative z-20 flex items-center justify-between px-6 sm:px-10 py-6 shrink-0">
+      {/* ── Sticky white navbar ──────────────────────────────── */}
+      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 sm:px-10 h-16 flex items-center justify-between">
           <a href="/" className="select-none">
-            <Logo variant="white" />
+            <Logo />
           </a>
           <div>
             {isAuthenticated ? (
@@ -339,6 +334,14 @@ export default function Landing() {
             )}
           </div>
         </div>
+      </nav>
+
+      {/* ── Hero ─────────────────────────────────────────────── */}
+      <section
+        id="hero-login"
+        className="relative min-h-[92vh] flex items-center overflow-hidden"
+        style={{ background: "linear-gradient(155deg, #1a3a22 0%, #2D5F38 35%, #3A5A40 65%, #1a3a22 100%)" }}
+      >
         {/* Dot grid */}
         <div
           className="absolute inset-0 opacity-[0.07]"
