@@ -328,17 +328,8 @@ export default function Landing() {
       >
         {/* Floating header overlay */}
         <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 sm:px-10 pt-6">
-          <a href="/" className="select-none" style={{ display: "block", overflow: "hidden", height: "52px" }}>
-            <img
-              src="/logo-aventum-transparent.png"
-              alt="Aventum Capital"
-              style={{
-                filter: "brightness(0) invert(1)",
-                height: "175px",
-                width: "auto",
-                display: "block",
-              }}
-            />
+          <a href="/" className="select-none">
+            <Logo variant="white" />
           </a>
           <div>
             {isAuthenticated ? (

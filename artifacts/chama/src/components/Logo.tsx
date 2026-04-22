@@ -18,7 +18,7 @@ export function Logo({ variant = "dark", className = "", iconOnly = false }: Log
   if (variant === "white") {
     return (
       <div
-        style={{ overflow: "hidden", height: "44px", display: "inline-block" }}
+        style={{ overflow: "hidden", height: "56px", display: "inline-block" }}
         className={className}
       >
         <img
@@ -26,7 +26,7 @@ export function Logo({ variant = "dark", className = "", iconOnly = false }: Log
           alt="Aventum Capital"
           style={{
             filter: "brightness(0) invert(1)",
-            height: "148px",
+            height: "188px",
             width: "auto",
             display: "block",
           }}
