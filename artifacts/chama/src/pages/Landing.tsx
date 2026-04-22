@@ -172,11 +172,11 @@ function HeroLoginPanel() {
 
   return (
     <div
-      className="rounded-3xl p-6 sm:p-8 w-full max-w-sm backdrop-blur-xl"
+      className="rounded-3xl p-6 sm:p-8 w-full max-w-sm"
       style={{
-        background: "rgba(255,255,255,0.07)",
-        border: "1px solid rgba(255,255,255,0.15)",
-        boxShadow: "0 32px 64px rgba(0,0,0,0.3)",
+        background: "#1e4429",
+        border: "1px solid rgba(255,255,255,0.12)",
+        boxShadow: "0 32px 64px rgba(0,0,0,0.35)",
       }}
     >
       <h3 className="text-xl font-bold text-white mb-1">Welcome back!</h3>
@@ -320,8 +320,8 @@ export default function Landing() {
   return (
     <div className="min-h-screen font-sans overflow-x-hidden" style={{ background: "#1a3a22" }}>
 
-      {/* ── Navbar — transparent over hero ──────────────────── */}
-      <nav className="sticky top-0 z-50" style={{ background: "transparent" }}>
+      {/* ── Navbar — solid dark green, always on brand ──────── */}
+      <nav className="sticky top-0 z-50" style={{ background: "#1a3a22" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <a href="/" className="flex flex-col leading-none select-none">
             <span className="text-[22px] font-light tracking-wide text-white leading-tight">Aventum</span>
@@ -765,18 +765,23 @@ export default function Landing() {
           opacity: 0.88;
         }
         .login-input {
-          background: rgba(255,255,255,0.1);
-          border: 1px solid rgba(255,255,255,0.15);
+          background: #1e4429;
+          border: 1px solid rgba(255,255,255,0.18);
+          color: white;
+        }
+        .login-input:focus {
+          border-color: rgba(255,255,255,0.4);
+          outline: none;
         }
         .login-input:-webkit-autofill,
         .login-input:-webkit-autofill:hover,
         .login-input:-webkit-autofill:focus,
         .login-input:-webkit-autofill:active {
-          -webkit-box-shadow: 0 0 0px 1000px rgba(45,95,56,0.9) inset !important;
+          -webkit-box-shadow: 0 0 0px 1000px #1e4429 inset !important;
           -webkit-text-fill-color: white !important;
           caret-color: white;
-          border: 1px solid rgba(255,255,255,0.15) !important;
-          transition: background-color 9999s ease-in-out 0s;
+          border: 1px solid rgba(255,255,255,0.18) !important;
+          transition: background-color 99999s ease 0s, color 99999s ease 0s;
         }
       `}</style>
     </div>
