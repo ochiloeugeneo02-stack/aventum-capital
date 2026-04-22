@@ -328,9 +328,17 @@ export default function Landing() {
       >
         {/* Floating header overlay */}
         <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 sm:px-10 pt-6">
-          <a href="/" className="flex flex-col leading-none select-none">
-            <span className="text-[26px] font-light tracking-wide text-white leading-tight">Aventum</span>
-            <span className="text-[11px] font-light tracking-[0.22em] text-white/55 mt-0.5">capital</span>
+          <a href="/" className="select-none" style={{ display: "block", overflow: "hidden", height: "52px" }}>
+            <img
+              src="/logo-aventum-transparent.png"
+              alt="Aventum Capital"
+              style={{
+                filter: "brightness(0) invert(1)",
+                height: "175px",
+                width: "auto",
+                display: "block",
+              }}
+            />
           </a>
           <div>
             {isAuthenticated ? (
