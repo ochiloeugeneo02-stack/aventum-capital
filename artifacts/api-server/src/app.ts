@@ -92,4 +92,14 @@ app.use(session({
 
 app.use("/api", router);
 
+// Global error handler — catches any error passed via next(err) or thrown in asyncHandler
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const status = err.status ?? err.statusCode ?? 500;
+  const message = status < 500 ? err.message : "An unexpected error occurred. Please try again.";
+  logger.error({ err, url: req.url, method: req.method }, "Unhandled route error");
+  if (!res.headersSent) {
+    res.status(status).json({ error: message });
+  }
+});
+
 export default app;

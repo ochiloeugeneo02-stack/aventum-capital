@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import { db, groupMessagesTable, groupMembersTable, groupsTable, usersTable } from "@workspace/db";
-import { eq, and, desc, asc } from "drizzle-orm";
+import { eq, and, asc } from "drizzle-orm";
 import { requireAuth } from "../lib/auth";
+import { asyncHandler } from "../lib/asyncHandler";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -13,12 +14,11 @@ async function isMember(userId: number, groupId: number): Promise<boolean> {
     .where(and(eq(groupMembersTable.userId, userId), eq(groupMembersTable.groupId, groupId)))
     .limit(1);
   if (rows.length > 0) return true;
-  // Also allow group admins who may not be in the members table
   const [group] = await db.select({ adminId: groupsTable.adminId }).from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
   return group?.adminId === userId;
 }
 
-router.get("/groups/:groupId/messages", requireAuth, async (req, res): Promise<void> => {
+router.get("/groups/:groupId/messages", requireAuth, asyncHandler(async (req, res): Promise<void> => {
   const groupId = parseInt(req.params.groupId);
   if (isNaN(groupId)) { res.status(400).json({ error: "Invalid group ID" }); return; }
 
@@ -46,9 +46,9 @@ router.get("/groups/:groupId/messages", requireAuth, async (req, res): Promise<v
     .limit(limit);
 
   res.json(messages);
-});
+}));
 
-router.post("/groups/:groupId/messages", requireAuth, async (req, res): Promise<void> => {
+router.post("/groups/:groupId/messages", requireAuth, asyncHandler(async (req, res): Promise<void> => {
   const groupId = parseInt(req.params.groupId);
   if (isNaN(groupId)) { res.status(400).json({ error: "Invalid group ID" }); return; }
 
@@ -79,9 +79,9 @@ router.post("/groups/:groupId/messages", requireAuth, async (req, res): Promise<
 
   logger.info({ userId, groupId }, "Group message sent");
   res.status(201).json({ ...message, userName: user?.name ?? "Unknown" });
-});
+}));
 
-router.delete("/groups/:groupId/messages/:messageId", requireAuth, async (req, res): Promise<void> => {
+router.delete("/groups/:groupId/messages/:messageId", requireAuth, asyncHandler(async (req, res): Promise<void> => {
   const groupId = parseInt(req.params.groupId);
   const messageId = parseInt(req.params.messageId);
   if (isNaN(groupId) || isNaN(messageId)) { res.status(400).json({ error: "Invalid IDs" }); return; }
@@ -107,6 +107,6 @@ router.delete("/groups/:groupId/messages/:messageId", requireAuth, async (req, r
 
   await db.delete(groupMessagesTable).where(eq(groupMessagesTable.id, messageId));
   res.json({ success: true });
-});
+}));
 
 export default router;

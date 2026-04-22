@@ -2,6 +2,14 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { pool } from "@workspace/db";
 
+// Prevent unhandled rejections and uncaught exceptions from crashing the server
+process.on("unhandledRejection", (reason) => {
+  logger.error({ reason }, "Unhandled promise rejection — server kept alive");
+});
+process.on("uncaughtException", (err) => {
+  logger.error({ err }, "Uncaught exception — server kept alive");
+});
+
 const rawPort = process.env["PORT"];
 
 if (!rawPort) {

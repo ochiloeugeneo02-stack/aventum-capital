@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, usersTable, groupsTable, groupMembersTable, contributionsTable, payoutsTable, contributionCyclesTable, organizationsTable, auditLogsTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import { requireAuth, requireRole } from "../lib/auth";
+import { asyncHandler } from "../lib/asyncHandler";
 import { formatUser } from "./users";
 import { formatPayout } from "./payouts";
 import { formatContribution } from "./contributions";
@@ -14,7 +15,7 @@ async function getGroupCurrency(groupId: number | null): Promise<string> {
   return group?.currency ?? "USD";
 }
 
-router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> => {
+router.get("/dashboard/summary", requireAuth, asyncHandler(async (req, res): Promise<void> => {
   const userId = req.session!.userId!;
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
@@ -107,9 +108,9 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
     recentPayouts: formattedPayouts,
     recentContributions: formattedContribs,
   });
-});
+}));
 
-router.get("/dashboard/admin-stats", requireRole("super_admin"), async (_req, res): Promise<void> => {
+router.get("/dashboard/admin-stats", requireRole("super_admin"), asyncHandler(async (_req, res): Promise<void> => {
   const [users, groups, orgs, activeGroups, totalContrib, totalPaidOut, pendingPayouts] = await Promise.all([
     db.select({ count: sql<number>`count(*)` }).from(usersTable),
     db.select({ count: sql<number>`count(*)` }).from(groupsTable),
@@ -130,9 +131,9 @@ router.get("/dashboard/admin-stats", requireRole("super_admin"), async (_req, re
     pendingPayouts: Number(pendingPayouts[0]?.count ?? 0),
     failedTransactions: 0,
   });
-});
+}));
 
-router.get("/dashboard/activity", requireAuth, async (req, res): Promise<void> => {
+router.get("/dashboard/activity", requireAuth, asyncHandler(async (req, res): Promise<void> => {
   const userId = req.session!.userId!;
   const role = req.session!.userRole;
 
@@ -184,6 +185,6 @@ router.get("/dashboard/activity", requireAuth, async (req, res): Promise<void> =
   activities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   res.json(activities.slice(0, 10));
-});
+}));
 
 export default router;

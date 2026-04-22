@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq, ilike, or, sql } from "drizzle-orm";
 import { requireAuth, requireRole } from "../lib/auth";
+import { asyncHandler } from "../lib/asyncHandler";
 import { UpdateUserBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -23,7 +24,7 @@ function formatUser(u: typeof usersTable.$inferSelect) {
   };
 }
 
-router.get("/users", requireRole("super_admin"), async (req, res): Promise<void> => {
+router.get("/users", requireRole("super_admin"), asyncHandler(async (req, res): Promise<void> => {
   const page = parseInt(String(req.query.page ?? "1"), 10);
   const limit = parseInt(String(req.query.limit ?? "20"), 10);
   const search = req.query.search ? String(req.query.search) : undefined;
@@ -48,9 +49,9 @@ router.get("/users", requireRole("super_admin"), async (req, res): Promise<void>
     page,
     limit,
   });
-});
+}));
 
-router.get("/users/:userId", requireAuth, async (req, res): Promise<void> => {
+router.get("/users/:userId", requireAuth, asyncHandler(async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
   const userId = parseInt(raw, 10);
 
@@ -61,9 +62,9 @@ router.get("/users/:userId", requireAuth, async (req, res): Promise<void> => {
   }
 
   res.json(formatUser(user));
-});
+}));
 
-router.put("/users/:userId", requireAuth, async (req, res): Promise<void> => {
+router.put("/users/:userId", requireAuth, asyncHandler(async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
   const userId = parseInt(raw, 10);
 
@@ -94,7 +95,7 @@ router.put("/users/:userId", requireAuth, async (req, res): Promise<void> => {
   }
 
   res.json(formatUser(user));
-});
+}));
 
 export { formatUser };
 export default router;

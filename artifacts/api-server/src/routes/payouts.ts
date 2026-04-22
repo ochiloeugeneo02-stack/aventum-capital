@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, payoutsTable, usersTable, groupsTable } from "@workspace/db";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { requireAuth, requireRole } from "../lib/auth";
+import { asyncHandler } from "../lib/asyncHandler";
 import { createAuditLog } from "../lib/auditLog";
 import { formatUser } from "./users";
 
@@ -38,7 +39,7 @@ async function formatPayout(p: typeof payoutsTable.$inferSelect) {
   };
 }
 
-router.get("/payouts", requireAuth, async (req, res): Promise<void> => {
+router.get("/payouts", requireAuth, asyncHandler(async (req, res): Promise<void> => {
   const userId = req.session!.userId!;
   const groupId = req.query.groupId ? parseInt(String(req.query.groupId), 10) : undefined;
 
@@ -51,9 +52,9 @@ router.get("/payouts", requireAuth, async (req, res): Promise<void> => {
 
   const result = await Promise.all(payouts.map(formatPayout));
   res.json(result);
-});
+}));
 
-router.get("/payouts/all", requireRole("super_admin"), async (req, res): Promise<void> => {
+router.get("/payouts/all", requireRole("super_admin"), asyncHandler(async (req, res): Promise<void> => {
   const page = parseInt(String(req.query.page ?? "1"), 10);
   const limit = parseInt(String(req.query.limit ?? "20"), 10);
   const offset = (page - 1) * limit;
@@ -63,7 +64,6 @@ router.get("/payouts/all", requireRole("super_admin"), async (req, res): Promise
     db.select({ count: sql<number>`count(*)` }).from(payoutsTable),
   ]);
 
-  // Batch fetch recipients and groups to avoid N+1
   const recipientIds = [...new Set(payouts.map((p) => p.recipientId))];
   const groupIds = [...new Set(payouts.map((p) => p.groupId))];
 
@@ -110,9 +110,9 @@ router.get("/payouts/all", requireRole("super_admin"), async (req, res): Promise
     page,
     limit,
   });
-});
+}));
 
-router.post("/payouts/:payoutId/complete", requireRole("super_admin", "group_admin"), async (req, res): Promise<void> => {
+router.post("/payouts/:payoutId/complete", requireRole("super_admin", "group_admin"), asyncHandler(async (req, res): Promise<void> => {
   const payoutId = parseInt(req.params.payoutId, 10);
   const sessionUserId = req.session!.userId!;
   const sessionRole = req.session!.userRole;
@@ -123,7 +123,6 @@ router.post("/payouts/:payoutId/complete", requireRole("super_admin", "group_adm
     return;
   }
 
-  // Group admins can only complete payouts for their own groups
   if (sessionRole !== "super_admin") {
     const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, payout.groupId)).limit(1);
     if (!group || group.adminId !== sessionUserId) {
@@ -161,7 +160,7 @@ router.post("/payouts/:payoutId/complete", requireRole("super_admin", "group_adm
     netAmount,
     feeRate: TRANSACTION_FEE_RATE,
   });
-});
+}));
 
 export { formatPayout };
 export default router;

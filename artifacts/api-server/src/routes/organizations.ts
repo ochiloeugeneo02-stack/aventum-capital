@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, organizationsTable, usersTable, groupsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { requireAuth, requireRole } from "../lib/auth";
+import { asyncHandler } from "../lib/asyncHandler";
 import { CreateOrganizationBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -63,13 +64,13 @@ function formatGroup(g: typeof groupsTable.$inferSelect) {
   };
 }
 
-router.get("/organizations", requireAuth, async (_req, res): Promise<void> => {
+router.get("/organizations", requireAuth, asyncHandler(async (_req, res): Promise<void> => {
   const orgs = await db.select().from(organizationsTable);
   const result = await Promise.all(orgs.map((o) => buildOrg(o)));
   res.json(result);
-});
+}));
 
-router.post("/organizations", requireAuth, async (req, res): Promise<void> => {
+router.post("/organizations", requireAuth, asyncHandler(async (req, res): Promise<void> => {
   const parsed = CreateOrganizationBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -82,9 +83,9 @@ router.post("/organizations", requireAuth, async (req, res): Promise<void> => {
   }).returning();
 
   res.status(201).json(await buildOrg(org));
-});
+}));
 
-router.get("/organizations/:orgId", requireAuth, async (req, res): Promise<void> => {
+router.get("/organizations/:orgId", requireAuth, asyncHandler(async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.orgId) ? req.params.orgId[0] : req.params.orgId;
   const orgId = parseInt(raw, 10);
 
@@ -95,17 +96,15 @@ router.get("/organizations/:orgId", requireAuth, async (req, res): Promise<void>
   }
 
   res.json(await buildOrg(org, true));
-});
+}));
 
-// Super admin: list all enterprise customers
-router.get("/admin/organizations", requireAuth, requireRole("super_admin"), async (_req, res): Promise<void> => {
+router.get("/admin/organizations", requireAuth, requireRole("super_admin"), asyncHandler(async (_req, res): Promise<void> => {
   const orgs = await db.select().from(organizationsTable).orderBy(organizationsTable.createdAt);
   const result = await Promise.all(orgs.map((o) => buildOrg(o)));
   res.json(result);
-});
+}));
 
-// Super admin: update enterprise customer details
-router.patch("/admin/organizations/:orgId", requireAuth, requireRole("super_admin"), async (req, res): Promise<void> => {
+router.patch("/admin/organizations/:orgId", requireAuth, requireRole("super_admin"), asyncHandler(async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.orgId) ? req.params.orgId[0] : req.params.orgId;
   const orgId = parseInt(raw, 10);
 
@@ -139,6 +138,6 @@ router.patch("/admin/organizations/:orgId", requireAuth, requireRole("super_admi
     .returning();
 
   res.json(await buildOrg(updated));
-});
+}));
 
 export default router;
