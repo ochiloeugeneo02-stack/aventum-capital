@@ -320,11 +320,25 @@ export default function Landing() {
   return (
     <div className="min-h-screen font-sans overflow-x-hidden" style={{ background: "#1a3a22" }}>
 
-      {/* ── Sticky white navbar ──────────────────────────────── */}
-      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 sm:px-10 h-20 flex items-center justify-between">
+      {/* ── Hero — green flows to top, logo floats inside ────── */}
+      <section
+        id="hero-login"
+        className="relative min-h-screen flex flex-col overflow-hidden"
+        style={{ background: "linear-gradient(155deg, #1a3a22 0%, #2D5F38 40%, #3A5A40 70%, #1a3a22 100%)" }}
+      >
+        {/* Dot grid */}
+        <div
+          className="absolute inset-0 opacity-[0.06]"
+          style={{ backgroundImage: `radial-gradient(circle, #ffffff 1px, transparent 1px)`, backgroundSize: "36px 36px" }}
+        />
+        {/* Glow blobs */}
+        <div className="absolute top-[-100px] right-[-100px] w-[480px] h-[480px] rounded-full opacity-20" style={{ background: "radial-gradient(circle, #A3B18A 0%, transparent 70%)" }} />
+        <div className="absolute bottom-[-60px] left-[-60px] w-[360px] h-[360px] rounded-full opacity-10" style={{ background: "radial-gradient(circle, #3A5A40 0%, transparent 70%)" }} />
+
+        {/* Logo row — sits at top inside the green */}
+        <div className="relative z-20 flex items-center justify-between px-8 sm:px-12 pt-8 pb-0 shrink-0">
           <a href="/" className="select-none">
-            <Logo />
+            <Logo variant="white" />
           </a>
           <div>
             {isAuthenticated ? (
@@ -334,91 +348,54 @@ export default function Landing() {
             )}
           </div>
         </div>
-      </nav>
 
-      {/* ── Hero ─────────────────────────────────────────────── */}
-      <section
-        id="hero-login"
-        className="relative min-h-[92vh] flex items-center overflow-hidden"
-        style={{ background: "linear-gradient(155deg, #1a3a22 0%, #2D5F38 35%, #3A5A40 65%, #1a3a22 100%)" }}
-      >
-        {/* Dot grid */}
-        <div
-          className="absolute inset-0 opacity-[0.07]"
-          style={{ backgroundImage: `radial-gradient(circle, #ffffff 1px, transparent 1px)`, backgroundSize: "36px 36px" }}
-        />
-        {/* Glow blobs */}
-        <div className="absolute top-[-120px] right-[-120px] w-[500px] h-[500px] rounded-full opacity-15" style={{ background: "radial-gradient(circle, #A3B18A 0%, transparent 70%)" }} />
-        <div className="absolute bottom-[-80px] left-[-80px] w-[400px] h-[400px] rounded-full opacity-10" style={{ background: "radial-gradient(circle, #3A5A40 0%, transparent 70%)" }} />
+        {/* Hero content */}
+        <div className="relative flex-1 flex items-center">
+          <div className="max-w-7xl mx-auto px-8 sm:px-12 w-full py-12">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 w-full">
-          <div className="grid lg:grid-cols-[1fr_1fr_380px] gap-8 items-center">
-
-            {/* Col 1: Hero copy */}
-            <div className="hero-copy lg:pr-4">
-              <div
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6 text-xs font-semibold"
-                style={{ background: "rgba(163,177,138,0.15)", border: "1px solid rgba(163,177,138,0.3)", color: "#A3B18A" }}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-[#A3B18A] animate-pulse" />
-                Trusted by savers worldwide
-              </div>
-              <h1 className="text-4xl sm:text-5xl font-black text-white leading-[1.05] mb-6">
-                Save together.<br />
-                <span className="text-white/90">Win together.</span>
-              </h1>
-              <p className="text-white/60 text-base leading-relaxed max-w-sm mb-8">
-                Join trusted rotational savings circles and receive your full group payout — transparently, automatically, and on time.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <a
-                  href="/signup"
-                  className="inline-flex items-center gap-2 font-bold px-6 py-3.5 rounded-xl text-sm transition-all hover:opacity-90 hover:scale-105"
-                  style={{ background: "white", color: "#1a3a22", boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}
+              {/* Left: copy */}
+              <div className="hero-copy">
+                <div
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-8 text-xs font-semibold"
+                  style={{ background: "rgba(163,177,138,0.15)", border: "1px solid rgba(163,177,138,0.3)", color: "#A3B18A" }}
                 >
-                  Start saving free <ArrowRight className="w-4 h-4" />
-                </a>
-                <a
-                  href="#how"
-                  className="inline-flex items-center gap-2 font-semibold px-6 py-3.5 rounded-xl text-sm transition-all hover:bg-white/10"
-                  style={{ color: "white", border: "1px solid rgba(255,255,255,0.2)" }}
-                >
-                  See how it works
-                </a>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#A3B18A] animate-pulse" />
+                  Trusted by savers worldwide
+                </div>
+                <h1 className="text-5xl sm:text-6xl md:text-7xl font-black text-white leading-[1.02] mb-6">
+                  Save together.<br />
+                  <span className="text-white/80">Win together.</span>
+                </h1>
+                <p className="text-white/55 text-lg leading-relaxed max-w-md mb-10">
+                  Join trusted rotational savings circles and receive your full group payout — transparently, automatically, and on time.
+                </p>
+                <div className="flex flex-wrap gap-4">
+                  <a
+                    href="/signup"
+                    className="inline-flex items-center gap-2 font-bold px-7 py-4 rounded-xl text-sm transition-all hover:opacity-90 hover:scale-[1.02]"
+                    style={{ background: "white", color: "#1a3a22", boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }}
+                  >
+                    Start saving free <ArrowRight className="w-4 h-4" />
+                  </a>
+                  <a
+                    href="#how"
+                    className="inline-flex items-center gap-2 font-semibold px-7 py-4 rounded-xl text-sm transition-all hover:bg-white/10"
+                    style={{ color: "white", border: "1px solid rgba(255,255,255,0.25)" }}
+                  >
+                    See how it works
+                  </a>
+                </div>
               </div>
-            </div>
 
-            {/* Col 2: 3D floating elements — desktop */}
-            <div className="hidden lg:flex relative h-80 items-center justify-center">
-              <div className="absolute top-4 left-6 animate-[float_4s_ease-in-out_infinite]">
-                <CoinStack3D className="w-28 h-28 drop-shadow-2xl" />
+              {/* Right: sign-in form only */}
+              <div className="flex justify-center lg:justify-end">
+                <div className="w-full max-w-sm">
+                  <HeroLoginPanel />
+                </div>
               </div>
-              <div className="absolute top-0 left-24 animate-[float_5s_ease-in-out_0.8s_infinite]">
-                <SavingsCard3D className="w-52 drop-shadow-2xl" />
-              </div>
-              <div className="absolute bottom-4 right-4 animate-[float_3.5s_ease-in-out_1.2s_infinite]">
-                <Trophy3D className="w-24 h-28 drop-shadow-2xl" />
-              </div>
-            </div>
 
-            {/* Mobile: 3D elements before sign-in */}
-            <div className="relative h-48 lg:hidden">
-              <div className="absolute left-0 top-4 animate-[float_4s_ease-in-out_infinite]">
-                <CoinStack3D className="w-24 h-24 drop-shadow-2xl" />
-              </div>
-              <div className="absolute left-24 top-0 animate-[float_5s_ease-in-out_0.8s_infinite]">
-                <SavingsCard3D className="w-40 drop-shadow-2xl" />
-              </div>
-              <div className="absolute right-0 top-8 animate-[float_3.5s_ease-in-out_1.5s_infinite]">
-                <Trophy3D className="w-20 h-24 drop-shadow-2xl" />
-              </div>
             </div>
-
-            {/* Col 3: Sign-in form */}
-            <div className="w-full">
-              <HeroLoginPanel />
-            </div>
-
           </div>
         </div>
 
