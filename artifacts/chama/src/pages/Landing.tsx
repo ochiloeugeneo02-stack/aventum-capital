@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useLoginUser } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,19 +24,15 @@ function CoinStack3D({ className = "" }: { className?: string }) {
           <stop offset="100%" stopColor="#FFE066" stopOpacity="0" />
         </linearGradient>
       </defs>
-      {/* Coin 1 — bottom */}
       <ellipse cx="70" cy="130" rx="52" ry="16" fill="url(#coinSide)" />
       <ellipse cx="70" cy="118" rx="52" ry="16" fill="url(#coinTop)" />
       <ellipse cx="70" cy="118" rx="36" ry="10" fill="url(#coinShine)" fillOpacity="0.5" />
-      {/* Coin 2 */}
       <ellipse cx="70" cy="108" rx="52" ry="16" fill="url(#coinSide)" />
       <ellipse cx="70" cy="96" rx="52" ry="16" fill="url(#coinTop)" />
       <ellipse cx="70" cy="96" rx="36" ry="10" fill="url(#coinShine)" fillOpacity="0.5" />
-      {/* Coin 3 */}
       <ellipse cx="70" cy="86" rx="52" ry="16" fill="url(#coinSide)" />
       <ellipse cx="70" cy="74" rx="52" ry="16" fill="url(#coinTop)" />
       <ellipse cx="70" cy="74" rx="36" ry="10" fill="url(#coinShine)" fillOpacity="0.5" />
-      {/* Coin 4 — top */}
       <ellipse cx="70" cy="64" rx="52" ry="16" fill="url(#coinSide)" />
       <ellipse cx="70" cy="52" rx="52" ry="16" fill="url(#coinTop)" />
       <text x="70" y="57" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#8B5A00" fontFamily="serif">$</text>
@@ -63,17 +59,13 @@ function SavingsCard3D({ className = "" }: { className?: string }) {
           <stop offset="100%" stopColor="#C97B1A" />
         </linearGradient>
       </defs>
-      {/* Card shadow */}
       <rect x="8" y="8" width="184" height="114" rx="12" fill="black" fillOpacity="0.25" />
-      {/* Card body */}
       <rect x="2" y="2" width="184" height="114" rx="12" fill="url(#cardBg)" />
       <rect x="2" y="2" width="184" height="114" rx="12" fill="url(#cardShine)" />
-      {/* Chip */}
       <rect x="18" y="28" width="34" height="26" rx="4" fill="url(#chipGold)" />
       <rect x="24" y="33" width="22" height="4" rx="2" fill="#8B5A00" fillOpacity="0.4" />
       <rect x="24" y="40" width="22" height="4" rx="2" fill="#8B5A00" fillOpacity="0.4" />
       <rect x="24" y="47" width="12" height="4" rx="2" fill="#8B5A00" fillOpacity="0.4" />
-      {/* Card number dots */}
       {[30, 66, 102, 138].map((x, i) => (
         <g key={i}>
           <circle cx={x} cy="82" r="3" fill="white" fillOpacity={i === 3 ? 1 : 0.4} />
@@ -82,12 +74,9 @@ function SavingsCard3D({ className = "" }: { className?: string }) {
           {i < 3 && <circle cx={x + 24} cy="82" r="3" fill="white" fillOpacity="0.4" />}
         </g>
       ))}
-      {/* Name */}
       <text x="18" y="108" fontSize="9" fill="white" fillOpacity="0.7" fontFamily="monospace" letterSpacing="1">AVENTUM CAPITAL</text>
-      {/* Network logo (stylized) */}
-      <circle cx="162" cy="38" r="14" fill="#F59E0B" fillOpacity="0.8" />
-      <circle cx="152" cy="38" r="14" fill="#EF4444" fillOpacity="0.6" />
-      {/* Contactless waves */}
+      <circle cx="162" cy="38" r="14" fill="#A3B18A" fillOpacity="0.8" />
+      <circle cx="152" cy="38" r="14" fill="#3A5A40" fillOpacity="0.9" />
       <path d="M168 26 Q175 31 175 38 Q175 45 168 50" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
       <path d="M172 22 Q181 28 181 38 Q181 48 172 54" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.3" />
     </svg>
@@ -109,42 +98,20 @@ function Trophy3D({ className = "" }: { className?: string }) {
           <stop offset="100%" stopColor="white" stopOpacity="0" />
         </linearGradient>
       </defs>
-      {/* Base */}
       <rect x="30" y="102" width="40" height="8" rx="3" fill="url(#trophyGold)" />
       <rect x="38" y="94" width="24" height="10" rx="2" fill="#C97B1A" />
-      {/* Cup body */}
       <path d="M20 20 Q20 78 50 82 Q80 78 80 20 Z" fill="url(#trophyGold)" />
       <path d="M20 20 Q20 78 50 82 Q80 78 80 20 Z" fill="url(#trophyShine)" />
-      {/* Cup handles */}
       <path d="M20 28 Q6 28 6 44 Q6 60 20 60" stroke="#C97B1A" strokeWidth="7" fill="none" strokeLinecap="round" />
       <path d="M80 28 Q94 28 94 44 Q94 60 80 60" stroke="#C97B1A" strokeWidth="7" fill="none" strokeLinecap="round" />
-      {/* Star */}
       <path d="M50 35 L53 45 L63 45 L55 51 L58 61 L50 55 L42 61 L45 51 L37 45 L47 45 Z" fill="white" fillOpacity="0.8" />
-      {/* Top rim */}
       <ellipse cx="50" cy="20" rx="30" ry="8" fill="#F0A030" />
       <ellipse cx="50" cy="20" rx="30" ry="8" fill="url(#trophyShine)" />
     </svg>
   );
 }
 
-/* ─── Floating Orbs / Abstract shapes ─────────────────────── */
-function FloatingOrb({ size = 60, color = "#3A5A40", opacity = 0.15, style = {} }: { size?: number; color?: string; opacity?: number; style?: React.CSSProperties }) {
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        background: `radial-gradient(circle at 35% 35%, ${color}60, ${color}20)`,
-        border: `1px solid ${color}${Math.round(opacity * 255).toString(16).padStart(2, "0")}`,
-        backdropFilter: "blur(8px)",
-        ...style,
-      }}
-    />
-  );
-}
-
-/* ─── 3D Rotating Group Card ──────────────────────────────── */
+/* ─── Floating Group Card ─────────────────────────────────── */
 function GroupCard3D({ name, amount, members, gradient }: { name: string; amount: string; members: number; gradient: string }) {
   return (
     <div
@@ -257,8 +224,8 @@ function HeroLoginPanel() {
         <button
           type="submit"
           disabled={loginMutation.isPending}
-          className="w-full font-semibold py-3 rounded-xl text-sm transition-all flex items-center justify-center gap-2"
-          style={{ background: "linear-gradient(135deg, #F0A030 0%, #E8851A 100%)", color: "white" }}
+          className="w-full font-semibold py-3 rounded-xl text-sm transition-all flex items-center justify-center gap-2 hover:opacity-90"
+          style={{ background: "white", color: "#1a3a22" }}
         >
           {loginMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
           Sign In
@@ -268,7 +235,7 @@ function HeroLoginPanel() {
         <button onClick={() => navigate("/forgot-password")} className="hover:text-white/70 transition-colors">
           Forgot password?
         </button>
-        <button onClick={() => navigate("/signup")} className="text-[#F0A030] font-semibold hover:opacity-80 transition-opacity">
+        <button onClick={() => navigate("/signup")} className="text-white/70 font-semibold hover:text-white transition-colors">
           Create account →
         </button>
       </div>
@@ -299,7 +266,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 function StepCard({ number, title, desc, icon, delay }: { number: string; title: string; desc: string; icon: React.ReactNode; delay: string }) {
   return (
     <div
-      className={`relative rounded-3xl p-8 text-white reveal`}
+      className="relative rounded-3xl p-8 text-white reveal"
       style={{
         background: "linear-gradient(135deg, #2D5F38 0%, #1a3a22 100%)",
         boxShadow: "0 20px 60px rgba(26,58,34,0.35)",
@@ -307,8 +274,11 @@ function StepCard({ number, title, desc, icon, delay }: { number: string; title:
       }}
     >
       <div className="absolute top-5 right-6 text-6xl font-black opacity-10 select-none">{number}</div>
-      <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5" style={{ background: "rgba(240,160,48,0.2)", border: "1px solid rgba(240,160,48,0.3)" }}>
-        <span className="text-[#F0A030]">{icon}</span>
+      <div
+        className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"
+        style={{ background: "rgba(163,177,138,0.2)", border: "1px solid rgba(163,177,138,0.3)" }}
+      >
+        <span className="text-[#A3B18A]">{icon}</span>
       </div>
       <h3 className="text-lg font-bold mb-2">{title}</h3>
       <p className="text-white/60 text-sm leading-relaxed">{desc}</p>
@@ -319,14 +289,17 @@ function StepCard({ number, title, desc, icon, delay }: { number: string; title:
 /* ─── Feature Pill ─────────────────────────────────────────── */
 function FeaturePill({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <div className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium" style={{ background: "rgba(58,90,64,0.08)", border: "1px solid rgba(58,90,64,0.15)", color: "#2D5F38" }}>
+    <div
+      className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium"
+      style={{ background: "rgba(58,90,64,0.08)", border: "1px solid rgba(58,90,64,0.15)", color: "#2D5F38" }}
+    >
       <span className="text-[#3A5A40]">{icon}</span>
       {label}
     </div>
   );
 }
 
-/* ─── Main Landing Component ───────────────────────────────── */
+/* ─── Main Landing ─────────────────────────────────────────── */
 export default function Landing() {
   const { isAuthenticated } = useAuth();
   const [navScrolled, setNavScrolled] = useState(false);
@@ -354,36 +327,45 @@ export default function Landing() {
   return (
     <div className="min-h-screen font-sans overflow-x-hidden" style={{ background: "#f8f6f0" }}>
 
-      {/* ── Navbar ──────────────────────────────────────────── */}
+      {/* ── Navbar — always flows with hero ─────────────────── */}
       <nav
         className="sticky top-0 z-50 transition-all duration-300"
         style={{
-          background: navScrolled ? "rgba(255,255,255,0.95)" : "transparent",
+          background: navScrolled
+            ? "rgba(26,58,34,0.96)"
+            : "transparent",
           backdropFilter: navScrolled ? "blur(16px)" : "none",
-          borderBottom: navScrolled ? "1px solid rgba(58,90,64,0.1)" : "1px solid transparent",
-          boxShadow: navScrolled ? "0 2px 20px rgba(0,0,0,0.08)" : "none",
+          borderBottom: navScrolled ? "1px solid rgba(255,255,255,0.08)" : "1px solid transparent",
         }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <a href="/" className="flex items-center">
-            <Logo variant="dark" />
+            <Logo variant="white" />
           </a>
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium" style={{ color: navScrolled ? "#344E41" : "rgba(255,255,255,0.85)" }}>
-            <a href="#how" className="hover:opacity-100 opacity-75 transition-opacity">How it works</a>
-            <a href="#pricing" className="hover:opacity-100 opacity-75 transition-opacity">Pricing</a>
-            <a href="#faq" className="hover:opacity-100 opacity-75 transition-opacity">FAQ</a>
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/75">
+            <a href="#how" className="hover:text-white transition-colors">How it works</a>
+            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+            <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
           </div>
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
-              <a href="/dashboard" className="text-sm font-semibold px-5 py-2.5 rounded-xl transition-all" style={{ background: "linear-gradient(135deg, #F0A030 0%, #E8851A 100%)", color: "white" }}>
+              <a
+                href="/dashboard"
+                className="text-sm font-semibold px-5 py-2.5 rounded-xl transition-all hover:opacity-90"
+                style={{ background: "white", color: "#1a3a22" }}
+              >
                 Dashboard
               </a>
             ) : (
               <>
-                <a href="#hero-login" className="text-sm font-medium transition-opacity" style={{ color: navScrolled ? "#344E41" : "rgba(255,255,255,0.8)" }}>
+                <a href="#hero-login" className="text-sm font-medium text-white/70 hover:text-white transition-colors">
                   Sign in
                 </a>
-                <a href="/signup" className="text-sm font-semibold px-5 py-2.5 rounded-xl transition-all" style={{ background: "linear-gradient(135deg, #F0A030 0%, #E8851A 100%)", color: "white" }}>
+                <a
+                  href="/signup"
+                  className="text-sm font-semibold px-5 py-2.5 rounded-xl transition-all hover:opacity-90"
+                  style={{ background: "white", color: "#1a3a22" }}
+                >
                   Get Started
                 </a>
               </>
@@ -398,46 +380,52 @@ export default function Landing() {
         className="relative min-h-[92vh] flex items-center overflow-hidden"
         style={{ background: "linear-gradient(155deg, #1a3a22 0%, #2D5F38 35%, #3A5A40 65%, #1a3a22 100%)" }}
       >
-        {/* Animated dot grid */}
+        {/* Dot grid */}
         <div
           className="absolute inset-0 opacity-[0.07]"
-          style={{
-            backgroundImage: `radial-gradient(circle, #ffffff 1px, transparent 1px)`,
-            backgroundSize: "36px 36px",
-          }}
+          style={{ backgroundImage: `radial-gradient(circle, #ffffff 1px, transparent 1px)`, backgroundSize: "36px 36px" }}
         />
-        {/* Large glowing circles */}
-        <div className="absolute top-[-120px] right-[-120px] w-[500px] h-[500px] rounded-full opacity-20" style={{ background: "radial-gradient(circle, #F0A030 0%, transparent 70%)" }} />
-        <div className="absolute bottom-[-80px] left-[-80px] w-[400px] h-[400px] rounded-full opacity-15" style={{ background: "radial-gradient(circle, #A3B18A 0%, transparent 70%)" }} />
+        {/* Glow blobs */}
+        <div className="absolute top-[-120px] right-[-120px] w-[500px] h-[500px] rounded-full opacity-15" style={{ background: "radial-gradient(circle, #A3B18A 0%, transparent 70%)" }} />
+        <div className="absolute bottom-[-80px] left-[-80px] w-[400px] h-[400px] rounded-full opacity-10" style={{ background: "radial-gradient(circle, #3A5A40 0%, transparent 70%)" }} />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-20 w-full">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
 
-            {/* Left: copy + 3D visual */}
+            {/* Left: copy */}
             <div className="hero-copy">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6 text-xs font-semibold" style={{ background: "rgba(240,160,48,0.15)", border: "1px solid rgba(240,160,48,0.3)", color: "#F0A030" }}>
-                <span className="w-1.5 h-1.5 rounded-full bg-[#F0A030] animate-pulse" />
-                Trusted by 10,000+ savers worldwide
+              <div
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6 text-xs font-semibold"
+                style={{ background: "rgba(163,177,138,0.15)", border: "1px solid rgba(163,177,138,0.3)", color: "#A3B18A" }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-[#A3B18A] animate-pulse" />
+                Trusted by savers worldwide
               </div>
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white leading-[1.05] mb-6">
                 Save together.<br />
-                <span style={{ background: "linear-gradient(135deg, #F0A030 0%, #FFE066 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                  Win together.
-                </span>
+                <span className="text-white/90">Win together.</span>
               </h1>
               <p className="text-white/60 text-base sm:text-lg leading-relaxed max-w-md mb-8">
                 Join trusted rotational savings circles and receive your full group payout — transparently, automatically, and on time.
               </p>
               <div className="flex flex-wrap gap-3 mb-10">
-                <a href="/signup" className="inline-flex items-center gap-2 font-bold px-6 py-3.5 rounded-xl text-sm transition-all hover:scale-105" style={{ background: "linear-gradient(135deg, #F0A030 0%, #E8851A 100%)", color: "white", boxShadow: "0 8px 24px rgba(240,160,48,0.4)" }}>
+                <a
+                  href="/signup"
+                  className="inline-flex items-center gap-2 font-bold px-6 py-3.5 rounded-xl text-sm transition-all hover:opacity-90 hover:scale-105"
+                  style={{ background: "white", color: "#1a3a22", boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}
+                >
                   Start saving free <ArrowRight className="w-4 h-4" />
                 </a>
-                <a href="#how" className="inline-flex items-center gap-2 font-semibold px-6 py-3.5 rounded-xl text-sm transition-all hover:bg-white/10" style={{ color: "white", border: "1px solid rgba(255,255,255,0.2)" }}>
+                <a
+                  href="#how"
+                  className="inline-flex items-center gap-2 font-semibold px-6 py-3.5 rounded-xl text-sm transition-all hover:bg-white/10"
+                  style={{ color: "white", border: "1px solid rgba(255,255,255,0.2)" }}
+                >
                   See how it works
                 </a>
               </div>
 
-              {/* 3D Elements Scene */}
+              {/* 3D elements — mobile only */}
               <div className="relative h-52 sm:h-64 lg:hidden">
                 <div className="absolute left-0 top-4 animate-[float_4s_ease-in-out_infinite]">
                   <CoinStack3D className="w-28 h-28 drop-shadow-2xl" />
@@ -449,25 +437,10 @@ export default function Landing() {
                   <Trophy3D className="w-20 h-24 drop-shadow-2xl" />
                 </div>
               </div>
-
-              {/* Stats */}
-              <div className="flex gap-8 flex-wrap">
-                {[
-                  { val: "$2.4M+", label: "Paid out" },
-                  { val: "99.8%", label: "On-time rate" },
-                  { val: "10K+", label: "Members" },
-                ].map((s) => (
-                  <div key={s.label}>
-                    <div className="text-2xl font-black text-white">{s.val}</div>
-                    <div className="text-xs text-white/40 font-medium">{s.label}</div>
-                  </div>
-                ))}
-              </div>
             </div>
 
-            {/* Right: Login + 3D elements */}
+            {/* Right: 3D elements + login */}
             <div className="hero-panel flex flex-col items-center lg:items-end gap-8">
-              {/* 3D floating elements — desktop only */}
               <div className="hidden lg:block relative w-full">
                 <div className="absolute top-0 left-4 animate-[float_4s_ease-in-out_infinite]">
                   <CoinStack3D className="w-32 h-32 drop-shadow-2xl" />
@@ -480,18 +453,15 @@ export default function Landing() {
                 </div>
                 <div className="pt-40" />
               </div>
-
-              {/* Sample group cards */}
-              <div className="w-full max-w-sm space-y-3 hidden lg:block">
+              <div className="w-full max-w-sm hidden lg:block">
                 <GroupCard3D name="Alpha Savers" amount="$1,250 / mo" members={5} gradient="linear-gradient(135deg, #2D5F38 0%, #1a3a22 100%)" />
               </div>
-
               <HeroLoginPanel />
             </div>
           </div>
         </div>
 
-        {/* Bottom wave */}
+        {/* Wave transition */}
         <div className="absolute bottom-0 left-0 right-0">
           <svg viewBox="0 0 1440 80" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
             <path d="M0 80 L0 40 Q360 0 720 40 Q1080 80 1440 40 L1440 80 Z" fill="#f8f6f0" />
@@ -499,7 +469,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Social proof strip ──────────────────────────────── */}
+      {/* ── Trust strip ─────────────────────────────────────── */}
       <section className="py-10 bg-[#f8f6f0]">
         <div className="max-w-5xl mx-auto px-6">
           <p className="text-center text-xs font-semibold uppercase tracking-widest text-[#3A5A40]/40 mb-6">Trusted across 30+ countries</p>
@@ -520,39 +490,21 @@ export default function Landing() {
             <p className="text-[#5a7a60] max-w-md mx-auto text-base">Three simple steps to start saving and receiving payouts with your circle.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
-            <StepCard
-              number="1"
-              title="Join or Create a Group"
-              desc="Start with 3-10 trusted people. Set your contribution amount and schedule. Everyone commits together."
-              icon={<Users className="w-5 h-5" />}
-              delay="0s"
-            />
-            <StepCard
-              number="2"
-              title="Contribute Every Cycle"
-              desc="Automated reminders and Stripe payments make contributing effortless. Never miss your cycle again."
-              icon={<Zap className="w-5 h-5" />}
-              delay="0.1s"
-            />
-            <StepCard
-              number="3"
-              title="Receive Your Full Payout"
-              desc="When it's your turn, the entire group pool lands in your account. Everyone gets their turn."
-              icon={<BarChart3 className="w-5 h-5" />}
-              delay="0.2s"
-            />
+            <StepCard number="1" title="Join or Create a Group" desc="Start with 3–10 trusted people. Set your contribution amount and schedule. Everyone commits together." icon={<Users className="w-5 h-5" />} delay="0s" />
+            <StepCard number="2" title="Contribute Every Cycle" desc="Automated reminders and Stripe payments make contributing effortless. Never miss your cycle again." icon={<Zap className="w-5 h-5" />} delay="0.1s" />
+            <StepCard number="3" title="Receive Your Full Payout" desc="When it's your turn, the entire group pool lands in your account. Everyone gets their turn." icon={<BarChart3 className="w-5 h-5" />} delay="0.2s" />
           </div>
         </div>
       </section>
 
-      {/* ── Why Aventum — Feature grid ──────────────────────── */}
-      <section id="features" className="py-20" style={{ background: "white" }}>
+      {/* ── Why Aventum ─────────────────────────────────────── */}
+      <section id="features" className="py-20 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="reveal">
-              <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-5" style={{ background: "rgba(240,160,48,0.12)", color: "#C97B1A" }}>Why choose us</span>
+              <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-5" style={{ background: "rgba(58,90,64,0.1)", color: "#2D5F38" }}>Why choose us</span>
               <h2 className="text-3xl sm:text-4xl font-black text-[#1a3a22] mb-5">
-                Built for serious<br />savers & groups
+                Built for serious<br />savers &amp; groups
               </h2>
               <p className="text-[#5a7a60] text-base leading-relaxed mb-8">
                 Aventum Capital brings the power of traditional rotating savings circles into the digital age — with the security, automation, and transparency that modern savers deserve.
@@ -567,15 +519,11 @@ export default function Landing() {
             <div className="grid grid-cols-2 gap-4 reveal reveal-d2">
               {[
                 { title: "Stripe Payments", desc: "Secure card payments with automatic retry and fraud protection.", icon: "💳", bg: "linear-gradient(135deg, #1a3a22 0%, #2D5F38 100%)", color: "white" },
-                { title: "Real-time Tracking", desc: "See who's paid, who's next, and when your payout arrives.", icon: "📊", bg: "linear-gradient(135deg, #F0A030 0%, #C97B1A 100%)", color: "white" },
+                { title: "Real-time Tracking", desc: "See who's paid, who's next, and when your payout arrives.", icon: "📊", bg: "linear-gradient(135deg, #3A5A40 0%, #2D5F38 100%)", color: "white" },
                 { title: "Multi-currency", desc: "USD, EUR, GBP, KES and 30+ more currencies supported globally.", icon: "🌍", bg: "linear-gradient(135deg, #f0f7f0 0%, #dceede 100%)", color: "#1a3a22" },
-                { title: "Group Chat", desc: "Built-in messaging so your circle stays coordinated.", icon: "💬", bg: "linear-gradient(135deg, #fff8ed 0%, #fdecc8 100%)", color: "#8B5A00" },
+                { title: "Group Chat", desc: "Built-in messaging so your circle stays coordinated.", icon: "💬", bg: "linear-gradient(135deg, #eef5ee 0%, #d4e8d4 100%)", color: "#1a3a22" },
               ].map((f) => (
-                <div
-                  key={f.title}
-                  className="rounded-2xl p-6"
-                  style={{ background: f.bg, color: f.color }}
-                >
+                <div key={f.title} className="rounded-2xl p-6" style={{ background: f.bg, color: f.color }}>
                   <div className="text-2xl mb-3">{f.icon}</div>
                   <div className="font-bold text-sm mb-1">{f.title}</div>
                   <div className="text-xs opacity-70 leading-relaxed">{f.desc}</div>
@@ -586,7 +534,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── 3D Showcase / Quote section ─────────────────────── */}
+      {/* ── Showcase / Mission section ───────────────────────── */}
       <section className="py-20 relative overflow-hidden" style={{ background: "linear-gradient(155deg, #1a3a22 0%, #2D5F38 40%, #3A5A40 100%)" }}>
         <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: `radial-gradient(circle, #ffffff 1px, transparent 1px)`, backgroundSize: "40px 40px" }} />
         <div className="absolute top-10 right-10 animate-[float_6s_ease-in-out_infinite]">
@@ -595,10 +543,9 @@ export default function Landing() {
         <div className="absolute bottom-10 right-40 animate-[float_5s_ease-in-out_2s_infinite]">
           <Trophy3D className="w-28 h-32 opacity-40" />
         </div>
-
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
-            {/* 3D card mockup */}
+            {/* Dashboard mockup */}
             <div className="reveal flex flex-col gap-4">
               <div
                 className="rounded-3xl p-8 text-white relative overflow-hidden"
@@ -610,9 +557,7 @@ export default function Landing() {
                 }}
               >
                 <div className="text-xs font-semibold uppercase tracking-widest opacity-50 mb-3">Your payout this cycle</div>
-                <div className="text-5xl font-black mb-2" style={{ background: "linear-gradient(135deg, #F0A030 0%, #FFE066 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                  $2,500
-                </div>
+                <div className="text-5xl font-black text-white mb-2">$2,500</div>
                 <div className="text-white/50 text-sm mb-6">Alpha Savers · Cycle 3 of 5</div>
                 <div className="flex items-center gap-3 mb-4">
                   {["A", "O", "M", "J", "K"].map((l, i) => (
@@ -623,24 +568,27 @@ export default function Landing() {
                 </div>
                 <div className="flex gap-2">
                   {[1, 1, 1, 0, 0].map((p, i) => (
-                    <div key={i} className="flex-1 h-1.5 rounded-full" style={{ background: p ? "#F0A030" : "rgba(255,255,255,0.2)" }} />
+                    <div key={i} className="flex-1 h-1.5 rounded-full" style={{ background: p ? "#A3B18A" : "rgba(255,255,255,0.2)" }} />
                   ))}
                 </div>
                 <div className="text-xs text-white/40 mt-1">3 / 5 members paid this cycle</div>
               </div>
               <SavingsCard3D className="w-56 self-center opacity-80" />
             </div>
-
             {/* Text */}
             <div className="reveal reveal-d2">
-              <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-6" style={{ background: "rgba(240,160,48,0.2)", color: "#F0A030" }}>Our mission</span>
+              <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-6" style={{ background: "rgba(163,177,138,0.2)", color: "#A3B18A" }}>Our mission</span>
               <blockquote className="text-white text-xl sm:text-2xl font-light leading-relaxed mb-6">
-                "We make saving <strong className="font-black text-[#FFE066]">simple</strong>, powerful, and collaborative. Together, we turn collective effort into real financial momentum."
+                "We make saving <strong className="font-black text-white">simple</strong>, powerful, and collaborative. Together, we turn collective effort into real financial momentum."
               </blockquote>
               <p className="text-white/50 text-sm leading-relaxed mb-8">
                 At Aventum Capital, everyone in a group contributes a fixed amount each cycle. The full pool goes to one member at a time — rotating until everyone has received their share.
               </p>
-              <a href="/signup" className="inline-flex items-center gap-2 font-semibold px-6 py-3 rounded-xl text-sm transition-all hover:scale-105" style={{ background: "linear-gradient(135deg, #F0A030 0%, #E8851A 100%)", color: "white" }}>
+              <a
+                href="/signup"
+                className="inline-flex items-center gap-2 font-semibold px-6 py-3 rounded-xl text-sm transition-all hover:scale-105 hover:opacity-90"
+                style={{ background: "white", color: "#1a3a22" }}
+              >
                 Join a circle today <ArrowRight className="w-4 h-4" />
               </a>
             </div>
@@ -657,8 +605,7 @@ export default function Landing() {
             <p className="text-[#5a7a60] text-base">Start free, scale as your circle grows.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-
-            {/* Custom / Free */}
+            {/* Free */}
             <div className="bg-white rounded-3xl p-8 flex flex-col reveal reveal-d1 border border-[#3A5A40]/10 hover:shadow-lg transition-all">
               <div className="flex-1">
                 <h3 className="font-black text-[#1a3a22] text-xl mb-1">Custom</h3>
@@ -666,28 +613,29 @@ export default function Landing() {
                 <div className="text-5xl font-black text-[#1a3a22] mb-1">$0</div>
                 <div className="text-sm text-[#5a7a60] mb-8">Forever free</div>
               </div>
-              <a href="/signup" className="block w-full text-center font-semibold py-3 rounded-xl text-sm transition-all mb-8" style={{ border: "2px solid #3A5A40", color: "#3A5A40" }}
-                onMouseEnter={(e) => { (e.target as HTMLElement).style.background = "#3A5A40"; (e.target as HTMLElement).style.color = "white"; }}
-                onMouseLeave={(e) => { (e.target as HTMLElement).style.background = "transparent"; (e.target as HTMLElement).style.color = "#3A5A40"; }}>
+              <a
+                href="/signup"
+                className="block w-full text-center font-semibold py-3 rounded-xl text-sm transition-all mb-8 hover:bg-[#3A5A40] hover:text-white"
+                style={{ border: "2px solid #3A5A40", color: "#3A5A40" }}
+              >
                 Get Started Free
               </a>
               <ul className="space-y-3">
                 {["Personalized contribution amount", "Custom group settings", "Group analytics", "Community access", "Add-on purchases available"].map(f => (
                   <li key={f} className="flex items-start gap-2.5 text-sm text-[#4a6a50]">
-                    <CheckCircle2 className="w-4 h-4 text-[#3A5A40] shrink-0 mt-0.5" />
-                    {f}
+                    <CheckCircle2 className="w-4 h-4 text-[#3A5A40] shrink-0 mt-0.5" />{f}
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* Group 1 — featured */}
+            {/* Featured */}
             <div
               className="rounded-3xl p-8 flex flex-col reveal reveal-d2 relative"
               style={{ background: "linear-gradient(155deg, #1a3a22 0%, #2D5F38 60%, #3A5A40 100%)", boxShadow: "0 30px 80px rgba(26,58,34,0.4)" }}
             >
               <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                <span className="font-bold px-4 py-1.5 rounded-full text-xs" style={{ background: "linear-gradient(135deg, #F0A030, #E8851A)", color: "white" }}>Most Popular</span>
+                <span className="font-bold px-4 py-1.5 rounded-full text-xs text-white" style={{ background: "#3A5A40", border: "1px solid rgba(163,177,138,0.4)" }}>Most Popular</span>
               </div>
               <div className="flex-1">
                 <h3 className="font-black text-white text-xl mb-1">Group 1</h3>
@@ -695,14 +643,17 @@ export default function Landing() {
                 <div className="text-5xl font-black text-white mb-1">$50</div>
                 <div className="text-sm text-white/40 mb-8">per month</div>
               </div>
-              <a href="/signup" className="block w-full text-center font-bold py-3 rounded-xl text-sm transition-all mb-8 hover:scale-105" style={{ background: "linear-gradient(135deg, #F0A030 0%, #E8851A 100%)", color: "white" }}>
+              <a
+                href="/signup"
+                className="block w-full text-center font-bold py-3 rounded-xl text-sm transition-all mb-8 hover:scale-105 hover:opacity-90"
+                style={{ background: "white", color: "#1a3a22" }}
+              >
                 Get Started Now
               </a>
               <ul className="space-y-3">
                 {["Receive $1,250 at your turn", "Full group chat", "Real-time analytics dashboard", "Milestone in 3 months", "Priority support"].map(f => (
                   <li key={f} className="flex items-start gap-2.5 text-sm text-white/70">
-                    <CheckCircle2 className="w-4 h-4 text-[#F0A030] shrink-0 mt-0.5" />
-                    {f}
+                    <CheckCircle2 className="w-4 h-4 text-[#A3B18A] shrink-0 mt-0.5" />{f}
                   </li>
                 ))}
               </ul>
@@ -716,16 +667,17 @@ export default function Landing() {
                 <div className="text-5xl font-black text-[#1a3a22] mb-1">$100</div>
                 <div className="text-sm text-[#5a7a60] mb-8">per month</div>
               </div>
-              <a href="/signup" className="block w-full text-center font-semibold py-3 rounded-xl text-sm transition-all mb-8" style={{ border: "2px solid #3A5A40", color: "#3A5A40" }}
-                onMouseEnter={(e) => { (e.target as HTMLElement).style.background = "#3A5A40"; (e.target as HTMLElement).style.color = "white"; }}
-                onMouseLeave={(e) => { (e.target as HTMLElement).style.background = "transparent"; (e.target as HTMLElement).style.color = "#3A5A40"; }}>
+              <a
+                href="/signup"
+                className="block w-full text-center font-semibold py-3 rounded-xl text-sm transition-all mb-8 hover:bg-[#3A5A40] hover:text-white"
+                style={{ border: "2px solid #3A5A40", color: "#3A5A40" }}
+              >
                 Get Started Now
               </a>
               <ul className="space-y-3">
                 {["Receive $2,500 at your turn", "Full group chat", "Advanced analytics", "Milestone in 5 months", "Priority support"].map(f => (
                   <li key={f} className="flex items-start gap-2.5 text-sm text-[#4a6a50]">
-                    <CheckCircle2 className="w-4 h-4 text-[#3A5A40] shrink-0 mt-0.5" />
-                    {f}
+                    <CheckCircle2 className="w-4 h-4 text-[#3A5A40] shrink-0 mt-0.5" />{f}
                   </li>
                 ))}
               </ul>
@@ -735,20 +687,21 @@ export default function Landing() {
       </section>
 
       {/* ── Referral CTA Banner ──────────────────────────────── */}
-      <section className="py-16 relative overflow-hidden">
-        <div
-          className="absolute inset-0"
-          style={{ background: "linear-gradient(135deg, #F0A030 0%, #E8851A 40%, #C97B1A 100%)" }}
-        />
-        <div className="absolute top-0 right-0 w-96 h-full opacity-20">
+      <section className="py-16 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #1a3a22 0%, #2D5F38 50%, #344E41 100%)" }}>
+        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: `radial-gradient(circle, #ffffff 1px, transparent 1px)`, backgroundSize: "32px 32px" }} />
+        <div className="absolute top-0 right-0 w-80 h-full opacity-15">
           <Trophy3D className="w-full h-full" />
         </div>
         <div className="relative max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-6 reveal">
           <div>
             <h2 className="text-2xl sm:text-3xl font-black text-white mb-1">Invite friends, save together</h2>
-            <p className="text-white/70 text-sm">Every member you invite strengthens the circle — and your returns.</p>
+            <p className="text-white/60 text-sm">Every member you invite strengthens the circle — and your returns.</p>
           </div>
-          <a href="/signup" className="inline-flex items-center gap-2 font-bold px-8 py-4 rounded-2xl text-sm whitespace-nowrap transition-all hover:scale-105" style={{ background: "white", color: "#C97B1A" }}>
+          <a
+            href="/signup"
+            className="inline-flex items-center gap-2 font-bold px-8 py-4 rounded-2xl text-sm whitespace-nowrap transition-all hover:scale-105 hover:opacity-90"
+            style={{ background: "white", color: "#1a3a22" }}
+          >
             Start your circle <ArrowRight className="w-4 h-4" />
           </a>
         </div>
@@ -779,14 +732,12 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-6 pt-16 pb-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
             <div className="col-span-2 md:col-span-1">
-              <div className="mb-4">
-                <Logo variant="white" />
-              </div>
+              <div className="mb-4"><Logo variant="white" /></div>
               <p className="text-white/40 text-xs mb-5 leading-relaxed">Rotational savings for the modern world.</p>
               <p className="text-white/40 text-xs mb-3 font-semibold uppercase tracking-wider">Newsletter</p>
               <div className="flex gap-2">
                 <input type="email" placeholder="your@email.com" className="flex-1 text-xs px-3 py-2 rounded-lg text-white placeholder-white/30 focus:outline-none min-w-0" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }} />
-                <button className="px-3 py-2 rounded-lg transition-colors" style={{ background: "#F0A030" }}>
+                <button className="px-3 py-2 rounded-lg transition-colors hover:opacity-80" style={{ background: "#3A5A40", border: "1px solid rgba(163,177,138,0.3)" }}>
                   <ArrowRight className="w-4 h-4 text-white" />
                 </button>
               </div>
@@ -830,7 +781,6 @@ export default function Landing() {
         </div>
       </footer>
 
-      {/* Float animation */}
       <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
