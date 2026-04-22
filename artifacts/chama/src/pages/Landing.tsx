@@ -302,13 +302,6 @@ function FeaturePill({ icon, label }: { icon: React.ReactNode; label: string }) 
 /* ─── Main Landing ─────────────────────────────────────────── */
 export default function Landing() {
   const { isAuthenticated } = useAuth();
-  const [navScrolled, setNavScrolled] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setNavScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   useEffect(() => {
     const els = document.querySelectorAll(".reveal");
@@ -327,48 +320,17 @@ export default function Landing() {
   return (
     <div className="min-h-screen font-sans overflow-x-hidden" style={{ background: "#f8f6f0" }}>
 
-      {/* ── Navbar — always flows with hero ─────────────────── */}
-      <nav
-        className="sticky top-0 z-50 transition-all duration-300"
-        style={{
-          background: navScrolled
-            ? "rgba(26,58,34,0.96)"
-            : "transparent",
-          backdropFilter: navScrolled ? "blur(16px)" : "none",
-          borderBottom: navScrolled ? "1px solid rgba(255,255,255,0.08)" : "1px solid transparent",
-        }}
-      >
+      {/* ── Navbar — logo only, transparent over hero ──────── */}
+      <nav className="sticky top-0 z-50" style={{ background: "transparent" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <a href="/" className="flex items-center">
             <Logo variant="white" />
           </a>
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/75">
-            <a href="#how" className="hover:text-white transition-colors">How it works</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-            <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
-          </div>
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
-              <a
-                href="/dashboard"
-                className="text-sm font-semibold px-5 py-2.5 rounded-xl transition-all hover:opacity-90"
-                style={{ background: "white", color: "#1a3a22" }}
-              >
-                Dashboard
-              </a>
+              <a href="/dashboard" className="nav-cta-btn">Dashboard</a>
             ) : (
-              <>
-                <a href="#hero-login" className="text-sm font-medium text-white/70 hover:text-white transition-colors">
-                  Sign in
-                </a>
-                <a
-                  href="/signup"
-                  className="text-sm font-semibold px-5 py-2.5 rounded-xl transition-all hover:opacity-90"
-                  style={{ background: "white", color: "#1a3a22" }}
-                >
-                  Get Started
-                </a>
-              </>
+              <a href="/signup" className="nav-cta-btn">Get Started</a>
             )}
           </div>
         </div>
@@ -786,6 +748,21 @@ export default function Landing() {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
           33% { transform: translateY(-12px) rotate(1deg); }
           66% { transform: translateY(-6px) rotate(-0.5deg); }
+        }
+        .nav-cta-btn {
+          font-size: 0.875rem;
+          font-weight: 600;
+          padding: 0.625rem 1.25rem;
+          border-radius: 0.75rem;
+          background: rgba(255,255,255,0.15);
+          color: white;
+          border: 1px solid rgba(255,255,255,0.25);
+          text-decoration: none;
+          transition: background 0.2s, border-color 0.2s;
+        }
+        .nav-cta-btn:hover {
+          background: rgba(255,255,255,0.25);
+          border-color: rgba(255,255,255,0.4);
         }
       `}</style>
     </div>
