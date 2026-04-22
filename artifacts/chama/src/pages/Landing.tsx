@@ -348,7 +348,7 @@ export default function Landing() {
         <div className="absolute top-[-120px] right-[-120px] w-[500px] h-[500px] rounded-full opacity-15" style={{ background: "radial-gradient(circle, #A3B18A 0%, transparent 70%)" }} />
         <div className="absolute bottom-[-80px] left-[-80px] w-[400px] h-[400px] rounded-full opacity-10" style={{ background: "radial-gradient(circle, #3A5A40 0%, transparent 70%)" }} />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-10 w-full flex-1 flex items-center">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pb-16 pt-4 w-full">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
 
             {/* Left: copy */}
