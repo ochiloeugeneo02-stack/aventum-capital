@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Chama by Aventum"
+title = "aventum capital"
 version = "1.0.0"
 id = "artifacts/chama"
 router = "path"
