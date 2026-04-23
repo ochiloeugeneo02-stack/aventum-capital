@@ -25,13 +25,13 @@ export function Logo({ variant = "dark", className = "", iconOnly = false }: Log
   const color = variant === "white" ? "#ffffff" : "#0d1f10";
 
   return (
-    <div className={`select-none ${className}`} style={{ lineHeight: 1 }}>
+    <div className={`select-none ${className}`} style={{ lineHeight: 1.1 }}>
       <div
         style={{
           color,
-          fontSize: "26px",
-          fontWeight: 300,
-          letterSpacing: "-0.01em",
+          fontSize: "32px",
+          fontWeight: 400,
+          letterSpacing: "-0.02em",
           fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Inter', sans-serif",
         }}
       >
@@ -40,12 +40,12 @@ export function Logo({ variant = "dark", className = "", iconOnly = false }: Log
       <div
         style={{
           color,
-          fontSize: "11px",
+          fontSize: "12px",
           fontWeight: 400,
-          letterSpacing: "0.04em",
+          letterSpacing: "0.08em",
           fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Inter', sans-serif",
-          opacity: variant === "white" ? 0.75 : 0.6,
-          marginTop: "1px",
+          opacity: 0.9,
+          marginTop: "2px",
         }}
       >
         capital

@@ -336,7 +336,7 @@ export default function Landing() {
         <div className="absolute bottom-[-60px] left-[-60px] w-[360px] h-[360px] rounded-full opacity-10" style={{ background: "radial-gradient(circle, #3A5A40 0%, transparent 70%)" }} />
 
         {/* Logo row — sits at top inside the green */}
-        <div className="relative z-20 flex items-center justify-between px-8 sm:px-12 pt-8 pb-0 shrink-0">
+        <div className="relative z-20 flex items-center justify-between px-8 sm:px-12 pt-10 pb-0 shrink-0">
           <a href="/" className="select-none">
             <Logo variant="white" />
           </a>
