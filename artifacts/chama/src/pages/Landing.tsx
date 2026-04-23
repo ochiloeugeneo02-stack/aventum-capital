@@ -319,7 +319,6 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen font-sans overflow-x-hidden" style={{ background: "#1a3a22" }}>
-
       {/* ── Hero — green flows to top ───────────────────────── */}
       <section
         id="hero-login"
@@ -367,7 +366,7 @@ export default function Landing() {
                   className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-8 text-xs font-semibold"
                   style={{ background: "rgba(163,177,138,0.15)", border: "1px solid rgba(163,177,138,0.3)", color: "#A3B18A" }}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#A3B18A] animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full animate-pulse text-[#ffffff] bg-[#ffffff] border-t-[#ffffff] border-r-[#ffffff] border-b-[#ffffff] border-l-[#ffffff]" />
                   Trusted by savers worldwide
                 </div>
                 <h1 className="text-5xl sm:text-6xl md:text-7xl font-black text-white leading-[1.02] mb-6">
@@ -413,7 +412,6 @@ export default function Landing() {
           </svg>
         </div>
       </section>
-
       {/* ── Trust strip ─────────────────────────────────────── */}
       <section className="py-10 bg-[#f8f6f0]">
         <div className="max-w-5xl mx-auto px-6">
@@ -425,7 +423,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
       {/* ── How It Works ────────────────────────────────────── */}
       <section id="how" className="py-20 bg-[#f8f6f0]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -441,7 +438,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
       {/* ── Why Aventum ─────────────────────────────────────── */}
       <section id="features" className="py-20 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -478,7 +474,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
       {/* ── Showcase / Mission section ───────────────────────── */}
       <section className="py-20 relative overflow-hidden" style={{ background: "linear-gradient(155deg, #1a3a22 0%, #2D5F38 40%, #3A5A40 100%)" }}>
         <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: `radial-gradient(circle, #ffffff 1px, transparent 1px)`, backgroundSize: "40px 40px" }} />
@@ -540,7 +535,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
       {/* ── Pricing ─────────────────────────────────────────── */}
       <section id="pricing" className="py-20 bg-[#f8f6f0]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -630,7 +624,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
       {/* ── Referral CTA Banner ──────────────────────────────── */}
       <section className="py-16 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #1a3a22 0%, #2D5F38 50%, #344E41 100%)" }}>
         <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: `radial-gradient(circle, #ffffff 1px, transparent 1px)`, backgroundSize: "32px 32px" }} />
@@ -651,7 +644,6 @@ export default function Landing() {
           </a>
         </div>
       </section>
-
       {/* ── FAQ ─────────────────────────────────────────────── */}
       <section id="faq" className="py-20 bg-white">
         <div className="max-w-3xl mx-auto px-6">
@@ -671,7 +663,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
       {/* ── Footer ──────────────────────────────────────────── */}
       <footer id="footer" style={{ background: "linear-gradient(155deg, #1a3a22 0%, #2D5F38 100%)" }}>
         <div className="max-w-6xl mx-auto px-6 pt-16 pb-10">
@@ -725,7 +716,6 @@ export default function Landing() {
           </div>
         </div>
       </footer>
-
       <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
