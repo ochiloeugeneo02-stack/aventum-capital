@@ -684,14 +684,6 @@ export default function Landing() {
               </div>
             </div>
             <div>
-              <h4 className="text-white text-xs font-semibold uppercase tracking-wider mb-5">About</h4>
-              <ul className="space-y-3">
-                {["Company", "Team", "Careers", "Press"].map(l => (
-                  <li key={l}><a href="#" className="text-xs text-white/40 hover:text-white transition-colors">{l}</a></li>
-                ))}
-              </ul>
-            </div>
-            <div>
               <h4 className="text-white text-xs font-semibold uppercase tracking-wider mb-5">Product</h4>
               <ul className="space-y-3">
                 {[{ label: "How it works", href: "#how" }, { label: "Pricing", href: "#pricing" }, { label: "Security", href: "#" }, { label: "Support", href: "mailto:info@aventumcapital.com" }].map(l => (
