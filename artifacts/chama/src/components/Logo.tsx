@@ -1,19 +1,10 @@
 /**
  * Logo component — Aventum Capital
  *
- * The source PNG is 500×500 px with "Aventum / capital" text
- * in the top ~30% and whitespace below.
- *
- * We scale the image to width:220px (→ rendered height: 220px)
- * and clip the container to 64px tall — showing only the text area.
- * This is a pure CROP: no stretching, no distortion, native aspect ratio kept.
- *
- * variant="dark"  → black text on transparent bg, for white/light backgrounds
- * variant="white" → white text via brightness(0)+invert(1), for dark backgrounds
- * iconOnly        → AC initials icon tile for tight spaces
+ * variant="dark"  → icon + "Aventum / CAPITAL" on white/light backgrounds (navbar)
+ * variant="white" → icon + "Aventum / CAPITAL" white on dark green backgrounds
+ * iconOnly        → AC icon tile only, for sidebars and tight spaces
  */
-
-import logoTransparent from "@/assets/logo-main-transparent.png";
 
 interface LogoProps {
   variant?: "dark" | "white";
@@ -22,6 +13,9 @@ interface LogoProps {
 }
 
 export function Logo({ variant = "dark", className = "", iconOnly = false }: LogoProps) {
+  const textColor   = variant === "white" ? "#ffffff"   : "#1a3a22";
+  const subColor    = variant === "white" ? "rgba(255,255,255,0.7)" : "rgba(26,58,34,0.55)";
+
   if (iconOnly) {
     return (
       <img
@@ -33,21 +27,36 @@ export function Logo({ variant = "dark", className = "", iconOnly = false }: Log
   }
 
   return (
-    <div
-      className={className}
-      style={{ width: "220px", height: "64px", overflow: "hidden", flexShrink: 0, lineHeight: 0 }}
-    >
+    <div className={`flex items-center gap-3 select-none ${className}`}>
+      {/* Green rounded icon */}
       <img
-        src={logoTransparent}
-        alt="Aventum Capital"
-        draggable={false}
-        style={{
-          width: "220px",   /* scale to 220px wide → 220px tall (1:1 aspect ratio) */
-          height: "auto",   /* maintain native aspect ratio */
-          display: "block",
-          filter: variant === "white" ? "brightness(0) invert(1)" : "none",
-        }}
+        src="/logo-icon-sage.png"
+        alt=""
+        aria-hidden="true"
+        style={{ height: "44px", width: "44px", borderRadius: "10px", flexShrink: 0 }}
       />
+      {/* Wordmark */}
+      <div style={{ lineHeight: 1.1 }}>
+        <div style={{
+          color: textColor,
+          fontSize: "22px",
+          fontWeight: 500,
+          letterSpacing: "-0.01em",
+          fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif",
+        }}>
+          Aventum
+        </div>
+        <div style={{
+          color: subColor,
+          fontSize: "10px",
+          fontWeight: 600,
+          letterSpacing: "0.18em",
+          textTransform: "uppercase",
+          fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif",
+        }}>
+          Capital
+        </div>
+      </div>
     </div>
   );
 }

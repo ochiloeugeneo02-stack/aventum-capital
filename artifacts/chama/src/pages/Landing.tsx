@@ -320,11 +320,25 @@ export default function Landing() {
   return (
     <div className="min-h-screen font-sans overflow-x-hidden" style={{ background: "#1a3a22" }}>
 
-      {/* ── Hero — green flows to top, logo floats inside ────── */}
+      {/* ── White Navbar ────────────────────────────────────── */}
+      <nav className="w-full bg-white flex items-center justify-between px-8 sm:px-12 py-3 z-30 relative" style={{ borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
+        <a href="/" className="select-none">
+          <Logo variant="dark" />
+        </a>
+        <div>
+          {isAuthenticated ? (
+            <a href="/dashboard" style={{ fontSize: "0.875rem", fontWeight: 600, padding: "0.625rem 1.25rem", borderRadius: "0.75rem", background: "#2D5F38", color: "#fff", textDecoration: "none", border: "none" }}>Dashboard</a>
+          ) : (
+            <a href="/signup" style={{ fontSize: "0.875rem", fontWeight: 600, padding: "0.625rem 1.25rem", borderRadius: "0.75rem", background: "#2D5F38", color: "#fff", textDecoration: "none", border: "none" }}>Get Started</a>
+          )}
+        </div>
+      </nav>
+
+      {/* ── Hero — green below navbar ───────────────────────── */}
       <section
         id="hero-login"
-        className="relative min-h-screen flex flex-col overflow-hidden"
-        style={{ background: "linear-gradient(155deg, #1a3a22 0%, #2D5F38 40%, #3A5A40 70%, #1a3a22 100%)" }}
+        className="relative flex flex-col overflow-hidden"
+        style={{ background: "linear-gradient(155deg, #1a3a22 0%, #2D5F38 40%, #3A5A40 70%, #1a3a22 100%)", minHeight: "calc(100vh - 68px)" }}
       >
         {/* Dot grid */}
         <div
@@ -334,20 +348,6 @@ export default function Landing() {
         {/* Glow blobs */}
         <div className="absolute top-[-100px] right-[-100px] w-[480px] h-[480px] rounded-full opacity-20" style={{ background: "radial-gradient(circle, #A3B18A 0%, transparent 70%)" }} />
         <div className="absolute bottom-[-60px] left-[-60px] w-[360px] h-[360px] rounded-full opacity-10" style={{ background: "radial-gradient(circle, #3A5A40 0%, transparent 70%)" }} />
-
-        {/* Logo row — sits at top inside the green */}
-        <div className="relative z-20 flex items-center justify-between px-8 sm:px-12 pt-10 pb-0 shrink-0">
-          <a href="/" className="select-none">
-            <Logo variant="white" />
-          </a>
-          <div>
-            {isAuthenticated ? (
-              <a href="/dashboard" className="nav-cta-btn">Dashboard</a>
-            ) : (
-              <a href="/signup" className="nav-cta-btn">Get Started</a>
-            )}
-          </div>
-        </div>
 
         {/* Hero content */}
         <div className="relative flex-1 flex items-center">
