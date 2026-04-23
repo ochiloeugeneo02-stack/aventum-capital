@@ -1,5 +1,4 @@
 import logoSrc from "@/assets/logo-source.png";
-import logoTransparent from "@/assets/logo-transparent.png";
 
 interface LogoProps {
   variant?: "dark" | "white";
@@ -8,8 +7,8 @@ interface LogoProps {
 }
 
 /**
- * variant="dark"  — original PNG as-is, for use on white/light backgrounds
- * variant="white" — background-removed PNG inverted to white, for dark green backgrounds
+ * variant="dark"  — black text, for light backgrounds
+ * variant="white" — white text, for dark green hero
  * iconOnly        — sage icon tile only
  */
 export function Logo({ variant = "dark", className = "", iconOnly = false }: LogoProps) {
@@ -23,32 +22,37 @@ export function Logo({ variant = "dark", className = "", iconOnly = false }: Log
     );
   }
 
-  if (variant === "white") {
-    return (
-      <img
-        src={logoTransparent}
-        alt="Aventum Capital"
-        style={{
-          height: "52px",
-          width: "auto",
-          display: "block",
-          filter: "brightness(0) invert(1)",
-        }}
-        className={className}
-      />
-    );
-  }
+  const color = variant === "white" ? "#ffffff" : "#0d1f10";
 
   return (
-    <img
-      src={logoSrc}
-      alt="Aventum Capital"
-      style={{
-        height: "64px",
-        width: "auto",
-        display: "block",
-      }}
-      className={className}
-    />
+    <div className={`select-none ${className}`} style={{ lineHeight: 1 }}>
+      <div
+        style={{
+          color,
+          fontSize: "26px",
+          fontWeight: 300,
+          letterSpacing: "-0.01em",
+          fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Inter', sans-serif",
+        }}
+      >
+        Aventum
+      </div>
+      <div
+        style={{
+          color,
+          fontSize: "11px",
+          fontWeight: 400,
+          letterSpacing: "0.04em",
+          fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Inter', sans-serif",
+          opacity: variant === "white" ? 0.75 : 0.6,
+          marginTop: "1px",
+        }}
+      >
+        capital
+      </div>
+    </div>
   );
 }
+
+/* Keep the source PNG exported in case it's needed elsewhere */
+export { logoSrc };
