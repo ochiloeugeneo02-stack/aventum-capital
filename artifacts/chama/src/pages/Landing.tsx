@@ -356,8 +356,8 @@ export default function Landing() {
         </div>
 
         {/* Hero content */}
-        <div className="relative flex-1 flex items-center">
-          <div className="max-w-7xl mx-auto px-8 sm:px-12 w-full py-12">
+        <div className="relative flex-1 flex items-start">
+          <div className="max-w-7xl mx-auto px-8 sm:px-12 w-full pt-10 pb-16">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
 
               {/* Left: copy */}
