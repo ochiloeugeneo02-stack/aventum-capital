@@ -13,8 +13,8 @@ interface LogoProps {
 }
 
 export function Logo({ variant = "dark", className = "", iconOnly = false }: LogoProps) {
-  const textColor   = variant === "white" ? "#ffffff"   : "#1a3a22";
-  const subColor    = variant === "white" ? "rgba(255,255,255,0.7)" : "rgba(26,58,34,0.55)";
+  const textColor = variant === "white" ? "#ffffff" : "#1a3a22";
+  const subColor  = variant === "white" ? "rgba(255,255,255,0.65)" : "rgba(26,58,34,0.5)";
 
   if (iconOnly) {
     return (
