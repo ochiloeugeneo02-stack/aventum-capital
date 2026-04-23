@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
 import SuperAdmin from "@/pages/SuperAdmin";
-import { Eye, EyeOff, Loader2, ShieldCheck, Lock } from "lucide-react";
+import { Eye, EyeOff, Loader2, ShieldCheck, Lock, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const SESSION_KEY_2FA_TOKEN = "aventum_staff_2fa_token";
@@ -150,6 +150,36 @@ export default function StaffPortal() {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      {/* Back to home — floats top-left */}
+      <a
+        href="/"
+        className="group absolute top-6 left-6 z-20 flex items-center gap-2"
+        style={{
+          color: "rgba(255,255,255,0.45)",
+          textDecoration: "none",
+          fontSize: "0.8rem",
+          letterSpacing: "0.04em",
+          fontWeight: 500,
+          transition: "color 0.2s",
+        }}
+        onMouseEnter={e => (e.currentTarget.style.color = "rgba(255,255,255,0.9)")}
+        onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.45)")}
+      >
+        <span
+          className="flex items-center justify-center rounded-full border"
+          style={{
+            width: "28px", height: "28px",
+            borderColor: "rgba(255,255,255,0.15)",
+            background: "rgba(255,255,255,0.05)",
+            backdropFilter: "blur(8px)",
+            transition: "border-color 0.2s, background 0.2s",
+          }}
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+        </span>
+        <span>Home</span>
+      </a>
+
       {/* Background photo — skyscraper, desaturated + heavily darkened */}
       <div
         className="absolute inset-0"
