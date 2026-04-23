@@ -29,17 +29,6 @@ export function Logo({ variant = "dark", className = "", iconOnly = false }: Log
       <div
         style={{
           color,
-          fontSize: "32px",
-          fontWeight: 400,
-          letterSpacing: "-0.02em",
-          fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Inter', sans-serif",
-        }}
-      >
-        Aventum
-      </div>
-      <div
-        style={{
-          color,
           fontSize: "12px",
           fontWeight: 400,
           letterSpacing: "0.08em",
