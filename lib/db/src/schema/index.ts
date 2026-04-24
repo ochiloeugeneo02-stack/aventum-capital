@@ -12,3 +12,4 @@ export * from "./groupMessages";
 export * from "./turnSwapRequests";
 export * from "./groupDeleteRequests";
 export * from "./supportTickets";
+export * from "./newsletterSubscribers";

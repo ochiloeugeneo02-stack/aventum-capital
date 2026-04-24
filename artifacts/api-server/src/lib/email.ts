@@ -774,3 +774,28 @@ export async function sendSwapRequestNotificationToAdmin(opts: {
   });
   return sendViaResend(opts.email, `Turn swap request — ${opts.groupName}`, html);
 }
+
+export async function sendNewsletterConfirmationEmail(opts: {
+  email: string;
+  appBaseUrl: string;
+}): Promise<boolean> {
+  const html = buildEmailWrapper({
+    headerTitle: "You're on the list.",
+    headerSubtitle: "Thank you for joining the Aventum Capital weekly newsletter.",
+    bodyHtml: `
+      <p style="font-size:15px;color:#374151;margin:0 0 20px;">
+        We'll send you a short weekly update on savings tips, platform news, and community highlights — nothing more, nothing less.
+      </p>
+      <div style="background:#f8faf8;border:1px solid #e5e7eb;border-radius:12px;padding:20px 22px;margin-bottom:24px;">
+        <div style="font-size:12px;font-weight:600;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">What to expect</div>
+        <ul style="margin:0;padding-left:18px;color:#374151;font-size:14px;line-height:1.8;">
+          <li>Weekly savings insights</li>
+          <li>Platform updates &amp; new features</li>
+          <li>Community success stories</li>
+        </ul>
+      </div>
+      <a href="${opts.appBaseUrl}" style="display:inline-block;background:#3A5A40;color:#ffffff;text-decoration:none;text-align:center;padding:14px 28px;border-radius:8px;font-size:14px;font-weight:700;">Explore Aventum Capital</a>
+      <p style="font-size:12px;color:#9ca3af;margin-top:22px;">You can unsubscribe at any time by replying to any newsletter with "unsubscribe" in the subject line.</p>`,
+  });
+  return sendViaResend(opts.email, "Welcome to the Aventum Capital newsletter", html);
+}

@@ -25,6 +25,7 @@ import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import SetupTwoFactor from "@/pages/SetupTwoFactor";
 import Support from "@/pages/Support";
+import Security from "@/pages/Security";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -122,6 +123,8 @@ function Router() {
           <SuperAdmin />
         </ProtectedRoute>
       </Route>
+
+      <Route path="/security" component={Security} />
 
       {/* Dedicated staff portal — handles its own auth state */}
       <Route path="/staff" component={StaffPortal} />

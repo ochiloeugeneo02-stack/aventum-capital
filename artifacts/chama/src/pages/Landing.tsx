@@ -302,6 +302,35 @@ function FeaturePill({ icon, label }: { icon: React.ReactNode; label: string }) 
 /* ─── Main Landing ─────────────────────────────────────────── */
 export default function Landing() {
   const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
+
+  const [nlEmail, setNlEmail] = useState("");
+  const [nlLoading, setNlLoading] = useState(false);
+  const [nlDone, setNlDone] = useState(false);
+
+  async function handleNewsletterSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!nlEmail.trim()) return;
+    setNlLoading(true);
+    try {
+      const res = await fetch("/api/newsletter/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: nlEmail.trim() }),
+      });
+      if (res.ok) {
+        setNlDone(true);
+        setNlEmail("");
+        toast({ title: "You're on the list!", description: "Check your inbox for a confirmation email." });
+      } else {
+        toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setNlLoading(false);
+    }
+  }
 
   useEffect(() => {
     const els = document.querySelectorAll(".reveal");
@@ -671,12 +700,32 @@ export default function Landing() {
               <div className="mb-4"><Logo variant="white" /></div>
               <p className="text-white/40 text-xs mb-5 leading-relaxed">Rotational savings for the modern world.</p>
               <p className="text-white/40 text-xs mb-3 font-semibold uppercase tracking-wider">Newsletter</p>
-              <div className="flex gap-2">
-                <input type="email" placeholder="your@email.com" className="flex-1 text-xs px-3 py-2 rounded-lg text-white placeholder-white/30 focus:outline-none min-w-0" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }} />
-                <button className="px-3 py-2 rounded-lg transition-colors hover:opacity-80" style={{ background: "#3A5A40", border: "1px solid rgba(163,177,138,0.3)" }}>
-                  <ArrowRight className="w-4 h-4 text-white" />
-                </button>
-              </div>
+              {nlDone ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium" style={{ background: "rgba(163,177,138,0.15)", border: "1px solid rgba(163,177,138,0.3)", color: "#A3B18A" }}>
+                  <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+                  Thanks for signing up! Check your inbox.
+                </div>
+              ) : (
+                <form onSubmit={handleNewsletterSubmit} className="flex gap-2">
+                  <input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={nlEmail}
+                    onChange={e => setNlEmail(e.target.value)}
+                    className="flex-1 text-xs px-3 py-2 rounded-lg text-white placeholder-white/30 focus:outline-none min-w-0"
+                    style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }}
+                    disabled={nlLoading}
+                  />
+                  <button
+                    type="submit"
+                    disabled={nlLoading}
+                    className="px-3 py-2 rounded-lg transition-colors hover:opacity-80 flex-shrink-0 flex items-center justify-center"
+                    style={{ background: "#3A5A40", border: "1px solid rgba(163,177,138,0.3)" }}
+                  >
+                    {nlLoading ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <ArrowRight className="w-4 h-4 text-white" />}
+                  </button>
+                </form>
+              )}
               <div className="flex gap-3 mt-4">
                 <a href="#" className="text-white/30 hover:text-white transition-colors"><Facebook className="w-4 h-4" /></a>
                 <a href="#" className="text-white/30 hover:text-white transition-colors"><Twitter className="w-4 h-4" /></a>
@@ -686,7 +735,7 @@ export default function Landing() {
             <div>
               <h4 className="text-white text-xs font-semibold uppercase tracking-wider mb-5">Product</h4>
               <ul className="space-y-3">
-                {[{ label: "How it works", href: "#how" }, { label: "Pricing", href: "#pricing" }, { label: "Security", href: "#" }, { label: "Support", href: "mailto:info@aventumcapital.com" }].map(l => (
+                {[{ label: "How it works", href: "#how" }, { label: "Pricing", href: "#pricing" }, { label: "Security", href: "/security" }, { label: "Support", href: "mailto:info@aventumcapital.com" }].map(l => (
                   <li key={l.label}><a href={l.href} className="text-xs text-white/40 hover:text-white transition-colors">{l.label}</a></li>
                 ))}
               </ul>
