@@ -4,6 +4,7 @@ import { newsletterSubscribers } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { sendNewsletterConfirmationEmail } from "../lib/email";
 import { getAppBaseUrl } from "../lib/appUrl";
+import { syncSubscribersToGitHub } from "../lib/githubSync";
 
 const router = Router();
 
@@ -27,6 +28,8 @@ router.post("/newsletter/subscribe", async (req, res) => {
           .update(newsletterSubscribers)
           .set({ unsubscribedAt: null, confirmed: true })
           .where(eq(newsletterSubscribers.email, normalised));
+
+        syncSubscribersToGitHub();
       }
       return res.json({ ok: true, alreadySubscribed: true });
     }
@@ -37,7 +40,9 @@ router.post("/newsletter/subscribe", async (req, res) => {
       confirmed: true,
     });
 
-    await sendNewsletterConfirmationEmail({ email: normalised, appBaseUrl: getAppBaseUrl(req) });
+    sendNewsletterConfirmationEmail({ email: normalised, appBaseUrl: getAppBaseUrl(req) });
+
+    syncSubscribersToGitHub();
 
     return res.status(201).json({ ok: true, alreadySubscribed: false });
   } catch (err) {

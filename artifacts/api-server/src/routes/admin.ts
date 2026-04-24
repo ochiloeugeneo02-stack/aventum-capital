@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, auditLogsTable, usersTable, groupsTable, groupMembersTable, contributionCyclesTable, contributionsTable, payoutsTable, groupDeleteRequestsTable } from "@workspace/db";
-import { eq, and, inArray, sql, desc } from "drizzle-orm";
+import { newsletterSubscribers } from "@workspace/db/schema";
+import { eq, and, inArray, sql, desc, asc } from "drizzle-orm";
 import { requireRole } from "../lib/auth";
 import { asyncHandler } from "../lib/asyncHandler";
 import { TriggerPayoutBody } from "@workspace/api-zod";
@@ -287,6 +288,46 @@ router.delete("/admin/groups/:groupId", requireRole("super_admin"), asyncHandler
   });
 
   res.json({ success: true, deleted: groupId });
+}));
+
+router.get("/admin/newsletter-subscribers", requireRole("super_admin"), asyncHandler(async (req, res): Promise<void> => {
+  const format = String(req.query.format ?? "json");
+
+  const rows = await db
+    .select()
+    .from(newsletterSubscribers)
+    .orderBy(asc(newsletterSubscribers.createdAt));
+
+  if (format === "csv") {
+    const header = "email,source,confirmed,subscribed_at,unsubscribed_at";
+    const lines = rows.map(r =>
+      [
+        r.email,
+        r.source,
+        r.confirmed ? "yes" : "no",
+        r.createdAt ? new Date(r.createdAt).toISOString() : "",
+        r.unsubscribedAt ? new Date(r.unsubscribedAt).toISOString() : "",
+      ].join(",")
+    );
+    const csv = [header, ...lines].join("\n") + "\n";
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename="newsletter-subscribers-${new Date().toISOString().slice(0, 10)}.csv"`);
+    res.send(csv);
+    return;
+  }
+
+  res.json({
+    total: rows.length,
+    active: rows.filter(r => !r.unsubscribedAt).length,
+    subscribers: rows.map(r => ({
+      id: r.id,
+      email: r.email,
+      source: r.source,
+      confirmed: r.confirmed,
+      subscribedAt: r.createdAt ? new Date(r.createdAt).toISOString() : null,
+      unsubscribedAt: r.unsubscribedAt ? new Date(r.unsubscribedAt).toISOString() : null,
+    })),
+  });
 }));
 
 export default router;
