@@ -488,7 +488,7 @@ export default function Landing() {
             </div>
             <div className="grid grid-cols-2 gap-4 reveal reveal-d2">
               {[
-                { title: "Stripe Payments", desc: "Secure card payments with automatic retry and fraud protection.", icon: "💳", bg: "linear-gradient(135deg, #1a3a22 0%, #2D5F38 100%)", color: "white" },
+                { title: "Payments", desc: "Secure card payments with automatic retry and fraud protection.", icon: "💳", bg: "linear-gradient(135deg, #1a3a22 0%, #2D5F38 100%)", color: "white" },
                 { title: "Real-time Tracking", desc: "See who's paid, who's next, and when your payout arrives.", icon: "📊", bg: "linear-gradient(135deg, #3A5A40 0%, #2D5F38 100%)", color: "white" },
                 { title: "Multi-currency", desc: "USD, EUR, GBP, KES and 30+ more currencies supported globally.", icon: "🌍", bg: "linear-gradient(135deg, #f0f7f0 0%, #dceede 100%)", color: "#1a3a22" },
                 { title: "Group Chat", desc: "Built-in messaging so your circle stays coordinated.", icon: "💬", bg: "linear-gradient(135deg, #eef5ee 0%, #d4e8d4 100%)", color: "#1a3a22" },
