@@ -250,10 +250,6 @@ export default function Settings() {
                 </button>
               )}
             </div>
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <Input value={user?.role?.replace("_", " ") ?? ""} disabled className="opacity-60 capitalize" />
-            </div>
             <Button type="submit" className="bg-[#3A5A40] hover:bg-[#344E41]" disabled={updateMutation.isPending}>
               {updateMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Save changes

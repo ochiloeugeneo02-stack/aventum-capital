@@ -610,7 +610,7 @@ export default function SuperAdmin() {
               {usersLoading ? (
                 <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[#3A5A40]" /></div>
               ) : (
-                <DataTable headers={["User", "Email", "Role", "Status", "2FA", "Joined"]}>
+                <DataTable headers={["User", "Email", "Status", "2FA", "Joined"]}>
                   {filteredUsers.map((u: any) => (
                     <tr key={u.id} className="hover:bg-[#FAFAF9] transition-colors">
                       <td className="px-5 py-3.5">
@@ -620,7 +620,6 @@ export default function SuperAdmin() {
                         </div>
                       </td>
                       <td className="px-5 py-3.5 text-sm text-[#6B7280]">{u.email}</td>
-                      <td className="px-5 py-3.5"><Badge status={u.role} /></td>
                       <td className="px-5 py-3.5"><Badge status={u.isActive ? "active" : "paused"} /></td>
                       <td className="px-5 py-3.5"><span className={cn("text-[11px] font-medium", u.twoFactorEnabled ? "text-emerald-600" : "text-[#9CA3AF]")}>{u.twoFactorEnabled ? "✓ On" : "Off"}</span></td>
                       <td className="px-5 py-3.5 text-sm text-[#9CA3AF]">{formatDate(u.createdAt)}</td>
