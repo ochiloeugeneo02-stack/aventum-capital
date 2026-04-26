@@ -286,8 +286,8 @@ export default function Login() {
                 <div className="space-y-1.5">
                   {[
                     { label: "Super Admin", email: "admin@aventum.co", password: "admin123", color: "bg-purple-100 text-purple-700 hover:bg-purple-200" },
-                    { label: "Group Admin", email: "grace@aventum.co", password: "grace123", color: "bg-[#3A5A40]/10 text-[#3A5A40] hover:bg-[#3A5A40]/20" },
-                    { label: "Member", email: "amina@aventum.co", password: "member123", color: "bg-blue-100 text-blue-700 hover:bg-blue-200" },
+                    { label: "Grace", email: "grace@aventum.co", password: "grace123", color: "bg-[#3A5A40]/10 text-[#3A5A40] hover:bg-[#3A5A40]/20" },
+                    { label: "Amina", email: "amina@aventum.co", password: "member123", color: "bg-blue-100 text-blue-700 hover:bg-blue-200" },
                   ].map(({ label, email, password, color }) => (
                     <button
                       key={email}

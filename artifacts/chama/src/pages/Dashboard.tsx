@@ -154,7 +154,6 @@ export default function Dashboard() {
                   <div>
                     <div className="font-semibold">{summary.upcomingRecipient.name}</div>
                     <div className="text-sm text-muted-foreground">Will receive {formatGroupAmount((summary.currentGroup.contributionAmount ?? 0) * (summary.currentGroup.totalMembers ?? 0), (summary.currentGroup as any).currency ?? "USD")}</div>
-                    <div className="text-xs text-muted-foreground capitalize">{summary.upcomingRecipient.role.replace("_", " ")}</div>
                   </div>
                 </div>
               ) : (

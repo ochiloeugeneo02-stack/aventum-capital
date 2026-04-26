@@ -119,7 +119,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.name}</p>
-              <p className="text-xs text-sidebar-foreground/50 truncate capitalize">{user?.role.replace("_", " ")}</p>
+              <p className="text-xs text-sidebar-foreground/50 truncate">{user?.email}</p>
             </div>
           </div>
           <button
@@ -146,9 +146,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </Button>
           <div className="flex-1" />
           <RegionSelector />
-          <div className="text-sm text-muted-foreground capitalize hidden sm:block">
-            {user?.role.replace("_", " ")}
-          </div>
         </header>
 
         {/* Page content — key forces re-render on region/location change and triggers entrance animation */}
