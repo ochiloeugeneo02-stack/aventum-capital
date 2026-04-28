@@ -10,6 +10,17 @@ import {
   X, AlertTriangle, LogOut, Trash2, HelpCircle, RefreshCw,
 } from "lucide-react";
 
+interface DeleteRequest {
+  id: number;
+  groupId: number;
+  groupName: string | null;
+  reason: string;
+  status: string;
+  reviewNote: string | null;
+  requestedAt: string;
+  reviewedAt: string | null;
+}
+
 interface Ticket {
   id: number;
   category: string;
@@ -82,6 +93,8 @@ export default function Support() {
   const [ticketLoading, setTicketLoading] = useState(false);
   const [showNew, setShowNew] = useState(false);
 
+  const [deleteRequests, setDeleteRequests] = useState<DeleteRequest[]>([]);
+
   const [newCategory, setNewCategory] = useState("general");
   const [newSubject, setNewSubject] = useState("");
   const [newMessage, setNewMessage] = useState("");
@@ -111,7 +124,12 @@ export default function Support() {
     setTicketLoading(false);
   }, []);
 
-  useEffect(() => { loadTickets(); }, [loadTickets]);
+  useEffect(() => {
+    loadTickets();
+    apiRequest<DeleteRequest[]>("/api/groups/delete-requests/mine")
+      .then(setDeleteRequests)
+      .catch(() => {});
+  }, [loadTickets]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -184,6 +202,48 @@ export default function Support() {
             </button>
           )}
         </div>
+
+        {/* ── Group closure requests ────────────────────────────── */}
+        {deleteRequests.length > 0 && !activeTicket && (
+          <div className="bg-card border border-red-200/60 rounded-2xl overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-red-100 flex items-center gap-2.5 bg-red-50/40">
+              <Trash2 className="w-4 h-4 text-destructive" />
+              <h3 className="font-semibold text-sm">Group closure requests</h3>
+              <span className="ml-auto text-xs text-muted-foreground">{deleteRequests.length} request{deleteRequests.length !== 1 ? "s" : ""}</span>
+            </div>
+            <div className="divide-y divide-border">
+              {deleteRequests.map(dr => {
+                const statusMap: Record<string, { label: string; cls: string }> = {
+                  pending:  { label: "Under review",  cls: "bg-amber-50 text-amber-700 border border-amber-200" },
+                  approved: { label: "Approved",       cls: "bg-green-50 text-green-700 border border-green-200" },
+                  rejected: { label: "Rejected",       cls: "bg-red-50 text-red-700 border border-red-200" },
+                };
+                const s = statusMap[dr.status] ?? { label: dr.status, cls: "bg-muted text-muted-foreground border border-border" };
+                return (
+                  <div key={dr.id} className="px-5 py-4 space-y-1.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{dr.groupName ?? `Group #${dr.groupId}`}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 italic">"{dr.reason}"</p>
+                      </div>
+                      <span className={`shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full ${s.cls}`}>{s.label}</span>
+                    </div>
+                    {dr.reviewNote && (
+                      <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+                        <span className="font-medium">Aventum note:</span> {dr.reviewNote}
+                      </p>
+                    )}
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      Submitted {formatTime(dr.requestedAt)}
+                      {dr.reviewedAt && ` · Reviewed ${formatTime(dr.reviewedAt)}`}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── New ticket form ───────────────────────────────────── */}
         {showNew && !activeTicket && (

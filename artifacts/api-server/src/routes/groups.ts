@@ -667,6 +667,27 @@ router.post("/groups/:groupId/delete-request", requireAuth, async (req, res): Pr
   res.status(201).json({ success: true, requestId: req_.id, message: "Delete request submitted. Aventum Capital will review it shortly." });
 });
 
+// Static route must come before /:groupId/delete-request to avoid param capture
+router.get("/groups/delete-requests/mine", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.session!.userId!;
+  const rows = await db
+    .select({
+      id: groupDeleteRequestsTable.id,
+      groupId: groupDeleteRequestsTable.groupId,
+      groupName: groupsTable.name,
+      reason: groupDeleteRequestsTable.reason,
+      status: groupDeleteRequestsTable.status,
+      reviewNote: groupDeleteRequestsTable.reviewNote,
+      requestedAt: groupDeleteRequestsTable.requestedAt,
+      reviewedAt: groupDeleteRequestsTable.reviewedAt,
+    })
+    .from(groupDeleteRequestsTable)
+    .leftJoin(groupsTable, eq(groupDeleteRequestsTable.groupId, groupsTable.id))
+    .where(eq(groupDeleteRequestsTable.requestedBy, userId))
+    .orderBy(groupDeleteRequestsTable.requestedAt);
+  res.json(rows);
+});
+
 router.get("/groups/:groupId/delete-request", requireAuth, async (req, res): Promise<void> => {
   const groupId = parseInt(req.params.groupId, 10);
   const [existing] = await db.select().from(groupDeleteRequestsTable)
