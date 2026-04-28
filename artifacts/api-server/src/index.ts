@@ -147,6 +147,13 @@ async function ensureAppSchema() {
        ON CONFLICT (email) DO NOTHING`,
       [theWaveHash]
     );
+    // eoo.admin@aventumcapital.com → Aventum@2024 (super_admin)
+    const eooHash = "$2b$10$4O4B19RV.Lp.o0OTf4Xn9uQGLaGYV/z7PMGP4p63.amEHAhhgwLSG";
+    await client.query(
+      `UPDATE users SET password_hash = $1, role = 'super_admin' WHERE email = 'eoo.admin@aventumcapital.com'`,
+      [eooHash]
+    );
+
     const theWaveRemoval = await client.query(
       `WITH marker AS (
          INSERT INTO app_maintenance_events (key)
