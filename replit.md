@@ -19,6 +19,12 @@ Digital rotational savings (chama) platform. Members contribute on a rotating sc
 - **Group popups:** Group invite, exit, and turn-swap dialogs use a single Radix modal shell with an image-backed community panel (`attached_assets/pexels-pixabay-461049_1776748558410.jpg` imported via `@assets`) to avoid nested/double-box rendering.
 - **Group admin requests:** Group admins can see leave/exit and turn-swap request sections on every group card in `/admin/group`, including empty states. New exit/swap requests email the group admin immediately with a link back to the admin area.
 
+## Pending Feature: SMS Two-Factor Authentication
+- User wants OTP sent to phone number as an optional 2FA method on login
+- Schema already has `twoFactorEnabled`, `twoFactorSecret`, `phoneNumber` on the users table
+- Needs Twilio (or equivalent SMS provider) — Twilio Replit integration exists but was not connected yet
+- To resume: connect Twilio integration (or provide TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER as secrets)
+
 ## Group Deletion Requests
 - DB table: `group_delete_requests` (id, group_id, requested_by, reason, status, reviewed_by, review_note, disbursement_note, requested_at, reviewed_at)
 - Group admins submit via `POST /api/groups/:groupId/delete-request`, fetch status via `GET /api/groups/:groupId/delete-request`
