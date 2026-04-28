@@ -307,9 +307,13 @@ export default function SuperAdmin() {
 
   const loadDeleteReqs = useCallback(async () => {
     setDeleteReqsLoading(true);
-    try { setDeleteReqs(await apiRequest<DeleteReq[]>("/api/admin/delete-requests")); } catch {}
+    try {
+      setDeleteReqs(await apiRequest<DeleteReq[]>("/api/admin/delete-requests"));
+    } catch (err: any) {
+      toast({ title: "Could not load closure requests", description: err?.data?.error ?? "Please sign out and sign back in.", variant: "destructive" });
+    }
     setDeleteReqsLoading(false);
-  }, []);
+  }, [toast]);
 
   const handleClosureAction = async (id: number, action: "approve" | "reject") => {
     setClosureActionId(id);
@@ -402,6 +406,9 @@ export default function SuperAdmin() {
     } catch {}
     setSubLoading(false);
   }, []);
+
+  // Pre-load on mount so the badge count is always visible in the nav
+  useEffect(() => { loadDeleteReqs(); }, []);
 
   useEffect(() => {
     if (section === "support") loadSupport();
