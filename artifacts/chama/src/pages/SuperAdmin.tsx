@@ -25,6 +25,7 @@ import {
   Clock, Loader2, ChevronRight, Search, Shield, Activity, TrendingUp,
   X, Zap, MessageCircle, Send, ChevronLeft, HelpCircle, LogOut, Trash2,
   Building2, Globe, Mail, Users2, Pencil, Check, CalendarRange, StickyNote, Download,
+  Settings, KeyRound,
 } from "lucide-react";
 
 type Section =
@@ -37,7 +38,8 @@ type Section =
   | "swap-requests"
   | "audit-logs"
   | "enterprise"
-  | "subscribers";
+  | "subscribers"
+  | "profile";
 
 interface NavItem { id: Section; label: string; icon: React.ElementType; badge?: number; }
 
@@ -201,7 +203,7 @@ function formatTime(iso: string) {
 
 export default function SuperAdmin() {
   const { formatCurrency, formatDate, formatDateTime } = useRegion();
-  const { user, logout } = useAuth();
+  const { user, logout, setUser } = useAuth() as any;
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [section, setSection] = useState<Section>("overview");
@@ -209,7 +211,7 @@ export default function SuperAdmin() {
 
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   const [supportLoading, setSupportLoading] = useState(false);
-  const [supportFilter, setSupportFilter] = useState<"all" | "open" | "in_progress" | "closed">("open");
+  const [supportFilter, setSupportFilter] = useState<"all" | "open" | "in_progress" | "closed">("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [activeTicket, setActiveTicket] = useState<TicketDetail | null>(null);
   const [ticketLoading, setTicketLoading] = useState(false);
@@ -318,6 +320,16 @@ export default function SuperAdmin() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
 
+  // ── Profile / account settings state ──────────────────────────────
+  const [profileName, setProfileName] = useState(user?.name ?? "");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileCurrentPw, setProfileCurrentPw] = useState("");
+  const [profileNewPw, setProfileNewPw] = useState("");
+  const [profileConfirmPw, setProfileConfirmPw] = useState("");
+  const [profilePwSaving, setProfilePwSaving] = useState(false);
+  const [profilePwError, setProfilePwError] = useState("");
+  const [profilePwSuccess, setProfilePwSuccess] = useState(false);
+
   const [enterprises, setEnterprises] = useState<any[]>([]);
   const [enterprisesLoading, setEnterprisesLoading] = useState(false);
   const [enterpriseDetail, setEnterpriseDetail] = useState<any | null>(null);
@@ -349,6 +361,45 @@ export default function SuperAdmin() {
     if (section === "enterprise") loadEnterprises();
     if (section === "subscribers") loadSubscribers();
   }, [section]);
+
+  const saveProfileName = async () => {
+    if (!user || !profileName.trim() || profileName.trim() === user.name) return;
+    setProfileSaving(true);
+    try {
+      await apiRequest(`/api/users/${user.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ name: profileName.trim() }),
+        headers: { "Content-Type": "application/json" },
+      });
+      setUser({ ...user, name: profileName.trim() });
+      toast({ title: "Name updated", description: "Your display name has been saved." });
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Could not update name", variant: "destructive" });
+    }
+    setProfileSaving(false);
+  };
+
+  const changeProfilePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfilePwError("");
+    setProfilePwSuccess(false);
+    if (profileNewPw !== profileConfirmPw) { setProfilePwError("New passwords do not match."); return; }
+    if (profileNewPw.length < 6) { setProfilePwError("Password must be at least 6 characters."); return; }
+    setProfilePwSaving(true);
+    try {
+      await apiRequest("/api/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({ currentPassword: profileCurrentPw, newPassword: profileNewPw }),
+        headers: { "Content-Type": "application/json" },
+      });
+      setProfileCurrentPw(""); setProfileNewPw(""); setProfileConfirmPw("");
+      setProfilePwSuccess(true);
+      toast({ title: "Password changed", description: "Your password has been updated." });
+    } catch (err: any) {
+      setProfilePwError(err?.data?.error ?? "Could not change password.");
+    }
+    setProfilePwSaving(false);
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -443,6 +494,7 @@ export default function SuperAdmin() {
     { id: "swap-requests", label: "Swap Requests",       icon: ArrowLeftRight, badge: pendingSwap || undefined },
     { id: "audit-logs",    label: "Audit Log",           icon: FileText },
     { id: "subscribers",   label: "Newsletter",          icon: Mail },
+    { id: "profile",       label: "My Profile",          icon: Settings },
   ];
 
   const filteredUsers = ((users as any)?.users ?? []).filter((u: any) =>
@@ -1392,6 +1444,101 @@ export default function SuperAdmin() {
                   )}
                 </DataTable>
               )}
+            </div>
+          )}
+
+          {/* ── MY PROFILE ────────────────────────────────────────── */}
+          {section === "profile" && (
+            <div className="max-w-xl space-y-6">
+              <SectionHeader title="My Profile" sub="Manage your staff account settings" />
+
+              {/* Identity card */}
+              <div className="bg-white rounded-2xl border border-[#E8E4DF] overflow-hidden">
+                <div className="px-6 py-4 border-b border-[#F3F2EF] bg-[#F9F8F5] flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-[#3A5A40] flex items-center justify-center text-white text-lg font-bold shrink-0">
+                    {(profileName || user?.name || "A").charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-[#1F2937]">{user?.name}</div>
+                    <div className="text-xs text-[#9CA3AF]">{user?.email}</div>
+                    <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#3A5A40]/10 text-[#3A5A40]">
+                      {user?.role?.replace("_", " ")}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Display name */}
+                <div className="px-6 py-5 space-y-3">
+                  <label className="text-sm font-medium text-[#374151] block">Display name</label>
+                  <div className="flex gap-2">
+                    <input
+                      className="flex-1 px-3 py-2 text-sm border border-[#E8E4DF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#3A5A40]/20 bg-white"
+                      value={profileName}
+                      onChange={e => setProfileName(e.target.value)}
+                      placeholder="Your full name"
+                    />
+                    <button
+                      onClick={saveProfileName}
+                      disabled={profileSaving || !profileName.trim() || profileName.trim() === user?.name}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-[#3A5A40] hover:bg-[#344E41] disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors"
+                    >
+                      {profileSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                      Save
+                    </button>
+                  </div>
+                  <p className="text-xs text-[#9CA3AF]">Email address cannot be changed here. Contact your system administrator.</p>
+                </div>
+              </div>
+
+              {/* Change password */}
+              <div className="bg-white rounded-2xl border border-[#E8E4DF] overflow-hidden">
+                <div className="px-6 py-4 border-b border-[#F3F2EF] bg-[#F9F8F5] flex items-center gap-2">
+                  <KeyRound className="w-4 h-4 text-[#3A5A40]" />
+                  <span className="font-semibold text-sm text-[#1F2937]">Change password</span>
+                </div>
+                <form onSubmit={changeProfilePassword} className="px-6 py-5 space-y-4">
+                  {[
+                    { label: "Current password", value: profileCurrentPw, set: setProfileCurrentPw },
+                    { label: "New password",      value: profileNewPw,     set: setProfileNewPw },
+                    { label: "Confirm new password", value: profileConfirmPw, set: setProfileConfirmPw },
+                  ].map(({ label, value, set }) => (
+                    <div key={label}>
+                      <label className="text-sm font-medium text-[#374151] block mb-1.5">{label}</label>
+                      <input
+                        type="password"
+                        className="w-full px-3 py-2 text-sm border border-[#E8E4DF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#3A5A40]/20 bg-white"
+                        value={value}
+                        onChange={e => { set(e.target.value); setProfilePwError(""); setProfilePwSuccess(false); }}
+                        required
+                        minLength={6}
+                        autoComplete="new-password"
+                      />
+                    </div>
+                  ))}
+
+                  {profilePwError && (
+                    <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5">
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                      {profilePwError}
+                    </div>
+                  )}
+                  {profilePwSuccess && (
+                    <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      Password changed successfully.
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={profilePwSaving || !profileCurrentPw || !profileNewPw || !profileConfirmPw}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#3A5A40] hover:bg-[#344E41] disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors"
+                  >
+                    {profilePwSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                    Update password
+                  </button>
+                </form>
+              </div>
             </div>
           )}
 
