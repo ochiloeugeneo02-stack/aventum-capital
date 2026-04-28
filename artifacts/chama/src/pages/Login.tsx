@@ -29,6 +29,7 @@ export default function Login() {
   const [twoFactorToken, setTwoFactorToken] = useState(() => sessionStorage.getItem(SESSION_KEY_2FA_TOKEN) ?? "");
   const [validating2fa, setValidating2fa] = useState(false);
   const [resending, setResending] = useState(false);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
 
   function enter2faState(token: string, hint: string) {
     sessionStorage.setItem(SESSION_KEY_2FA_TOKEN, token);
@@ -47,6 +48,7 @@ export default function Login() {
     setEmailHint("");
     setRequires2fa(false);
     setTwoFactorCode("");
+    setDevOtp(null);
   }
 
   const loginMutation = useLoginUser({
@@ -54,6 +56,7 @@ export default function Login() {
       onSuccess: async (data: any) => {
         if (data.requiresTwoFactor) {
           enter2faState(data.twoFactorToken ?? "", data.emailHint ?? "");
+          if (data.testOtp) setDevOtp(data.testOtp);
           return;
         }
         clear2faState();
@@ -85,11 +88,7 @@ export default function Login() {
         localStorage.removeItem("aventum_pending_invite");
       }
     }
-    if (!user.twoFactorEnabled) {
-      navigate("/setup-2fa");
-    } else {
-      navigate("/dashboard");
-    }
+    navigate("/dashboard");
   }
 
   async function handle2faSubmit(e: React.FormEvent) {
@@ -217,6 +216,20 @@ export default function Login() {
                 </Button>
               </form>
 
+              {devOtp && (
+                <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                  <span className="font-medium">Demo code:</span>
+                  <code
+                    className="font-mono font-bold tracking-widest cursor-pointer hover:bg-amber-100 px-1 rounded"
+                    onClick={() => setTwoFactorCode(devOtp)}
+                    title="Click to fill"
+                  >
+                    {devOtp}
+                  </code>
+                  <span className="text-amber-600 ml-auto">(click to fill)</span>
+                </div>
+              )}
+
               <div className="mt-5 space-y-3 text-center">
                 <button
                   type="button"
@@ -232,6 +245,7 @@ export default function Login() {
                       if (data.twoFactorToken) {
                         enter2faState(data.twoFactorToken, emailHint);
                       }
+                      if (data.testOtp) setDevOtp(data.testOtp);
                       setTwoFactorCode("");
                       toast({ title: "Code resent", description: "Check your inbox for a new code." });
                     } catch {

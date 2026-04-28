@@ -142,23 +142,24 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  if (user.twoFactorEnabled) {
-    const otp = generateOtp();
-    const expiry = Date.now() + 10 * 60 * 1000;
-    const twoFactorToken = sign2faToken({ userId: user.id, otp, expiry });
+  // OTP is mandatory for all logins
+  const otp = generateOtp();
+  const expiry = Date.now() + 10 * 60 * 1000;
+  const twoFactorToken = sign2faToken({ userId: user.id, otp, expiry });
 
-    await sendOtpEmail({ email: user.email, name: user.name, otp, purpose: "login" });
-    logger.info({ userId: user.id }, "2FA OTP sent for login");
+  await sendOtpEmail({ email: user.email, name: user.name, otp, purpose: "login" });
+  logger.info({ userId: user.id }, "Login OTP sent");
 
-    res.json({ requiresTwoFactor: true, emailHint: maskEmail(user.email), twoFactorToken });
-    return;
+  const otpResponse: Record<string, unknown> = {
+    requiresTwoFactor: true,
+    emailHint: maskEmail(user.email),
+    twoFactorToken,
+  };
+  // Expose OTP in non-production so demo accounts (which have no real inbox) can still log in
+  if (process.env.NODE_ENV !== "production") {
+    otpResponse.testOtp = otp;
   }
-
-  req.session.userId = user.id;
-  req.session.userRole = user.role;
-
-  await createAuditLog({ action: "user.login", performedBy: user.id, targetType: "user", targetId: user.id });
-  res.json({ user: formatUser(user), message: "Login successful" });
+  res.json(otpResponse);
 });
 
 router.post("/auth/logout", requireAuth, async (req, res): Promise<void> => {

@@ -19,11 +19,16 @@ Digital rotational savings (chama) platform. Members contribute on a rotating sc
 - **Group popups:** Group invite, exit, and turn-swap dialogs use a single Radix modal shell with an image-backed community panel (`attached_assets/pexels-pixabay-461049_1776748558410.jpg` imported via `@assets`) to avoid nested/double-box rendering.
 - **Group admin requests:** Group admins can see leave/exit and turn-swap request sections on every group card in `/admin/group`, including empty states. New exit/swap requests email the group admin immediately with a link back to the admin area.
 
-## Pending Feature: SMS Two-Factor Authentication
-- User wants OTP sent to phone number as an optional 2FA method on login
-- Schema already has `twoFactorEnabled`, `twoFactorSecret`, `phoneNumber` on the users table
-- Needs Twilio (or equivalent SMS provider) — Twilio Replit integration exists but was not connected yet
-- To resume: connect Twilio integration (or provide TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER as secrets)
+## Two-Factor Authentication (Email OTP — Mandatory)
+- OTP is mandatory for all logins — no opt-in required
+- Login flow: email+password → OTP sent to email → enter 6-digit code → session created
+- OTP token is HMAC-signed (SESSION_SECRET), expires in 10 minutes, single-use
+- Backend: `POST /api/auth/login` always returns `{ requiresTwoFactor: true, emailHint, twoFactorToken }`
+- Validate: `POST /api/auth/2fa/validate` with `{ code, twoFactorToken }` → creates session
+- Resend: `POST /api/auth/2fa/resend` with `{ twoFactorToken }` → new OTP + new token
+- In non-production mode, login response also includes `testOtp` (visible code for demo accounts)
+- Frontend shows a clickable "Demo code" amber banner in dev mode (click fills the input)
+- Future upgrade path: SMS OTP via Twilio — schema already has `phoneNumber` on users table; connect Twilio integration when ready
 
 ## Group Deletion Requests
 - DB table: `group_delete_requests` (id, group_id, requested_by, reason, status, reviewed_by, review_note, disbursement_note, requested_at, reviewed_at)
