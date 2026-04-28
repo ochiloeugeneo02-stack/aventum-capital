@@ -35,6 +35,7 @@ type Section =
   | "contributions"
   | "payouts"
   | "support"
+  | "closures"
   | "swap-requests"
   | "audit-logs"
   | "enterprise"
@@ -84,6 +85,21 @@ interface SwapReq {
   reason: string | null;
   status: string;
   createdAt: string;
+}
+
+interface DeleteReq {
+  id: number;
+  groupId: number;
+  group: { id: number; name: string; status: string; currency: string; contributionAmount: string } | null;
+  requestedBy: number;
+  requester: { name: string; email: string } | null;
+  reason: string;
+  status: string;
+  reviewer: { name: string } | null;
+  reviewNote: string | null;
+  disbursementNote: string | null;
+  requestedAt: string;
+  reviewedAt: string | null;
 }
 
 function StatCard({ label, value, sub, icon: Icon, accent, onClick }: { label: string; value: string | number; sub?: string; icon: React.ElementType; accent: string; onClick?: () => void }) {
@@ -227,6 +243,12 @@ export default function SuperAdmin() {
   const [swapLoading, setSwapLoading] = useState(false);
   const [swapActionLoading, setSwapActionLoading] = useState<number | null>(null);
 
+  const [deleteReqs, setDeleteReqs] = useState<DeleteReq[]>([]);
+  const [deleteReqsLoading, setDeleteReqsLoading] = useState(false);
+  const [closureActionId, setClosureActionId] = useState<number | null>(null);
+  const [closureNotes, setClosureNotes] = useState<Record<number, string>>({});
+  const [closureDisburse, setClosureDisburse] = useState<Record<number, string>>({});
+
   const [allGroups, setAllGroups] = useState<any[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
 
@@ -282,6 +304,33 @@ export default function SuperAdmin() {
     try { setSwapRequests(await apiRequest<SwapReq[]>("/api/admin/swap-requests")); } catch {}
     setSwapLoading(false);
   }, []);
+
+  const loadDeleteReqs = useCallback(async () => {
+    setDeleteReqsLoading(true);
+    try { setDeleteReqs(await apiRequest<DeleteReq[]>("/api/admin/delete-requests")); } catch {}
+    setDeleteReqsLoading(false);
+  }, []);
+
+  const handleClosureAction = async (id: number, action: "approve" | "reject") => {
+    setClosureActionId(id);
+    try {
+      const note = closureNotes[id] ?? "";
+      const disburse = closureDisburse[id] ?? "";
+      const body = action === "approve"
+        ? { reviewNote: note, disbursementNote: disburse }
+        : { reviewNote: note };
+      await apiRequest(`/api/admin/delete-requests/${id}/${action}`, {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: { "Content-Type": "application/json" },
+      });
+      toast({ title: action === "approve" ? "Group closure approved" : "Request rejected", description: action === "approve" ? "The group has been closed." : "The group admin has been notified." });
+      await loadDeleteReqs();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Action failed", variant: "destructive" });
+    }
+    setClosureActionId(null);
+  };
 
   const loadAllGroups = useCallback(async () => {
     setGroupsLoading(true);
@@ -356,6 +405,7 @@ export default function SuperAdmin() {
 
   useEffect(() => {
     if (section === "support") loadSupport();
+    if (section === "closures") loadDeleteReqs();
     if (section === "swap-requests") loadSwapRequests();
     if (section === "groups") loadAllGroups();
     if (section === "enterprise") loadEnterprises();
@@ -482,6 +532,7 @@ export default function SuperAdmin() {
   const openSupportCount = supportTickets.filter(t => t.status === "open" || t.status === "in_progress").length;
   const unreadSupportCount = supportTickets.reduce((sum, t) => sum + (t.unreadCount ?? 0), 0);
   const pendingSwap = swapRequests.filter(r => r.status === "pending").length;
+  const pendingClosures = deleteReqs.filter(r => r.status === "pending").length;
 
   const navItems: NavItem[] = [
     { id: "overview",      label: "Overview",           icon: LayoutDashboard },
@@ -491,6 +542,7 @@ export default function SuperAdmin() {
     { id: "contributions", label: "Contributions",       icon: CreditCard },
     { id: "payouts",       label: "Payouts",             icon: DollarSign },
     { id: "support",       label: "Support Tickets",     icon: MessageCircle, badge: unreadSupportCount || openSupportCount || undefined },
+    { id: "closures",      label: "Group Closures",      icon: Trash2, badge: pendingClosures || undefined },
     { id: "swap-requests", label: "Swap Requests",       icon: ArrowLeftRight, badge: pendingSwap || undefined },
     { id: "audit-logs",    label: "Audit Log",           icon: FileText },
     { id: "subscribers",   label: "Newsletter",          icon: Mail },
@@ -1443,6 +1495,130 @@ export default function SuperAdmin() {
                     </tr>
                   )}
                 </DataTable>
+              )}
+            </div>
+          )}
+
+          {/* ── GROUP CLOSURES ────────────────────────────────────── */}
+          {section === "closures" && (
+            <div>
+              <SectionHeader
+                title="Group Closures"
+                sub="Review and approve or reject group deletion requests"
+                onRefresh={loadDeleteReqs}
+                loading={deleteReqsLoading}
+              />
+              {deleteReqsLoading ? (
+                <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[#9CA3AF]" /></div>
+              ) : deleteReqs.length === 0 ? (
+                <EmptyState icon={Trash2} title="No closure requests" sub="Group admins can submit closure requests from their group page." />
+              ) : (
+                <div className="space-y-4">
+                  {deleteReqs.map(dr => {
+                    const isPending = dr.status === "pending";
+                    const isActing = closureActionId === dr.id;
+                    const statusCls = {
+                      pending:  "bg-amber-50 text-amber-700 border border-amber-200",
+                      approved: "bg-green-50 text-green-700 border border-green-200",
+                      rejected: "bg-red-50 text-red-700 border border-red-200",
+                    }[dr.status] ?? "bg-muted text-muted-foreground border border-border";
+
+                    return (
+                      <div key={dr.id} className={`bg-white rounded-2xl border ${isPending ? "border-amber-200" : "border-[#E8E4DF]"} overflow-hidden`}>
+                        {/* Header row */}
+                        <div className="px-6 py-4 flex items-start justify-between gap-4 border-b border-[#F3F2EF]">
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-[#1F2937]">{dr.group?.name ?? `Group #${dr.groupId}`}</span>
+                              <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full capitalize ${statusCls}`}>{dr.status}</span>
+                            </div>
+                            <div className="text-xs text-[#6B7280]">
+                              Requested by <span className="font-medium text-[#374151]">{dr.requester?.name ?? `User #${dr.requestedBy}`}</span>
+                              {dr.requester?.email && <span className="ml-1 text-[#9CA3AF]">({dr.requester.email})</span>}
+                            </div>
+                            <div className="text-xs text-[#9CA3AF] flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {new Date(dr.requestedAt).toLocaleString()}
+                              {dr.reviewedAt && <> · Reviewed {new Date(dr.reviewedAt).toLocaleString()} by {dr.reviewer?.name ?? "admin"}</>}
+                            </div>
+                          </div>
+                          {dr.group && (
+                            <div className="shrink-0 text-right text-xs text-[#9CA3AF] space-y-0.5">
+                              <div className="font-medium text-[#374151]">{dr.group.currency} {dr.group.contributionAmount}/cycle</div>
+                              <div className="capitalize">{dr.group.status}</div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Reason */}
+                        <div className="px-6 py-3 bg-[#FAFAF9]">
+                          <p className="text-xs text-[#6B7280] font-medium mb-1">Reason given</p>
+                          <p className="text-sm text-[#374151] italic">"{dr.reason}"</p>
+                        </div>
+
+                        {/* Review note if already decided */}
+                        {!isPending && dr.reviewNote && (
+                          <div className="px-6 py-3 border-t border-[#F3F2EF]">
+                            <p className="text-xs text-[#9CA3AF] font-medium mb-1">Staff note</p>
+                            <p className="text-sm text-[#374151]">{dr.reviewNote}</p>
+                          </div>
+                        )}
+                        {!isPending && dr.disbursementNote && (
+                          <div className="px-6 py-3 border-t border-[#F3F2EF]">
+                            <p className="text-xs text-[#9CA3AF] font-medium mb-1">Disbursement note</p>
+                            <p className="text-sm text-[#374151]">{dr.disbursementNote}</p>
+                          </div>
+                        )}
+
+                        {/* Action area — pending only */}
+                        {isPending && (
+                          <div className="px-6 py-4 border-t border-[#F3F2EF] space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="text-xs font-medium text-[#6B7280] block mb-1">Note to group admin (optional)</label>
+                                <textarea
+                                  rows={2}
+                                  className="w-full px-3 py-2 text-sm border border-[#E8E4DF] rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-[#3A5A40]/20"
+                                  placeholder="Explain your decision…"
+                                  value={closureNotes[dr.id] ?? ""}
+                                  onChange={e => setClosureNotes(prev => ({ ...prev, [dr.id]: e.target.value }))}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium text-[#6B7280] block mb-1">Disbursement note (if approving)</label>
+                                <textarea
+                                  rows={2}
+                                  className="w-full px-3 py-2 text-sm border border-[#E8E4DF] rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-[#3A5A40]/20"
+                                  placeholder="e.g. Funds returned to members…"
+                                  value={closureDisburse[dr.id] ?? ""}
+                                  onChange={e => setClosureDisburse(prev => ({ ...prev, [dr.id]: e.target.value }))}
+                                />
+                              </div>
+                            </div>
+                            <div className="flex gap-3">
+                              <button
+                                onClick={() => handleClosureAction(dr.id, "approve")}
+                                disabled={isActing}
+                                className="flex items-center gap-2 px-5 py-2 bg-[#3A5A40] hover:bg-[#344E41] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
+                              >
+                                {isActing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                                Approve closure
+                              </button>
+                              <button
+                                onClick={() => handleClosureAction(dr.id, "reject")}
+                                disabled={isActing}
+                                className="flex items-center gap-2 px-5 py-2 bg-red-50 hover:bg-red-100 border border-red-200 disabled:opacity-60 text-red-700 text-sm font-semibold rounded-xl transition-colors"
+                              >
+                                {isActing ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+                                Reject
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
           )}
