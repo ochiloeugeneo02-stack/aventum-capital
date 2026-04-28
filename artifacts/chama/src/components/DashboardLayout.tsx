@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AutoSignOut } from "@/components/AutoSignOut";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -58,6 +59,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex bg-background isolate">
+      <AutoSignOut />
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div

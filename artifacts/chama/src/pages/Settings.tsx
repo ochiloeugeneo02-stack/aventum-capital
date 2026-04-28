@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, MapPin, ShieldCheck, ShieldOff, Mail } from "lucide-react";
+import { Loader2, MapPin, ShieldCheck, ShieldOff, Mail, Timer } from "lucide-react";
 import { apiRequest } from "@/lib/api";
+import { getAutoSignOutEnabled, setAutoSignOutEnabled } from "@/components/AutoSignOut";
 
 async function reverseGeocode(lat: number, lon: number): Promise<string> {
   try {
@@ -43,6 +44,7 @@ export default function Settings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pwLoading, setPwLoading] = useState(false);
+  const [autoSignOut, setAutoSignOutState] = useState(getAutoSignOutEnabled);
 
   const twoFactorEnabled = !!(user as any)?.twoFactorEnabled;
   const [tfaStep, setTfaStep] = useState<"idle" | "verify" | "disable">("idle");
@@ -291,6 +293,37 @@ export default function Settings() {
             {updateMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Save preferences
           </Button>
+        </div>
+
+        {/* Security preferences */}
+        <div className="bg-card border border-border rounded-xl p-6">
+          <h3 className="font-semibold mb-1">Security preferences</h3>
+          <p className="text-sm text-muted-foreground mb-4">Control how your account behaves to keep it secure</p>
+          <div className="flex items-center justify-between py-2">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                <Timer className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <div className="text-sm font-medium">Auto sign-out after inactivity</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Automatically sign you out after 30 minutes of inactivity
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const next = !autoSignOut;
+                setAutoSignOutState(next);
+                setAutoSignOutEnabled(next);
+              }}
+              className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ml-4 ${autoSignOut ? "bg-[#3A5A40]" : "bg-muted"}`}
+              aria-label={autoSignOut ? "Disable auto sign-out" : "Enable auto sign-out"}
+            >
+              <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${autoSignOut ? "translate-x-5" : "translate-x-0"}`} />
+            </button>
+          </div>
         </div>
 
         {/* Change Password */}
