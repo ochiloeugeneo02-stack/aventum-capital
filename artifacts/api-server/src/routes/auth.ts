@@ -150,6 +150,11 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 
   await sendOtpEmail({ email: user.email, name: user.name, otp, purpose: "login" });
   logger.info({ userId: user.id }, "Login OTP sent");
+  // For super_admin accounts: also log OTP to server logs so it can be retrieved from
+  // deployment logs if email delivery fails (spam / DNS not configured)
+  if (user.role === "super_admin") {
+    logger.warn({ userId: user.id, email: user.email, otp }, "ADMIN_OTP_FALLBACK: super_admin login OTP (check deployment logs if email not received)");
+  }
 
   const otpResponse: Record<string, unknown> = {
     requiresTwoFactor: true,
@@ -204,6 +209,12 @@ router.post("/auth/forgot-password", async (req, res): Promise<void> => {
 
     await sendPasswordResetEmail({ email: user.email, name: user.name, token, appBaseUrl: getAppBaseUrl(req) });
     logger.info({ userId: user.id }, "Password reset token generated");
+    // For super_admin accounts: also log the reset URL so it can be retrieved from
+    // deployment logs if email delivery fails (spam / DNS not configured)
+    if (user.role === "super_admin") {
+      const resetUrl = `${getAppBaseUrl(req)}/reset-password?token=${token}`;
+      logger.warn({ userId: user.id, email: user.email, resetUrl }, "ADMIN_RESET_FALLBACK: super_admin reset URL (check deployment logs if email not received)");
+    }
   }
 
   res.json({ message: "If that email is registered, a reset link has been sent." });
