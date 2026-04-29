@@ -15,6 +15,7 @@ import groupChatRouter from "./groupChat";
 import turnSwapsRouter from "./turnSwaps";
 import supportRouter from "./support";
 import newsletterRouter from "./newsletter";
+import directMessagesRouter from "./directMessages";
 
 const router: IRouter = Router();
 
@@ -34,5 +35,6 @@ router.use(groupChatRouter);
 router.use(turnSwapsRouter);
 router.use(supportRouter);
 router.use(newsletterRouter);
+router.use(directMessagesRouter);
 
 export default router;

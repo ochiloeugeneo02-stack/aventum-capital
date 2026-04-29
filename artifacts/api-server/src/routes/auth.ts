@@ -59,6 +59,7 @@ function formatUser(u: typeof usersTable.$inferSelect) {
     emailMarketing: u.emailMarketing,
     isActive: u.isActive,
     motivation: u.motivation ?? null,
+    avatar: u.avatar ?? null,
     twoFactorEnabled: u.twoFactorEnabled,
     createdAt: u.createdAt.toISOString(),
   };

@@ -20,6 +20,7 @@ function formatUser(u: typeof usersTable.$inferSelect) {
     emailMarketing: u.emailMarketing,
     motivation: u.motivation ?? null,
     isActive: u.isActive,
+    avatar: (u as any).avatar ?? null,
     createdAt: u.createdAt.toISOString(),
   };
 }
@@ -87,6 +88,7 @@ router.put("/users/:userId", requireAuth, asyncHandler(async (req, res): Promise
   if (parsed.data.emailMarketing !== undefined) updateData.emailMarketing = parsed.data.emailMarketing;
   if (parsed.data.notificationEmail !== undefined) updateData.notificationEmail = parsed.data.notificationEmail;
   if (parsed.data.notificationSms !== undefined) updateData.notificationSms = parsed.data.notificationSms;
+  if ("avatar" in req.body) updateData.avatar = req.body.avatar ?? null;
 
   const [user] = await db.update(usersTable).set(updateData).where(eq(usersTable.id, userId)).returning();
   if (!user) {

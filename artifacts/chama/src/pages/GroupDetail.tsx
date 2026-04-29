@@ -21,8 +21,10 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
 import {
   Loader2, Users, LogOut, AlertTriangle, CheckCircle2, Clock,
-  MessageCircle, Send, ArrowLeftRight, X, ChevronDown, UserPlus, Copy, Check, Mail, PlayCircle, PauseCircle, Trash2,
+  MessageCircle, Send, ArrowLeftRight, X, ChevronDown, UserPlus, Copy, Check, Mail, PlayCircle, PauseCircle, Trash2, MessageSquare,
 } from "lucide-react";
+import { UserAvatar } from "@/components/UserAvatar";
+import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import handsTogetherImage from "@assets/pexels-pixabay-461049_1776748558410.jpg";
 
@@ -206,7 +208,19 @@ interface ChatMessage {
   id: number;
   userId: number;
   userName: string | null;
+  userAvatar?: string | null;
   content: string;
+  createdAt: string;
+}
+
+interface IncomingSwapRequest {
+  id: number;
+  groupId: number;
+  requesterId: number;
+  requesterName: string;
+  groupName: string;
+  reason: string | null;
+  status: string;
   createdAt: string;
 }
 
@@ -250,6 +264,9 @@ export default function GroupDetail() {
   const [submittingSwap, setSubmittingSwap] = useState(false);
   const [mySwapRequest, setMySwapRequest] = useState<SwapRequest | null>(null);
   const [cancellingSwap, setCancellingSwap] = useState(false);
+  const [incomingSwapRequests, setIncomingSwapRequests] = useState<IncomingSwapRequest[]>([]);
+  const [respondingSwap, setRespondingSwap] = useState<number | null>(null);
+  const [, navigate] = useLocation();
 
   // Cycle approval state
   const [approvingCycle, setApprovingCycle] = useState(false);
@@ -291,6 +308,35 @@ export default function GroupDetail() {
       } catch {}
     })();
   }, [groupId, user]);
+
+  // Load incoming swap requests (where I'm the target)
+  const loadIncomingSwaps = useCallback(async () => {
+    if (!groupId || !user) return;
+    try {
+      const all = await apiRequest<IncomingSwapRequest[]>("/api/swap-requests/incoming");
+      setIncomingSwapRequests(all.filter(r => r.groupId === groupId));
+    } catch {}
+  }, [groupId, user]);
+
+  useEffect(() => {
+    loadIncomingSwaps();
+  }, [loadIncomingSwaps]);
+
+  const handleRespondSwap = async (id: number, action: "approve" | "deny") => {
+    setRespondingSwap(id);
+    try {
+      await apiRequest(`/api/swap-requests/${id}/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      toast({
+        title: action === "approve" ? "Swap approved!" : "Swap declined",
+        description: action === "approve" ? "The rotation order has been updated." : "The request has been declined.",
+      });
+      setIncomingSwapRequests(prev => prev.filter(r => r.id !== id));
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Could not process request.", variant: "destructive" });
+    } finally {
+      setRespondingSwap(null);
+    }
+  };
 
   // Fetch chat messages — only update state when something actually changed
   const fetchMessages = useCallback(async () => {
@@ -638,6 +684,44 @@ export default function GroupDetail() {
           </div>
         )}
 
+        {/* Incoming swap requests — someone wants to swap with me */}
+        {incomingSwapRequests.map(req => (
+          <div key={req.id} className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 rounded-xl border-2 border-violet-300 bg-violet-50 text-violet-900">
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-violet-200 flex items-center justify-center shrink-0">
+                <ArrowLeftRight className="w-4 h-4 text-violet-700" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-sm">Turn swap request from {req.requesterName}</p>
+                <p className="text-xs text-violet-700 mt-0.5">
+                  {req.requesterName} wants to swap their rotation turn with yours in this group.
+                  {req.reason && <span> Reason: "{req.reason}"</span>}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 sm:shrink-0">
+              <Button
+                size="sm"
+                className="bg-violet-600 hover:bg-violet-700 text-white gap-1.5 flex-1 sm:flex-none"
+                onClick={() => handleRespondSwap(req.id, "approve")}
+                disabled={respondingSwap === req.id}
+              >
+                {respondingSwap === req.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                Accept swap
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-violet-300 text-violet-700 hover:bg-violet-100 flex-1 sm:flex-none"
+                onClick={() => handleRespondSwap(req.id, "deny")}
+                disabled={respondingSwap === req.id}
+              >
+                Decline
+              </Button>
+            </div>
+          </div>
+        ))}
+
         {/* Cycle approval banner — shown to admins when cycle is awaiting approval */}
         {g.status === "awaiting_cycle_approval" && isAdmin && (
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 rounded-xl border-2 border-amber-300 bg-amber-50 text-amber-900">
@@ -775,12 +859,10 @@ export default function GroupDetail() {
               g.members.map((member: any, idx: number) => (
                 <div key={member.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-5 py-4">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
+                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground shrink-0">
                       {idx + 1}
                     </div>
-                    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-semibold">
-                      {member.user?.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) ?? "?"}
-                    </div>
+                    <UserAvatar name={member.user?.name ?? "?"} avatar={member.user?.avatar} size="md" />
                     <div className="min-w-0">
                       <div className="text-sm font-medium flex items-center gap-2 flex-wrap">
                         <span className="truncate">{member.user?.name ?? "Unknown"}</span>
@@ -789,14 +871,25 @@ export default function GroupDetail() {
                       <div className="text-xs text-muted-foreground break-all">{member.user?.email}</div>
                     </div>
                     {member.rotationOrder === g.currentRotationIndex && (
-                      <span className="text-xs bg-accent/20 text-accent-foreground px-2 py-0.5 rounded-full">Next</span>
+                      <span className="text-xs bg-accent/20 text-accent-foreground px-2 py-0.5 rounded-full shrink-0">Next</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 sm:justify-end">
+                  <div className="flex items-center gap-2 sm:justify-end flex-wrap">
                     {member.hasReceivedPayout && (
                       <span className="text-xs text-muted-foreground">Received payout</span>
                     )}
                     <StatusBadge status={member.contributionStatus} />
+                    {member.userId !== user?.id && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="gap-1.5 text-xs text-muted-foreground h-7 px-2"
+                        onClick={() => navigate(`/messages?user=${member.userId}`)}
+                      >
+                        <MessageSquare className="w-3 h-3" />
+                        Message
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))
@@ -843,19 +936,18 @@ export default function GroupDetail() {
                     const prevMsg = group.messages[i - 1];
                     const isSameSender = prevMsg && prevMsg.userId === msg.userId;
                     return (
-                      <div key={msg.id} className={cn("flex gap-2 mb-1", isMe ? "flex-row-reverse" : "flex-row", isSameSender ? "mt-0.5" : "mt-3")}>
-                        {!isMe && !isSameSender && (
-                          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-semibold shrink-0 mt-0.5">
-                            {(msg.userName ?? "?").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
-                          </div>
-                        )}
-                        {!isMe && isSameSender && <div className="w-7 shrink-0" />}
+                      <div key={msg.id} className={cn("flex gap-2 mb-0.5", isMe ? "flex-row-reverse" : "flex-row", isSameSender ? "mt-0.5" : "mt-3")}>
+                        <div className="w-7 shrink-0 mt-0.5">
+                          {!isMe && !isSameSender && (
+                            <UserAvatar name={msg.userName ?? "?"} avatar={msg.userAvatar} size="sm" />
+                          )}
+                        </div>
                         <div className={cn("max-w-[82%] sm:max-w-[70%]", isMe ? "items-end" : "items-start", "flex flex-col")}>
                           {!isSameSender && !isMe && (
                             <span className="text-xs text-muted-foreground mb-1 ml-1">{msg.userName}</span>
                           )}
                           <div className={cn(
-                            "px-3 py-2 rounded-2xl text-sm leading-relaxed break-words",
+                            "px-3.5 py-2 rounded-2xl text-sm leading-relaxed break-words shadow-sm",
                             isMe
                               ? "bg-[#3A5A40] text-white rounded-br-sm"
                               : "bg-muted text-foreground rounded-bl-sm"

@@ -23,6 +23,7 @@ export const usersTable = pgTable("users", {
   twoFactorSecret: text("two_factor_secret"),
   twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
   twoFactorBackupCodes: text("two_factor_backup_codes"),
+  avatar: text("avatar"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

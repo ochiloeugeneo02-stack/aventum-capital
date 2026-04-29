@@ -38,6 +38,7 @@ router.get("/groups/:groupId/messages", requireAuth, asyncHandler(async (req, re
       messageType: groupMessagesTable.messageType,
       createdAt: groupMessagesTable.createdAt,
       userName: usersTable.name,
+      userAvatar: usersTable.avatar,
     })
     .from(groupMessagesTable)
     .leftJoin(usersTable, eq(usersTable.id, groupMessagesTable.userId))

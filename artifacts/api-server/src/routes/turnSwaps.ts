@@ -155,6 +155,33 @@ router.get("/groups/:groupId/swap-requests/my", requireAuth, async (req, res): P
   res.json(requests);
 });
 
+router.get("/swap-requests/incoming", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.session.userId!;
+
+  const requests = await db
+    .select({
+      id: turnSwapRequestsTable.id,
+      groupId: turnSwapRequestsTable.groupId,
+      requesterId: turnSwapRequestsTable.requesterId,
+      targetMemberId: turnSwapRequestsTable.targetMemberId,
+      reason: turnSwapRequestsTable.reason,
+      status: turnSwapRequestsTable.status,
+      createdAt: turnSwapRequestsTable.createdAt,
+      groupName: groupsTable.name,
+      requesterName: usersTable.name,
+    })
+    .from(turnSwapRequestsTable)
+    .innerJoin(groupsTable, eq(turnSwapRequestsTable.groupId, groupsTable.id))
+    .innerJoin(usersTable, eq(turnSwapRequestsTable.requesterId, usersTable.id))
+    .where(and(
+      eq(turnSwapRequestsTable.targetMemberId, userId),
+      eq(turnSwapRequestsTable.status, "pending")
+    ))
+    .orderBy(desc(turnSwapRequestsTable.createdAt));
+
+  res.json(requests);
+});
+
 router.post("/swap-requests/:id/approve", requireAuth, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
@@ -184,6 +211,19 @@ router.post("/swap-requests/:id/approve", requireAuth, async (req, res): Promise
 
     await executeSwap(swapRequest.groupId, swapRequest.requesterId, swapRequest.targetMemberId);
     logger.info({ id }, "Turn swap approved by super admin and executed");
+    res.json({ message: "Swap approved and executed" });
+    return;
+  }
+
+  if (swapRequest.targetMemberId === userId) {
+    await db.update(turnSwapRequestsTable).set({
+      status: "approved",
+      adminNote: "Approved by target member",
+      groupAdminDecidedAt: new Date(),
+      updatedAt: new Date(),
+    }).where(eq(turnSwapRequestsTable.id, id));
+    await executeSwap(swapRequest.groupId, swapRequest.requesterId, swapRequest.targetMemberId);
+    logger.info({ id, userId }, "Turn swap approved by target member and executed");
     res.json({ message: "Swap approved and executed" });
     return;
   }
@@ -222,6 +262,18 @@ router.post("/swap-requests/:id/deny", requireAuth, async (req, res): Promise<vo
 
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, swapRequest.groupId)).limit(1);
   if (!group) { res.status(404).json({ error: "Group not found" }); return; }
+
+  if (swapRequest.targetMemberId === userId) {
+    await db.update(turnSwapRequestsTable).set({
+      status: "denied",
+      adminNote: "Declined by target member",
+      groupAdminDecidedAt: new Date(),
+      updatedAt: new Date(),
+    }).where(eq(turnSwapRequestsTable.id, id));
+    logger.info({ id, userId }, "Turn swap denied by target member");
+    res.json({ message: "Swap request declined" });
+    return;
+  }
 
   if (userRole !== "super_admin" && group.adminId !== userId) {
     res.status(403).json({ error: "Not authorized" });

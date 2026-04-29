@@ -10,6 +10,7 @@ interface User {
   organizationId: number | null;
   phoneNumber: string | null;
   isActive: boolean;
+  avatar?: string | null;
   createdAt: string;
 }
 

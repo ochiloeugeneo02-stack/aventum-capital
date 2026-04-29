@@ -40,6 +40,7 @@ async function ensureAppSchema() {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_secret text;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled boolean NOT NULL DEFAULT false;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_backup_codes text;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar text;
     `);
 
     // Session table for connect-pg-simple
@@ -118,6 +119,15 @@ async function ensureAppSchema() {
       CREATE TABLE IF NOT EXISTS app_maintenance_events (
         key text PRIMARY KEY,
         applied_at timestamp with time zone NOT NULL DEFAULT now()
+      );
+
+      CREATE TABLE IF NOT EXISTS direct_messages (
+        id serial PRIMARY KEY,
+        from_user_id integer NOT NULL,
+        to_user_id integer NOT NULL,
+        content text NOT NULL,
+        read_at timestamp with time zone,
+        created_at timestamp with time zone NOT NULL DEFAULT now()
       );
     `);
     // Ensure demo credentials are always usable — safe to run on every start.

@@ -38,6 +38,7 @@ export interface RegisterBody {
 }
 
 export interface LoginBody {
+  /** Email address or username */
   email: string;
   password: string;
 }
@@ -79,6 +80,7 @@ export interface UpdateUserBody {
   phoneNumber?: string;
   notificationEmail?: boolean;
   notificationSms?: boolean;
+  avatar?: string | null;
 }
 
 export interface Organization {
@@ -112,6 +114,7 @@ export interface Group {
   adminId: number;
   organizationId?: number | null;
   contributionAmount: number;
+  currency?: string;
   schedule: GroupSchedule;
   maxMembers: number;
   currentCycle: number;
@@ -192,7 +195,6 @@ export const CreateGroupBodySchedule = {
 
 export interface CreateGroupBody {
   name: string;
-  currency?: string;
   contributionAmount: number;
   schedule?: CreateGroupBodySchedule;
   maxMembers?: number;

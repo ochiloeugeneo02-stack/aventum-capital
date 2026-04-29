@@ -11,4 +11,5 @@ export interface UpdateUserBody {
   phoneNumber?: string;
   notificationEmail?: boolean;
   notificationSms?: boolean;
+  avatar?: string | null;
 }

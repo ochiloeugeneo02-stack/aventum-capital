@@ -13,8 +13,8 @@ export interface Group {
   name: string;
   adminId: number;
   organizationId?: number | null;
-  currency: string;
   contributionAmount: number;
+  currency?: string;
   schedule: GroupSchedule;
   maxMembers: number;
   currentCycle: number;

@@ -9,7 +9,6 @@ import type { CreateGroupBodySchedule } from "./createGroupBodySchedule";
 
 export interface CreateGroupBody {
   name: string;
-  currency?: string;
   contributionAmount: number;
   schedule?: CreateGroupBodySchedule;
   maxMembers?: number;

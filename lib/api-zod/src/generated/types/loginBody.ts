@@ -7,6 +7,7 @@
  */
 
 export interface LoginBody {
+  /** Email address or username */
   email: string;
   password: string;
 }

@@ -25,6 +25,7 @@ import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import SetupTwoFactor from "@/pages/SetupTwoFactor";
 import Support from "@/pages/Support";
+import Messages from "@/pages/Messages";
 import Security from "@/pages/Security";
 import NotFound from "@/pages/not-found";
 
@@ -103,6 +104,12 @@ function Router() {
       <Route path="/support">
         <ProtectedRoute memberOnly>
           <Support />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/messages">
+        <ProtectedRoute memberOnly>
+          <Messages />
         </ProtectedRoute>
       </Route>
 

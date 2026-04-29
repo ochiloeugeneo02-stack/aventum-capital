@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, MapPin, ShieldCheck, ShieldOff, Mail, Timer } from "lucide-react";
+import { Loader2, MapPin, ShieldCheck, ShieldOff, Mail, Timer, Smile } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { getAutoSignOutEnabled, setAutoSignOutEnabled } from "@/components/AutoSignOut";
+import { UserAvatar, EMOJI_PICKER_OPTIONS } from "@/components/UserAvatar";
 
 async function reverseGeocode(lat: number, lon: number): Promise<string> {
   try {
@@ -39,6 +40,30 @@ export default function Settings() {
   const [emailMarketing, setEmailMarketing] = useState((user as any)?.emailMarketing ?? false);
   const [emailNotif, setEmailNotif] = useState((user as any)?.notificationEmail ?? true);
   const [locationLoading, setLocationLoading] = useState(false);
+
+  const [avatar, setAvatar] = useState<string>((user as any)?.avatar ?? "");
+  const [savingAvatar, setSavingAvatar] = useState(false);
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
+
+  const handleSaveAvatar = async (newAvatar: string) => {
+    if (!user) return;
+    setSavingAvatar(true);
+    try {
+      await apiRequest(`/api/users/${user.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatar: newAvatar || null }),
+      });
+      setAvatar(newAvatar);
+      setAvatarPickerOpen(false);
+      queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+      toast({ title: "Avatar updated", description: newAvatar ? `Your avatar is now ${newAvatar}` : "Reverted to initials." });
+    } catch {
+      toast({ title: "Error", description: "Could not save avatar.", variant: "destructive" });
+    } finally {
+      setSavingAvatar(false);
+    }
+  };
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -203,6 +228,59 @@ export default function Settings() {
         <div>
           <h1 className="text-2xl font-bold">Settings</h1>
           <p className="text-muted-foreground text-sm mt-1">Manage your profile and preferences</p>
+        </div>
+
+        {/* Avatar */}
+        <div className="bg-card border border-border rounded-xl p-6">
+          <h3 className="font-semibold mb-1">Profile photo</h3>
+          <p className="text-sm text-muted-foreground mb-4">Choose an emoji that represents you — it'll appear everywhere in the app</p>
+          <div className="flex items-center gap-4 mb-4">
+            <UserAvatar name={user?.name ?? ""} avatar={avatar} size="xl" />
+            <div>
+              <p className="font-medium text-sm">{user?.name}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{avatar ? `Using ${avatar} as your avatar` : "Using initials"}</p>
+              <div className="flex gap-2 mt-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-xs"
+                  onClick={() => setAvatarPickerOpen(!avatarPickerOpen)}
+                >
+                  <Smile className="w-3.5 h-3.5" />
+                  {avatarPickerOpen ? "Close picker" : "Choose emoji"}
+                </Button>
+                {avatar && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-xs text-muted-foreground"
+                    onClick={() => handleSaveAvatar("")}
+                    disabled={savingAvatar}
+                  >
+                    Use initials
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {avatarPickerOpen && (
+            <div className="border border-border rounded-xl p-4 bg-muted/30">
+              <p className="text-xs font-medium text-muted-foreground mb-3">Tap an emoji to set it as your avatar</p>
+              <div className="grid grid-cols-10 gap-1.5">
+                {EMOJI_PICKER_OPTIONS.map(emoji => (
+                  <button
+                    key={emoji}
+                    onClick={() => handleSaveAvatar(emoji)}
+                    disabled={savingAvatar}
+                    className={`text-2xl w-10 h-10 flex items-center justify-center rounded-xl transition-all hover:bg-white hover:shadow-sm hover:scale-110 active:scale-95 ${avatar === emoji ? "bg-white shadow-sm ring-2 ring-primary/30 scale-110" : ""}`}
+                  >
+                    {savingAvatar && avatar === emoji ? <Loader2 className="w-4 h-4 animate-spin" /> : emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Profile */}

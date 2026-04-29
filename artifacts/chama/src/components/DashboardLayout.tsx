@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AutoSignOut } from "@/components/AutoSignOut";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,25 +15,30 @@ import {
   X,
   ChevronRight,
   MessageCircle,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { RegionSelector } from "@/components/RegionSelector";
 import { useRegion } from "@/contexts/RegionContext";
+import { UserAvatar } from "@/components/UserAvatar";
+import { apiRequest } from "@/lib/api";
 
 interface NavItem {
   label: string;
   href: string;
   icon: React.ElementType;
   roles?: string[];
+  badge?: number;
 }
 
-const NAV_ITEMS: NavItem[] = [
+const BASE_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "My Groups", href: "/groups", icon: Users },
   { label: "Contributions", href: "/contributions", icon: CreditCard },
   { label: "Payouts", href: "/payouts", icon: DollarSign },
+  { label: "Messages", href: "/messages", icon: MessageSquare },
   { label: "Support", href: "/support", icon: MessageCircle },
   { label: "Settings", href: "/settings", icon: Settings },
   { label: "Group Admin", href: "/admin/group", icon: Shield, roles: ["group_admin"] },
@@ -45,17 +50,28 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { region } = useRegion();
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [unreadDms, setUnreadDms] = useState(0);
 
-  const filteredNav = NAV_ITEMS.filter(item =>
-    !item.roles || (user && item.roles.includes(user.role))
+  const loadUnread = useCallback(async () => {
+    try {
+      const data = await apiRequest<{ count: number }>("/api/dm/unread-count");
+      setUnreadDms(data.count ?? 0);
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => {
+    loadUnread();
+    const interval = setInterval(loadUnread, 15000);
+    return () => clearInterval(interval);
+  }, [loadUnread]);
+
+  const navItems: NavItem[] = BASE_NAV.map(item =>
+    item.href === "/messages" ? { ...item, badge: unreadDms } : item
   );
 
-  const initials = user?.name
-    .split(" ")
-    .map(n => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) ?? "?";
+  const filteredNav = navItems.filter(item =>
+    !item.roles || (user && item.roles.includes(user.role))
+  );
 
   return (
     <div className="min-h-screen flex bg-background isolate">
@@ -106,7 +122,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 >
                   <Icon className="w-4 h-4 shrink-0" />
                   <span>{item.label}</span>
-                  {isActive && <ChevronRight className="w-4 h-4 ml-auto opacity-60" />}
+                  {item.badge && item.badge > 0 ? (
+                    <span className="ml-auto bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shrink-0">
+                      {item.badge > 99 ? "99+" : item.badge}
+                    </span>
+                  ) : isActive ? (
+                    <ChevronRight className="w-4 h-4 ml-auto opacity-60" />
+                  ) : null}
                 </Link>
               );
             })}
@@ -116,9 +138,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         {/* User section */}
         <div className="p-4 border-t border-sidebar-border">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-full bg-sidebar-primary/20 flex items-center justify-center text-sidebar-primary text-sm font-semibold">
-              {initials}
-            </div>
+            <UserAvatar
+              name={user?.name ?? ""}
+              avatar={user?.avatar}
+              size="md"
+              sidebarStyle
+            />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.name}</p>
               <p className="text-xs text-sidebar-foreground/50 truncate">{user?.email}</p>

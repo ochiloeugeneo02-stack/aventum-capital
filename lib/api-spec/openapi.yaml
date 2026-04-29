@@ -782,6 +782,9 @@ components:
           type: boolean
         notificationSms:
           type: boolean
+        avatar:
+          type: string
+          nullable: true
 
     # ORGANIZATION
     Organization:

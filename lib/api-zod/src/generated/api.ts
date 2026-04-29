@@ -24,22 +24,17 @@ export const registerUserBodyRoleDefault = `member`;
 export const RegisterUserBody = zod.object({
   name: zod.string(),
   email: zod.string().email(),
-  username: zod.string().optional(),
   password: zod.string().min(registerUserBodyPasswordMin),
-  phoneNumber: zod.string().optional(),
-  location: zod.string().optional(),
-  emailMarketing: zod.boolean().optional(),
   role: zod
     .enum(["member", "group_admin", "org_admin", "super_admin"])
     .default(registerUserBodyRoleDefault),
-  motivation: zod.string().optional(),
 });
 
 /**
  * @summary Login
  */
 export const LoginUserBody = zod.object({
-  email: zod.string().min(1),
+  email: zod.string().describe("Email address or username"),
   password: zod.string(),
 });
 
@@ -136,25 +131,19 @@ export const UpdateUserParams = zod.object({
 
 export const UpdateUserBody = zod.object({
   name: zod.string().optional(),
-  username: zod.string().optional(),
   phoneNumber: zod.string().optional(),
-  location: zod.string().optional(),
-  emailMarketing: zod.boolean().optional(),
   notificationEmail: zod.boolean().optional(),
   notificationSms: zod.boolean().optional(),
+  avatar: zod.string().nullish(),
 });
 
 export const UpdateUserResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   email: zod.string(),
-  username: zod.string().nullish(),
   role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
   organizationId: zod.number().nullish(),
   phoneNumber: zod.string().nullish(),
-  location: zod.string().nullish(),
-  emailMarketing: zod.boolean().optional(),
-  motivation: zod.string().nullish(),
   isActive: zod.boolean(),
   createdAt: zod.coerce.date(),
 });
@@ -188,6 +177,8 @@ export const GetOrganizationParams = zod.object({
   orgId: zod.coerce.number(),
 });
 
+export const getOrganizationResponseGroupsItemCurrencyDefault = `USD`;
+
 export const GetOrganizationResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
@@ -203,6 +194,9 @@ export const GetOrganizationResponse = zod.object({
       adminId: zod.number(),
       organizationId: zod.number().nullish(),
       contributionAmount: zod.number(),
+      currency: zod
+        .string()
+        .default(getOrganizationResponseGroupsItemCurrencyDefault),
       schedule: zod.enum(["weekly", "bi-weekly", "monthly"]),
       maxMembers: zod.number(),
       currentCycle: zod.number(),
@@ -219,13 +213,15 @@ export const GetOrganizationResponse = zod.object({
 /**
  * @summary List groups for current user
  */
+export const listGroupsResponseCurrencyDefault = `USD`;
+
 export const ListGroupsResponseItem = zod.object({
   id: zod.number(),
   name: zod.string(),
   adminId: zod.number(),
   organizationId: zod.number().nullish(),
-  currency: zod.string().default("USD"),
   contributionAmount: zod.number(),
+  currency: zod.string().default(listGroupsResponseCurrencyDefault),
   schedule: zod.enum(["weekly", "bi-weekly", "monthly"]),
   maxMembers: zod.number(),
   currentCycle: zod.number(),
@@ -245,7 +241,6 @@ export const createGroupBodyMaxMembersDefault = 5;
 
 export const CreateGroupBody = zod.object({
   name: zod.string(),
-  currency: zod.string().optional(),
   contributionAmount: zod.number(),
   schedule: zod
     .enum(["weekly", "bi-weekly", "monthly"])
@@ -266,7 +261,6 @@ export const GetGroupResponse = zod.object({
   name: zod.string(),
   adminId: zod.number(),
   organizationId: zod.number().nullish(),
-  currency: zod.string().default("USD"),
   contributionAmount: zod.number(),
   schedule: zod.string(),
   maxMembers: zod.number(),
@@ -327,12 +321,15 @@ export const UpdateGroupBody = zod.object({
   schedule: zod.enum(["weekly", "bi-weekly", "monthly"]).optional(),
 });
 
+export const updateGroupResponseCurrencyDefault = `USD`;
+
 export const UpdateGroupResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   adminId: zod.number(),
   organizationId: zod.number().nullish(),
   contributionAmount: zod.number(),
+  currency: zod.string().default(updateGroupResponseCurrencyDefault),
   schedule: zod.enum(["weekly", "bi-weekly", "monthly"]),
   maxMembers: zod.number(),
   currentCycle: zod.number(),
@@ -397,12 +394,15 @@ export const PauseGroupParams = zod.object({
   groupId: zod.coerce.number(),
 });
 
+export const pauseGroupResponseCurrencyDefault = `USD`;
+
 export const PauseGroupResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   adminId: zod.number(),
   organizationId: zod.number().nullish(),
   contributionAmount: zod.number(),
+  currency: zod.string().default(pauseGroupResponseCurrencyDefault),
   schedule: zod.enum(["weekly", "bi-weekly", "monthly"]),
   maxMembers: zod.number(),
   currentCycle: zod.number(),
@@ -420,12 +420,15 @@ export const ResumeGroupParams = zod.object({
   groupId: zod.coerce.number(),
 });
 
+export const resumeGroupResponseCurrencyDefault = `USD`;
+
 export const ResumeGroupResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   adminId: zod.number(),
   organizationId: zod.number().nullish(),
   contributionAmount: zod.number(),
+  currency: zod.string().default(resumeGroupResponseCurrencyDefault),
   schedule: zod.enum(["weekly", "bi-weekly", "monthly"]),
   maxMembers: zod.number(),
   currentCycle: zod.number(),
@@ -444,6 +447,8 @@ export const ListContributionsQueryParams = zod.object({
   cycleId: zod.coerce.number().optional(),
   status: zod.enum(["paid", "pending", "failed"]).optional(),
 });
+
+export const listContributionsResponseGroupCurrencyDefault = `USD`;
 
 export const ListContributionsResponseItem = zod.object({
   id: zod.number(),
@@ -472,6 +477,9 @@ export const ListContributionsResponseItem = zod.object({
       adminId: zod.number(),
       organizationId: zod.number().nullish(),
       contributionAmount: zod.number(),
+      currency: zod
+        .string()
+        .default(listContributionsResponseGroupCurrencyDefault),
       schedule: zod.enum(["weekly", "bi-weekly", "monthly"]),
       maxMembers: zod.number(),
       currentCycle: zod.number(),
@@ -507,6 +515,8 @@ export const ListAllContributionsQueryParams = zod.object({
   limit: zod.coerce.number().default(listAllContributionsQueryLimitDefault),
 });
 
+export const listAllContributionsResponseContributionsItemGroupCurrencyDefault = `USD`;
+
 export const ListAllContributionsResponse = zod.object({
   contributions: zod.array(
     zod.object({
@@ -536,6 +546,11 @@ export const ListAllContributionsResponse = zod.object({
           adminId: zod.number(),
           organizationId: zod.number().nullish(),
           contributionAmount: zod.number(),
+          currency: zod
+            .string()
+            .default(
+              listAllContributionsResponseContributionsItemGroupCurrencyDefault,
+            ),
           schedule: zod.enum(["weekly", "bi-weekly", "monthly"]),
           maxMembers: zod.number(),
           currentCycle: zod.number(),
@@ -560,6 +575,8 @@ export const ListAllContributionsResponse = zod.object({
 export const ListPayoutsQueryParams = zod.object({
   groupId: zod.coerce.number().optional(),
 });
+
+export const listPayoutsResponseGroupCurrencyDefault = `USD`;
 
 export const ListPayoutsResponseItem = zod.object({
   id: zod.number(),
@@ -588,6 +605,7 @@ export const ListPayoutsResponseItem = zod.object({
       adminId: zod.number(),
       organizationId: zod.number().nullish(),
       contributionAmount: zod.number(),
+      currency: zod.string().default(listPayoutsResponseGroupCurrencyDefault),
       schedule: zod.enum(["weekly", "bi-weekly", "monthly"]),
       maxMembers: zod.number(),
       currentCycle: zod.number(),
@@ -612,6 +630,8 @@ export const ListAllPayoutsQueryParams = zod.object({
   page: zod.coerce.number().default(listAllPayoutsQueryPageDefault),
   limit: zod.coerce.number().default(listAllPayoutsQueryLimitDefault),
 });
+
+export const listAllPayoutsResponsePayoutsItemGroupCurrencyDefault = `USD`;
 
 export const ListAllPayoutsResponse = zod.object({
   payouts: zod.array(
@@ -642,6 +662,9 @@ export const ListAllPayoutsResponse = zod.object({
           adminId: zod.number(),
           organizationId: zod.number().nullish(),
           contributionAmount: zod.number(),
+          currency: zod
+            .string()
+            .default(listAllPayoutsResponsePayoutsItemGroupCurrencyDefault),
           schedule: zod.enum(["weekly", "bi-weekly", "monthly"]),
           maxMembers: zod.number(),
           currentCycle: zod.number(),
@@ -666,6 +689,8 @@ export const ListAllPayoutsResponse = zod.object({
 export const CompletePayoutParams = zod.object({
   payoutId: zod.coerce.number(),
 });
+
+export const completePayoutResponseGroupCurrencyDefault = `USD`;
 
 export const CompletePayoutResponse = zod.object({
   id: zod.number(),
@@ -694,6 +719,9 @@ export const CompletePayoutResponse = zod.object({
       adminId: zod.number(),
       organizationId: zod.number().nullish(),
       contributionAmount: zod.number(),
+      currency: zod
+        .string()
+        .default(completePayoutResponseGroupCurrencyDefault),
       schedule: zod.enum(["weekly", "bi-weekly", "monthly"]),
       maxMembers: zod.number(),
       currentCycle: zod.number(),
@@ -710,6 +738,10 @@ export const CompletePayoutResponse = zod.object({
 /**
  * @summary Get member dashboard summary data
  */
+export const getDashboardSummaryResponseCurrentGroupCurrencyDefault = `USD`;
+export const getDashboardSummaryResponseRecentPayoutsItemGroupCurrencyDefault = `USD`;
+export const getDashboardSummaryResponseRecentContributionsItemGroupCurrencyDefault = `USD`;
+
 export const GetDashboardSummaryResponse = zod.object({
   user: zod.object({
     id: zod.number(),
@@ -728,6 +760,9 @@ export const GetDashboardSummaryResponse = zod.object({
       adminId: zod.number(),
       organizationId: zod.number().nullish(),
       contributionAmount: zod.number(),
+      currency: zod
+        .string()
+        .default(getDashboardSummaryResponseCurrentGroupCurrencyDefault),
       schedule: zod.enum(["weekly", "bi-weekly", "monthly"]),
       maxMembers: zod.number(),
       currentCycle: zod.number(),
@@ -782,6 +817,11 @@ export const GetDashboardSummaryResponse = zod.object({
           adminId: zod.number(),
           organizationId: zod.number().nullish(),
           contributionAmount: zod.number(),
+          currency: zod
+            .string()
+            .default(
+              getDashboardSummaryResponseRecentPayoutsItemGroupCurrencyDefault,
+            ),
           schedule: zod.enum(["weekly", "bi-weekly", "monthly"]),
           maxMembers: zod.number(),
           currentCycle: zod.number(),
@@ -823,6 +863,11 @@ export const GetDashboardSummaryResponse = zod.object({
           adminId: zod.number(),
           organizationId: zod.number().nullish(),
           contributionAmount: zod.number(),
+          currency: zod
+            .string()
+            .default(
+              getDashboardSummaryResponseRecentContributionsItemGroupCurrencyDefault,
+            ),
           schedule: zod.enum(["weekly", "bi-weekly", "monthly"]),
           maxMembers: zod.number(),
           currentCycle: zod.number(),
@@ -922,6 +967,8 @@ export const TriggerPayoutBody = zod.object({
   cycleId: zod.number(),
 });
 
+export const triggerPayoutResponseGroupCurrencyDefault = `USD`;
+
 export const TriggerPayoutResponse = zod.object({
   id: zod.number(),
   groupId: zod.number(),
@@ -949,6 +996,7 @@ export const TriggerPayoutResponse = zod.object({
       adminId: zod.number(),
       organizationId: zod.number().nullish(),
       contributionAmount: zod.number(),
+      currency: zod.string().default(triggerPayoutResponseGroupCurrencyDefault),
       schedule: zod.enum(["weekly", "bi-weekly", "monthly"]),
       maxMembers: zod.number(),
       currentCycle: zod.number(),
