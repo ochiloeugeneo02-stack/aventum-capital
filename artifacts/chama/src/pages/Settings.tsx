@@ -164,11 +164,11 @@ export default function Settings() {
       userId: user.id,
       data: {
         name,
-        username: username || undefined,
         phoneNumber: phone || undefined,
+        notificationEmail: emailNotif,
+        username: username || undefined,
         location: location || undefined,
         emailMarketing,
-        notificationEmail: emailNotif,
       },
     });
   };

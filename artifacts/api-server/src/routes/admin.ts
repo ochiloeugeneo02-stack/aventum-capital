@@ -1,8 +1,8 @@
 import { Router, type IRouter } from "express";
-import { db, auditLogsTable, usersTable, groupsTable, groupMembersTable, contributionCyclesTable, contributionsTable, payoutsTable, groupDeleteRequestsTable } from "@workspace/db";
+import { db, auditLogsTable, usersTable, groupsTable, groupMembersTable, contributionCyclesTable, contributionsTable, payoutsTable, groupDeleteRequestsTable, financeApprovalRequestsTable } from "@workspace/db";
 import { newsletterSubscribers } from "@workspace/db/schema";
 import { eq, and, inArray, sql, desc, asc } from "drizzle-orm";
-import { requireRole } from "../lib/auth";
+import { requireRole, requirePermission } from "../lib/auth";
 import { asyncHandler } from "../lib/asyncHandler";
 import { TriggerPayoutBody } from "@workspace/api-zod";
 import { createAuditLog } from "../lib/auditLog";
@@ -12,7 +12,7 @@ import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
-router.get("/admin/audit-logs", requireRole("super_admin"), asyncHandler(async (req, res): Promise<void> => {
+router.get("/admin/audit-logs", requirePermission("auditLogs:read"), asyncHandler(async (req, res): Promise<void> => {
   const page = parseInt(String(req.query.page ?? "1"), 10);
   const limit = parseInt(String(req.query.limit ?? "20"), 10);
   const offset = (page - 1) * limit;
@@ -47,7 +47,7 @@ router.get("/admin/audit-logs", requireRole("super_admin"), asyncHandler(async (
   });
 }));
 
-router.post("/admin/payout-trigger", requireRole("super_admin", "group_admin"), asyncHandler(async (req, res): Promise<void> => {
+router.post("/admin/payout-trigger", requirePermission("finance:full"), asyncHandler(async (req, res): Promise<void> => {
   const parsed = TriggerPayoutBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -55,6 +55,37 @@ router.post("/admin/payout-trigger", requireRole("super_admin", "group_admin"), 
   }
 
   const { groupId, cycleId } = parsed.data;
+  const actorId = req.session!.userId!;
+  const actorRole = req.session!.userRole ?? "";
+
+  // Finance dual-control: non-CFO finance users create an approval request instead of executing directly
+  const canExecuteDirectly = actorRole === "super_admin" || actorRole === "ceo" || req.session!.isFinanceAdmin === true;
+  if (!canExecuteDirectly) {
+    const [existing] = await db.select().from(financeApprovalRequestsTable)
+      .where(and(
+        eq(financeApprovalRequestsTable.requestedBy, actorId),
+        eq(financeApprovalRequestsTable.status, "pending"),
+        eq(financeApprovalRequestsTable.actionType, "manual_payout"),
+      )).limit(1);
+    if (existing) {
+      res.status(409).json({ error: "You already have a pending payout approval request. Ask a CFO or CEO to approve it." });
+      return;
+    }
+    const [request] = await db.insert(financeApprovalRequestsTable).values({
+      requestedBy: actorId,
+      actionType: "manual_payout",
+      actionPayload: JSON.stringify({ groupId, cycleId }),
+    }).returning();
+    await createAuditLog({
+      action: "finance.approval_requested",
+      performedBy: actorId,
+      targetType: "finance_approval",
+      targetId: request.id,
+      details: `Payout approval requested for group ${groupId}, cycle ${cycleId}`,
+    });
+    res.status(202).json({ requiresApproval: true, requestId: request.id, message: "Payout requires CFO or CEO approval. An approval request has been submitted." });
+    return;
+  }
 
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
   if (!group) {
@@ -90,7 +121,7 @@ router.post("/admin/payout-trigger", requireRole("super_admin", "group_admin"), 
 
   await createAuditLog({
     action: "payout.trigger",
-    performedBy: req.session!.userId!,
+    performedBy: actorId,
     targetType: "payout",
     targetId: payout.id,
     details: `Manual trigger for group ${groupId}, cycle ${cycleId}`,
@@ -99,7 +130,7 @@ router.post("/admin/payout-trigger", requireRole("super_admin", "group_admin"), 
   res.json(await formatPayout(payout));
 }));
 
-router.get("/admin/delete-requests", requireRole("super_admin"), asyncHandler(async (req, res): Promise<void> => {
+router.get("/admin/delete-requests", requirePermission("support:full"), asyncHandler(async (req, res): Promise<void> => {
   const requests = await db.select().from(groupDeleteRequestsTable).orderBy(desc(groupDeleteRequestsTable.requestedAt));
 
   const groupIds = [...new Set(requests.map(r => r.groupId))];
@@ -130,8 +161,8 @@ router.get("/admin/delete-requests", requireRole("super_admin"), asyncHandler(as
   })));
 }));
 
-router.post("/admin/delete-requests/:id/approve", requireRole("super_admin"), asyncHandler(async (req, res): Promise<void> => {
-  const reqId = parseInt(req.params.id, 10);
+router.post("/admin/delete-requests/:id/approve", requirePermission("support:full"), asyncHandler(async (req, res): Promise<void> => {
+  const reqId = parseInt(req.params.id as string, 10);
   const { disbursementNote, reviewNote } = req.body as { disbursementNote?: string; reviewNote?: string };
   const adminId = req.session!.userId!;
 
@@ -156,12 +187,12 @@ router.post("/admin/delete-requests/:id/approve", requireRole("super_admin"), as
     details: `Delete request #${reqId} approved. ${disbursementNote ?? ""}`,
   });
 
-  logger.info({ groupId: group.id, reqId }, "Group delete request approved by super admin");
+  logger.info({ groupId: group.id, reqId }, "Group delete request approved");
   res.json({ success: true, message: `Group "${group.name}" has been closed and marked for deletion.` });
 }));
 
-router.post("/admin/delete-requests/:id/reject", requireRole("super_admin"), asyncHandler(async (req, res): Promise<void> => {
-  const reqId = parseInt(req.params.id, 10);
+router.post("/admin/delete-requests/:id/reject", requirePermission("support:full"), asyncHandler(async (req, res): Promise<void> => {
+  const reqId = parseInt(req.params.id as string, 10);
   const { reviewNote } = req.body as { reviewNote?: string };
   const adminId = req.session!.userId!;
 
@@ -184,7 +215,7 @@ router.post("/admin/delete-requests/:id/reject", requireRole("super_admin"), asy
   res.json({ success: true, message: "Delete request rejected." });
 }));
 
-router.get("/admin/groups", requireRole("super_admin"), asyncHandler(async (req, res): Promise<void> => {
+router.get("/admin/groups", requirePermission("groups:view"), asyncHandler(async (req, res): Promise<void> => {
   const groups = await db.select().from(groupsTable).orderBy(desc(groupsTable.createdAt));
   const adminIds = [...new Set(groups.map(g => g.adminId))];
   const admins = adminIds.length > 0 ? await db.select().from(usersTable).where(inArray(usersTable.id, adminIds)) : [];
@@ -210,9 +241,8 @@ router.get("/admin/groups", requireRole("super_admin"), asyncHandler(async (req,
   })));
 }));
 
-// Transfer group admin to another user (super_admin only)
-router.put("/admin/groups/:groupId/admin", requireRole("super_admin"), asyncHandler(async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId, 10);
+router.put("/admin/groups/:groupId/admin", requirePermission("groups:full"), asyncHandler(async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId as string, 10);
   const { newAdminId } = req.body as { newAdminId: number };
 
   if (!newAdminId) {
@@ -226,7 +256,6 @@ router.put("/admin/groups/:groupId/admin", requireRole("super_admin"), asyncHand
   const [newAdmin] = await db.select().from(usersTable).where(eq(usersTable.id, newAdminId)).limit(1);
   if (!newAdmin) { res.status(404).json({ error: "User not found" }); return; }
 
-  // Remove old admin from members if they were auto-added (rotationOrder 0) and aren't the new admin
   if (group.adminId !== newAdminId) {
     const [oldAdminMembership] = await db.select().from(groupMembersTable)
       .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, group.adminId))).limit(1);
@@ -266,9 +295,8 @@ router.put("/admin/groups/:groupId/admin", requireRole("super_admin"), asyncHand
   res.json({ success: true, groupId, newAdminId, newAdminName: newAdmin.name });
 }));
 
-// Delete a group entirely (super_admin only)
-router.delete("/admin/groups/:groupId", requireRole("super_admin"), asyncHandler(async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId, 10);
+router.delete("/admin/groups/:groupId", requirePermission("groups:full"), asyncHandler(async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId as string, 10);
 
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
   if (!group) { res.status(404).json({ error: "Group not found" }); return; }
@@ -290,7 +318,7 @@ router.delete("/admin/groups/:groupId", requireRole("super_admin"), asyncHandler
   res.json({ success: true, deleted: groupId });
 }));
 
-router.get("/admin/newsletter-subscribers", requireRole("super_admin"), asyncHandler(async (req, res): Promise<void> => {
+router.get("/admin/newsletter-subscribers", requirePermission("newsletter:manage"), asyncHandler(async (req, res): Promise<void> => {
   const format = String(req.query.format ?? "json");
 
   const rows = await db

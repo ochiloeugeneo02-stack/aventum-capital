@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, groupMessagesTable, groupMembersTable, groupsTable, usersTable } from "@workspace/db";
 import { eq, and, asc } from "drizzle-orm";
-import { requireAuth } from "../lib/auth";
+import { requireAuth, requireStaffGate, hasPermission } from "../lib/auth";
 import { asyncHandler } from "../lib/asyncHandler";
 import { logger } from "../lib/logger";
 
@@ -18,14 +18,14 @@ async function isMember(userId: number, groupId: number): Promise<boolean> {
   return group?.adminId === userId;
 }
 
-router.get("/groups/:groupId/messages", requireAuth, asyncHandler(async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId);
+router.get("/groups/:groupId/messages", requireAuth, requireStaffGate, asyncHandler(async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId as string);
   if (isNaN(groupId)) { res.status(400).json({ error: "Invalid group ID" }); return; }
 
   const userId = req.session.userId!;
   const userRole = req.session.userRole;
 
-  const member = userRole === "super_admin" ? true : await isMember(userId, groupId);
+  const member = hasPermission(userRole ?? "", "chat:manage") ? true : await isMember(userId, groupId);
   if (!member) { res.status(403).json({ error: "Not a member of this group" }); return; }
 
   const limit = Math.min(parseInt(req.query.limit as string || "50"), 100);
@@ -49,13 +49,13 @@ router.get("/groups/:groupId/messages", requireAuth, asyncHandler(async (req, re
   res.json(messages);
 }));
 
-router.post("/groups/:groupId/messages", requireAuth, asyncHandler(async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId);
+router.post("/groups/:groupId/messages", requireAuth, requireStaffGate, asyncHandler(async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId as string);
   if (isNaN(groupId)) { res.status(400).json({ error: "Invalid group ID" }); return; }
 
   const userId = req.session.userId!;
   const userRole = req.session.userRole;
-  const member = userRole === "super_admin" ? true : await isMember(userId, groupId);
+  const member = hasPermission(userRole ?? "", "chat:manage") ? true : await isMember(userId, groupId);
   if (!member) { res.status(403).json({ error: "Not a member of this group" }); return; }
 
   const { content } = req.body;
@@ -82,9 +82,9 @@ router.post("/groups/:groupId/messages", requireAuth, asyncHandler(async (req, r
   res.status(201).json({ ...message, userName: user?.name ?? "Unknown" });
 }));
 
-router.delete("/groups/:groupId/messages/:messageId", requireAuth, asyncHandler(async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId);
-  const messageId = parseInt(req.params.messageId);
+router.delete("/groups/:groupId/messages/:messageId", requireAuth, requireStaffGate, asyncHandler(async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId as string);
+  const messageId = parseInt(req.params.messageId as string);
   if (isNaN(groupId) || isNaN(messageId)) { res.status(400).json({ error: "Invalid IDs" }); return; }
 
   const userId = req.session.userId!;
@@ -98,7 +98,7 @@ router.delete("/groups/:groupId/messages/:messageId", requireAuth, asyncHandler(
 
   if (!message) { res.status(404).json({ error: "Message not found" }); return; }
 
-  const canDelete = userRole === "super_admin" || message.userId === userId;
+  const canDelete = hasPermission(userRole ?? "", "chat:manage") || message.userId === userId;
   if (!canDelete) {
     const admins = await db.select().from(groupMembersTable)
       .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, userId)))

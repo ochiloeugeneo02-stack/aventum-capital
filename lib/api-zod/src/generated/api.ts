@@ -26,8 +26,16 @@ export const RegisterUserBody = zod.object({
   email: zod.string().email(),
   password: zod.string().min(registerUserBodyPasswordMin),
   role: zod
-    .enum(["member", "group_admin", "org_admin", "super_admin"])
-    .default(registerUserBodyRoleDefault),
+    .enum(["member"])
+    .default(registerUserBodyRoleDefault)
+    .describe(
+      "Always assigned as 'member' server-side. Privileged roles require admin approval.",
+    ),
+  username: zod.string().nullish(),
+  motivation: zod.string().nullish(),
+  phoneNumber: zod.string().nullish(),
+  location: zod.string().nullish(),
+  emailMarketing: zod.boolean().nullish(),
 });
 
 /**
@@ -43,8 +51,22 @@ export const LoginUserResponse = zod.object({
     id: zod.number(),
     name: zod.string(),
     email: zod.string(),
-    role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+    role: zod.enum([
+      "member",
+      "group_admin",
+      "org_admin",
+      "super_admin",
+      "ceo",
+      "cto_admin",
+      "it_support",
+      "finance",
+      "marketing",
+      "relationship_manager",
+    ]),
     organizationId: zod.number().nullish(),
+    departmentId: zod.number().nullish(),
+    isFinanceAdmin: zod.boolean().nullish(),
+    twoFactorEnabled: zod.boolean().optional(),
     phoneNumber: zod.string().nullish(),
     isActive: zod.boolean(),
     createdAt: zod.coerce.date(),
@@ -67,8 +89,22 @@ export const GetCurrentUserResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   email: zod.string(),
-  role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+  role: zod.enum([
+    "member",
+    "group_admin",
+    "org_admin",
+    "super_admin",
+    "ceo",
+    "cto_admin",
+    "it_support",
+    "finance",
+    "marketing",
+    "relationship_manager",
+  ]),
   organizationId: zod.number().nullish(),
+  departmentId: zod.number().nullish(),
+  isFinanceAdmin: zod.boolean().nullish(),
+  twoFactorEnabled: zod.boolean().optional(),
   phoneNumber: zod.string().nullish(),
   isActive: zod.boolean(),
   createdAt: zod.coerce.date(),
@@ -92,8 +128,22 @@ export const ListUsersResponse = zod.object({
       id: zod.number(),
       name: zod.string(),
       email: zod.string(),
-      role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+      role: zod.enum([
+        "member",
+        "group_admin",
+        "org_admin",
+        "super_admin",
+        "ceo",
+        "cto_admin",
+        "it_support",
+        "finance",
+        "marketing",
+        "relationship_manager",
+      ]),
       organizationId: zod.number().nullish(),
+      departmentId: zod.number().nullish(),
+      isFinanceAdmin: zod.boolean().nullish(),
+      twoFactorEnabled: zod.boolean().optional(),
       phoneNumber: zod.string().nullish(),
       isActive: zod.boolean(),
       createdAt: zod.coerce.date(),
@@ -115,8 +165,22 @@ export const GetUserResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   email: zod.string(),
-  role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+  role: zod.enum([
+    "member",
+    "group_admin",
+    "org_admin",
+    "super_admin",
+    "ceo",
+    "cto_admin",
+    "it_support",
+    "finance",
+    "marketing",
+    "relationship_manager",
+  ]),
   organizationId: zod.number().nullish(),
+  departmentId: zod.number().nullish(),
+  isFinanceAdmin: zod.boolean().nullish(),
+  twoFactorEnabled: zod.boolean().optional(),
   phoneNumber: zod.string().nullish(),
   isActive: zod.boolean(),
   createdAt: zod.coerce.date(),
@@ -131,7 +195,10 @@ export const UpdateUserParams = zod.object({
 
 export const UpdateUserBody = zod.object({
   name: zod.string().optional(),
-  phoneNumber: zod.string().optional(),
+  username: zod.string().nullish(),
+  phoneNumber: zod.string().nullish(),
+  location: zod.string().nullish(),
+  emailMarketing: zod.boolean().nullish(),
   notificationEmail: zod.boolean().optional(),
   notificationSms: zod.boolean().optional(),
   avatar: zod.string().nullish(),
@@ -141,8 +208,22 @@ export const UpdateUserResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   email: zod.string(),
-  role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+  role: zod.enum([
+    "member",
+    "group_admin",
+    "org_admin",
+    "super_admin",
+    "ceo",
+    "cto_admin",
+    "it_support",
+    "finance",
+    "marketing",
+    "relationship_manager",
+  ]),
   organizationId: zod.number().nullish(),
+  departmentId: zod.number().nullish(),
+  isFinanceAdmin: zod.boolean().nullish(),
+  twoFactorEnabled: zod.boolean().optional(),
   phoneNumber: zod.string().nullish(),
   isActive: zod.boolean(),
   createdAt: zod.coerce.date(),
@@ -247,6 +328,7 @@ export const CreateGroupBody = zod.object({
     .default(createGroupBodyScheduleDefault),
   maxMembers: zod.number().default(createGroupBodyMaxMembersDefault),
   organizationId: zod.number().nullish(),
+  currency: zod.string().nullish(),
 });
 
 /**
@@ -280,8 +362,22 @@ export const GetGroupResponse = zod.object({
         id: zod.number(),
         name: zod.string(),
         email: zod.string(),
-        role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+        role: zod.enum([
+          "member",
+          "group_admin",
+          "org_admin",
+          "super_admin",
+          "ceo",
+          "cto_admin",
+          "it_support",
+          "finance",
+          "marketing",
+          "relationship_manager",
+        ]),
         organizationId: zod.number().nullish(),
+        departmentId: zod.number().nullish(),
+        isFinanceAdmin: zod.boolean().nullish(),
+        twoFactorEnabled: zod.boolean().optional(),
         phoneNumber: zod.string().nullish(),
         isActive: zod.boolean(),
         createdAt: zod.coerce.date(),
@@ -297,8 +393,22 @@ export const GetGroupResponse = zod.object({
       id: zod.number(),
       name: zod.string(),
       email: zod.string(),
-      role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+      role: zod.enum([
+        "member",
+        "group_admin",
+        "org_admin",
+        "super_admin",
+        "ceo",
+        "cto_admin",
+        "it_support",
+        "finance",
+        "marketing",
+        "relationship_manager",
+      ]),
       organizationId: zod.number().nullish(),
+      departmentId: zod.number().nullish(),
+      isFinanceAdmin: zod.boolean().nullish(),
+      twoFactorEnabled: zod.boolean().optional(),
       phoneNumber: zod.string().nullish(),
       isActive: zod.boolean(),
       createdAt: zod.coerce.date(),
@@ -374,8 +484,22 @@ export const GetGroupMembersResponseItem = zod.object({
     id: zod.number(),
     name: zod.string(),
     email: zod.string(),
-    role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+    role: zod.enum([
+      "member",
+      "group_admin",
+      "org_admin",
+      "super_admin",
+      "ceo",
+      "cto_admin",
+      "it_support",
+      "finance",
+      "marketing",
+      "relationship_manager",
+    ]),
     organizationId: zod.number().nullish(),
+    departmentId: zod.number().nullish(),
+    isFinanceAdmin: zod.boolean().nullish(),
+    twoFactorEnabled: zod.boolean().optional(),
     phoneNumber: zod.string().nullish(),
     isActive: zod.boolean(),
     createdAt: zod.coerce.date(),
@@ -463,8 +587,22 @@ export const ListContributionsResponseItem = zod.object({
       id: zod.number(),
       name: zod.string(),
       email: zod.string(),
-      role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+      role: zod.enum([
+        "member",
+        "group_admin",
+        "org_admin",
+        "super_admin",
+        "ceo",
+        "cto_admin",
+        "it_support",
+        "finance",
+        "marketing",
+        "relationship_manager",
+      ]),
       organizationId: zod.number().nullish(),
+      departmentId: zod.number().nullish(),
+      isFinanceAdmin: zod.boolean().nullish(),
+      twoFactorEnabled: zod.boolean().optional(),
       phoneNumber: zod.string().nullish(),
       isActive: zod.boolean(),
       createdAt: zod.coerce.date(),
@@ -532,8 +670,22 @@ export const ListAllContributionsResponse = zod.object({
           id: zod.number(),
           name: zod.string(),
           email: zod.string(),
-          role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+          role: zod.enum([
+            "member",
+            "group_admin",
+            "org_admin",
+            "super_admin",
+            "ceo",
+            "cto_admin",
+            "it_support",
+            "finance",
+            "marketing",
+            "relationship_manager",
+          ]),
           organizationId: zod.number().nullish(),
+          departmentId: zod.number().nullish(),
+          isFinanceAdmin: zod.boolean().nullish(),
+          twoFactorEnabled: zod.boolean().optional(),
           phoneNumber: zod.string().nullish(),
           isActive: zod.boolean(),
           createdAt: zod.coerce.date(),
@@ -591,8 +743,22 @@ export const ListPayoutsResponseItem = zod.object({
       id: zod.number(),
       name: zod.string(),
       email: zod.string(),
-      role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+      role: zod.enum([
+        "member",
+        "group_admin",
+        "org_admin",
+        "super_admin",
+        "ceo",
+        "cto_admin",
+        "it_support",
+        "finance",
+        "marketing",
+        "relationship_manager",
+      ]),
       organizationId: zod.number().nullish(),
+      departmentId: zod.number().nullish(),
+      isFinanceAdmin: zod.boolean().nullish(),
+      twoFactorEnabled: zod.boolean().optional(),
       phoneNumber: zod.string().nullish(),
       isActive: zod.boolean(),
       createdAt: zod.coerce.date(),
@@ -648,8 +814,22 @@ export const ListAllPayoutsResponse = zod.object({
           id: zod.number(),
           name: zod.string(),
           email: zod.string(),
-          role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+          role: zod.enum([
+            "member",
+            "group_admin",
+            "org_admin",
+            "super_admin",
+            "ceo",
+            "cto_admin",
+            "it_support",
+            "finance",
+            "marketing",
+            "relationship_manager",
+          ]),
           organizationId: zod.number().nullish(),
+          departmentId: zod.number().nullish(),
+          isFinanceAdmin: zod.boolean().nullish(),
+          twoFactorEnabled: zod.boolean().optional(),
           phoneNumber: zod.string().nullish(),
           isActive: zod.boolean(),
           createdAt: zod.coerce.date(),
@@ -705,8 +885,22 @@ export const CompletePayoutResponse = zod.object({
       id: zod.number(),
       name: zod.string(),
       email: zod.string(),
-      role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+      role: zod.enum([
+        "member",
+        "group_admin",
+        "org_admin",
+        "super_admin",
+        "ceo",
+        "cto_admin",
+        "it_support",
+        "finance",
+        "marketing",
+        "relationship_manager",
+      ]),
       organizationId: zod.number().nullish(),
+      departmentId: zod.number().nullish(),
+      isFinanceAdmin: zod.boolean().nullish(),
+      twoFactorEnabled: zod.boolean().optional(),
       phoneNumber: zod.string().nullish(),
       isActive: zod.boolean(),
       createdAt: zod.coerce.date(),
@@ -747,8 +941,22 @@ export const GetDashboardSummaryResponse = zod.object({
     id: zod.number(),
     name: zod.string(),
     email: zod.string(),
-    role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+    role: zod.enum([
+      "member",
+      "group_admin",
+      "org_admin",
+      "super_admin",
+      "ceo",
+      "cto_admin",
+      "it_support",
+      "finance",
+      "marketing",
+      "relationship_manager",
+    ]),
     organizationId: zod.number().nullish(),
+    departmentId: zod.number().nullish(),
+    isFinanceAdmin: zod.boolean().nullish(),
+    twoFactorEnabled: zod.boolean().optional(),
     phoneNumber: zod.string().nullish(),
     isActive: zod.boolean(),
     createdAt: zod.coerce.date(),
@@ -781,8 +989,22 @@ export const GetDashboardSummaryResponse = zod.object({
       id: zod.number(),
       name: zod.string(),
       email: zod.string(),
-      role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+      role: zod.enum([
+        "member",
+        "group_admin",
+        "org_admin",
+        "super_admin",
+        "ceo",
+        "cto_admin",
+        "it_support",
+        "finance",
+        "marketing",
+        "relationship_manager",
+      ]),
       organizationId: zod.number().nullish(),
+      departmentId: zod.number().nullish(),
+      isFinanceAdmin: zod.boolean().nullish(),
+      twoFactorEnabled: zod.boolean().optional(),
       phoneNumber: zod.string().nullish(),
       isActive: zod.boolean(),
       createdAt: zod.coerce.date(),
@@ -803,8 +1025,22 @@ export const GetDashboardSummaryResponse = zod.object({
           id: zod.number(),
           name: zod.string(),
           email: zod.string(),
-          role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+          role: zod.enum([
+            "member",
+            "group_admin",
+            "org_admin",
+            "super_admin",
+            "ceo",
+            "cto_admin",
+            "it_support",
+            "finance",
+            "marketing",
+            "relationship_manager",
+          ]),
           organizationId: zod.number().nullish(),
+          departmentId: zod.number().nullish(),
+          isFinanceAdmin: zod.boolean().nullish(),
+          twoFactorEnabled: zod.boolean().optional(),
           phoneNumber: zod.string().nullish(),
           isActive: zod.boolean(),
           createdAt: zod.coerce.date(),
@@ -849,8 +1085,22 @@ export const GetDashboardSummaryResponse = zod.object({
           id: zod.number(),
           name: zod.string(),
           email: zod.string(),
-          role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+          role: zod.enum([
+            "member",
+            "group_admin",
+            "org_admin",
+            "super_admin",
+            "ceo",
+            "cto_admin",
+            "it_support",
+            "finance",
+            "marketing",
+            "relationship_manager",
+          ]),
           organizationId: zod.number().nullish(),
+          departmentId: zod.number().nullish(),
+          isFinanceAdmin: zod.boolean().nullish(),
+          twoFactorEnabled: zod.boolean().optional(),
           phoneNumber: zod.string().nullish(),
           isActive: zod.boolean(),
           createdAt: zod.coerce.date(),
@@ -945,8 +1195,22 @@ export const ListAuditLogsResponse = zod.object({
           id: zod.number(),
           name: zod.string(),
           email: zod.string(),
-          role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+          role: zod.enum([
+            "member",
+            "group_admin",
+            "org_admin",
+            "super_admin",
+            "ceo",
+            "cto_admin",
+            "it_support",
+            "finance",
+            "marketing",
+            "relationship_manager",
+          ]),
           organizationId: zod.number().nullish(),
+          departmentId: zod.number().nullish(),
+          isFinanceAdmin: zod.boolean().nullish(),
+          twoFactorEnabled: zod.boolean().optional(),
           phoneNumber: zod.string().nullish(),
           isActive: zod.boolean(),
           createdAt: zod.coerce.date(),
@@ -982,8 +1246,22 @@ export const TriggerPayoutResponse = zod.object({
       id: zod.number(),
       name: zod.string(),
       email: zod.string(),
-      role: zod.enum(["member", "group_admin", "org_admin", "super_admin"]),
+      role: zod.enum([
+        "member",
+        "group_admin",
+        "org_admin",
+        "super_admin",
+        "ceo",
+        "cto_admin",
+        "it_support",
+        "finance",
+        "marketing",
+        "relationship_manager",
+      ]),
       organizationId: zod.number().nullish(),
+      departmentId: zod.number().nullish(),
+      isFinanceAdmin: zod.boolean().nullish(),
+      twoFactorEnabled: zod.boolean().optional(),
       phoneNumber: zod.string().nullish(),
       isActive: zod.boolean(),
       createdAt: zod.coerce.date(),
@@ -1007,5 +1285,488 @@ export const TriggerPayoutResponse = zod.object({
       createdAt: zod.coerce.date(),
     })
     .nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List all departments
+ */
+export const ListDepartmentsResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  role: zod.enum([
+    "member",
+    "group_admin",
+    "org_admin",
+    "super_admin",
+    "ceo",
+    "cto_admin",
+    "it_support",
+    "finance",
+    "marketing",
+    "relationship_manager",
+  ]),
+  createdAt: zod.coerce.date(),
+});
+export const ListDepartmentsResponse = zod.array(ListDepartmentsResponseItem);
+
+/**
+ * @summary Create a department
+ */
+
+export const CreateDepartmentBody = zod.object({
+  name: zod.string().min(1),
+  role: zod.enum([
+    "member",
+    "group_admin",
+    "org_admin",
+    "super_admin",
+    "ceo",
+    "cto_admin",
+    "it_support",
+    "finance",
+    "marketing",
+    "relationship_manager",
+  ]),
+});
+
+/**
+ * @summary Update a department (role change propagates to all members)
+ */
+export const UpdateDepartmentParams = zod.object({
+  departmentId: zod.coerce.number(),
+});
+
+export const UpdateDepartmentBody = zod.object({
+  name: zod.string().min(1).optional(),
+  role: zod
+    .enum([
+      "member",
+      "group_admin",
+      "org_admin",
+      "super_admin",
+      "ceo",
+      "cto_admin",
+      "it_support",
+      "finance",
+      "marketing",
+      "relationship_manager",
+    ])
+    .optional(),
+});
+
+export const UpdateDepartmentResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  role: zod.enum([
+    "member",
+    "group_admin",
+    "org_admin",
+    "super_admin",
+    "ceo",
+    "cto_admin",
+    "it_support",
+    "finance",
+    "marketing",
+    "relationship_manager",
+  ]),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete a department
+ */
+export const DeleteDepartmentParams = zod.object({
+  departmentId: zod.coerce.number(),
+});
+
+/**
+ * @summary List staff assigned to a department
+ */
+export const ListDepartmentStaffParams = zod.object({
+  departmentId: zod.coerce.number(),
+});
+
+export const ListDepartmentStaffResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  role: zod.enum([
+    "member",
+    "group_admin",
+    "org_admin",
+    "super_admin",
+    "ceo",
+    "cto_admin",
+    "it_support",
+    "finance",
+    "marketing",
+    "relationship_manager",
+  ]),
+  organizationId: zod.number().nullish(),
+  departmentId: zod.number().nullish(),
+  isFinanceAdmin: zod.boolean().nullish(),
+  twoFactorEnabled: zod.boolean().optional(),
+  phoneNumber: zod.string().nullish(),
+  isActive: zod.boolean(),
+  createdAt: zod.coerce.date(),
+});
+export const ListDepartmentStaffResponse = zod.array(
+  ListDepartmentStaffResponseItem,
+);
+
+/**
+ * @summary Assign a user to a department (copies department role to user)
+ */
+export const AssignUserToDepartmentParams = zod.object({
+  departmentId: zod.coerce.number(),
+});
+
+export const AssignUserToDepartmentBody = zod.object({
+  userId: zod.number(),
+});
+
+/**
+ * @summary Submit an account unlock request (user self-service after lockout)
+ */
+export const CreateUnlockRequestBody = zod.object({
+  userId: zod.number(),
+  reason: zod.string().optional(),
+});
+
+/**
+ * @summary List unlock requests (admin)
+ */
+export const ListUnlockRequestsResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  reason: zod.string().nullish(),
+  status: zod.enum(["pending", "approved", "denied"]),
+  reviewedBy: zod.number().nullish(),
+  reviewNote: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  reviewedAt: zod.coerce.date().nullish(),
+  user: zod
+    .object({
+      id: zod.number(),
+      name: zod.string(),
+      email: zod.string(),
+      role: zod.enum([
+        "member",
+        "group_admin",
+        "org_admin",
+        "super_admin",
+        "ceo",
+        "cto_admin",
+        "it_support",
+        "finance",
+        "marketing",
+        "relationship_manager",
+      ]),
+      organizationId: zod.number().nullish(),
+      departmentId: zod.number().nullish(),
+      isFinanceAdmin: zod.boolean().nullish(),
+      twoFactorEnabled: zod.boolean().optional(),
+      phoneNumber: zod.string().nullish(),
+      isActive: zod.boolean(),
+      createdAt: zod.coerce.date(),
+    })
+    .nullish(),
+  reviewer: zod
+    .object({
+      id: zod.number(),
+      name: zod.string(),
+      email: zod.string(),
+      role: zod.enum([
+        "member",
+        "group_admin",
+        "org_admin",
+        "super_admin",
+        "ceo",
+        "cto_admin",
+        "it_support",
+        "finance",
+        "marketing",
+        "relationship_manager",
+      ]),
+      organizationId: zod.number().nullish(),
+      departmentId: zod.number().nullish(),
+      isFinanceAdmin: zod.boolean().nullish(),
+      twoFactorEnabled: zod.boolean().optional(),
+      phoneNumber: zod.string().nullish(),
+      isActive: zod.boolean(),
+      createdAt: zod.coerce.date(),
+    })
+    .nullish(),
+});
+export const ListUnlockRequestsResponse = zod.array(
+  ListUnlockRequestsResponseItem,
+);
+
+/**
+ * @summary Approve an account unlock request
+ */
+export const ApproveUnlockRequestParams = zod.object({
+  requestId: zod.coerce.number(),
+});
+
+/**
+ * @summary Deny an account unlock request
+ */
+export const DenyUnlockRequestParams = zod.object({
+  requestId: zod.coerce.number(),
+});
+
+/**
+ * @summary Submit a role change request for a user
+ */
+export const CreateRoleRequestBody = zod.object({
+  targetUserId: zod.number(),
+  requestedRole: zod.enum([
+    "member",
+    "group_admin",
+    "org_admin",
+    "super_admin",
+    "ceo",
+    "cto_admin",
+    "it_support",
+    "finance",
+    "marketing",
+    "relationship_manager",
+  ]),
+  reason: zod.string().optional(),
+});
+
+/**
+ * @summary List role change requests (admin)
+ */
+export const ListRoleRequestsResponseItem = zod.object({
+  id: zod.number(),
+  requestedBy: zod.number(),
+  targetUserId: zod.number(),
+  requestedRole: zod.enum([
+    "member",
+    "group_admin",
+    "org_admin",
+    "super_admin",
+    "ceo",
+    "cto_admin",
+    "it_support",
+    "finance",
+    "marketing",
+    "relationship_manager",
+  ]),
+  reason: zod.string().nullish(),
+  status: zod.enum(["pending", "approved", "denied"]),
+  reviewedBy: zod.number().nullish(),
+  createdAt: zod.coerce.date(),
+  requester: zod
+    .object({
+      name: zod.string().optional(),
+      email: zod.string().optional(),
+    })
+    .nullish(),
+  targetUser: zod
+    .object({
+      name: zod.string().optional(),
+      email: zod.string().optional(),
+    })
+    .nullish(),
+});
+export const ListRoleRequestsResponse = zod.array(ListRoleRequestsResponseItem);
+
+/**
+ * @summary Approve a role change request
+ */
+export const ApproveRoleRequestParams = zod.object({
+  requestId: zod.coerce.number(),
+});
+
+/**
+ * @summary Deny a role change request
+ */
+export const DenyRoleRequestParams = zod.object({
+  requestId: zod.coerce.number(),
+});
+
+/**
+ * @summary Submit a finance action for CFO dual-control approval
+ */
+export const createFinanceApprovalBodyActionTypeMax = 100;
+
+export const CreateFinanceApprovalBody = zod.object({
+  actionType: zod.string().min(1).max(createFinanceApprovalBodyActionTypeMax),
+  actionPayload: zod.object({}).passthrough(),
+});
+
+/**
+ * @summary List finance approval requests
+ */
+export const ListFinanceApprovalsResponseItem = zod.object({
+  id: zod.number(),
+  requestedBy: zod.number(),
+  actionType: zod.string(),
+  actionPayload: zod.string().nullish(),
+  status: zod.enum(["pending", "approved", "denied"]),
+  reviewedBy: zod.number().nullish(),
+  reviewNote: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  reviewedAt: zod.coerce.date().nullish(),
+  requester: zod
+    .object({
+      name: zod.string().optional(),
+      email: zod.string().optional(),
+    })
+    .nullish(),
+  reviewer: zod
+    .object({
+      name: zod.string().optional(),
+      email: zod.string().optional(),
+    })
+    .nullish(),
+});
+export const ListFinanceApprovalsResponse = zod.array(
+  ListFinanceApprovalsResponseItem,
+);
+
+/**
+ * @summary CFO approves a finance action (dual-control)
+ */
+export const ApproveFinanceRequestParams = zod.object({
+  requestId: zod.coerce.number(),
+});
+
+/**
+ * @summary CFO denies a finance action (dual-control)
+ */
+export const DenyFinanceRequestParams = zod.object({
+  requestId: zod.coerce.number(),
+});
+
+/**
+ * @summary Set up 3 security questions (required for staff portal access)
+ */
+export const setupSecurityQuestionsBodyQuestionsItemQuestionIndexMin = 0;
+export const setupSecurityQuestionsBodyQuestionsItemQuestionIndexMax = 11;
+
+export const setupSecurityQuestionsBodyQuestionsItemQuestionTextMin = 5;
+
+export const setupSecurityQuestionsBodyQuestionsItemAnswerMin = 2;
+export const setupSecurityQuestionsBodyQuestionsItemAnswerMax = 200;
+
+export const setupSecurityQuestionsBodyQuestionsMin = 3;
+export const setupSecurityQuestionsBodyQuestionsMax = 3;
+
+export const SetupSecurityQuestionsBody = zod.object({
+  questions: zod
+    .array(
+      zod.object({
+        questionIndex: zod
+          .number()
+          .min(setupSecurityQuestionsBodyQuestionsItemQuestionIndexMin)
+          .max(setupSecurityQuestionsBodyQuestionsItemQuestionIndexMax)
+          .describe(
+            "Catalog slot index (0–11) identifying the chosen question",
+          ),
+        questionText: zod
+          .string()
+          .min(setupSecurityQuestionsBodyQuestionsItemQuestionTextMin),
+        answer: zod
+          .string()
+          .min(setupSecurityQuestionsBodyQuestionsItemAnswerMin)
+          .max(setupSecurityQuestionsBodyQuestionsItemAnswerMax),
+      }),
+    )
+    .min(setupSecurityQuestionsBodyQuestionsMin)
+    .max(setupSecurityQuestionsBodyQuestionsMax),
+});
+
+/**
+ * @summary Verify security question answers (used during account unlock flow)
+ */
+
+export const verifySecurityQuestionsBodyAnswersItemQuestionIndexMin = 0;
+export const verifySecurityQuestionsBodyAnswersItemQuestionIndexMax = 11;
+
+export const verifySecurityQuestionsBodyAnswersItemAnswerMax = 200;
+
+export const verifySecurityQuestionsBodyAnswersMin = 3;
+export const verifySecurityQuestionsBodyAnswersMax = 3;
+
+export const VerifySecurityQuestionsBody = zod.object({
+  recoveryToken: zod
+    .string()
+    .min(1)
+    .describe(
+      "Short-lived signed token issued by GET \/auth\/security-questions\/:email",
+    ),
+  answers: zod
+    .array(
+      zod.object({
+        questionIndex: zod
+          .number()
+          .min(verifySecurityQuestionsBodyAnswersItemQuestionIndexMin)
+          .max(verifySecurityQuestionsBodyAnswersItemQuestionIndexMax),
+        answer: zod
+          .string()
+          .min(1)
+          .max(verifySecurityQuestionsBodyAnswersItemAnswerMax),
+      }),
+    )
+    .min(verifySecurityQuestionsBodyAnswersMin)
+    .max(verifySecurityQuestionsBodyAnswersMax),
+});
+
+export const VerifySecurityQuestionsResponse = zod.object({
+  verified: zod.boolean(),
+});
+
+/**
+ * @summary Directly update a user's role and/or isFinanceAdmin flag (super_admin/CEO only)
+ */
+export const UpdateUserRoleParams = zod.object({
+  userId: zod.coerce.number(),
+});
+
+export const UpdateUserRoleBody = zod.object({
+  role: zod
+    .enum([
+      "member",
+      "group_admin",
+      "org_admin",
+      "super_admin",
+      "ceo",
+      "cto_admin",
+      "it_support",
+      "finance",
+      "marketing",
+      "relationship_manager",
+    ])
+    .optional(),
+  isFinanceAdmin: zod.boolean().optional(),
+});
+
+export const UpdateUserRoleResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  role: zod.enum([
+    "member",
+    "group_admin",
+    "org_admin",
+    "super_admin",
+    "ceo",
+    "cto_admin",
+    "it_support",
+    "finance",
+    "marketing",
+    "relationship_manager",
+  ]),
+  organizationId: zod.number().nullish(),
+  departmentId: zod.number().nullish(),
+  isFinanceAdmin: zod.boolean().nullish(),
+  twoFactorEnabled: zod.boolean().optional(),
+  phoneNumber: zod.string().nullish(),
+  isActive: zod.boolean(),
   createdAt: zod.coerce.date(),
 });

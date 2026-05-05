@@ -109,9 +109,12 @@ export default function Login() {
         body: JSON.stringify({ code, twoFactorToken }),
       });
       clear2faState();
+      if (data.passwordResetRequired && data.resetToken) {
+        navigate(`/reset-password?token=${encodeURIComponent(data.resetToken)}`);
+        return;
+      }
       await completeLogin(data.user);
     } catch (err: any) {
-      console.error("[2FA validate error]", err);
       const msg = err?.data?.error ?? err?.message ?? "Invalid code. Try again.";
       toast({ title: "Verification failed", description: msg, variant: "destructive" });
       setTwoFactorCode("");

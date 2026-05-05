@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, exitRequestsTable, groupMembersTable, groupsTable, usersTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
-import { requireAuth } from "../lib/auth";
+import { requireAuth, requirePermission, requireStaffGate, hasPermission } from "../lib/auth";
 import { createAuditLog } from "../lib/auditLog";
 import { getAppBaseUrl } from "../lib/appUrl";
 import { sendExitRequestNotificationToAdmin } from "../lib/email";
@@ -11,7 +11,7 @@ const router: IRouter = Router();
 
 // Member submits an exit request
 router.post("/groups/:groupId/exit-request", requireAuth, async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId, 10);
+  const groupId = parseInt(req.params.groupId as string, 10);
   const userId = req.session!.userId!;
   const { reason, termsAccepted } = req.body as { reason?: string; termsAccepted: boolean };
 
@@ -128,7 +128,7 @@ router.get("/exit-requests/mine", requireAuth, async (req, res): Promise<void> =
 
 // Member cancels their own pending exit request
 router.post("/groups/:groupId/exit-request/cancel", requireAuth, async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId, 10);
+  const groupId = parseInt(req.params.groupId as string, 10);
   const userId = req.session!.userId!;
 
   const [request] = await db.select()
@@ -160,13 +160,8 @@ router.post("/groups/:groupId/exit-request/cancel", requireAuth, async (req, res
   res.json({ success: true, message: "Your exit request has been cancelled." });
 });
 
-// Super admin — view ALL exit requests across the platform
-router.get("/exit-requests/all", requireAuth, async (req, res): Promise<void> => {
-  const userRole = (req.session as any).userRole ?? (req.session as any).role;
-  if (userRole !== "super_admin") {
-    res.status(403).json({ error: "Only super admins can view all exit requests" });
-    return;
-  }
+// Staff support — view ALL exit requests across the platform
+router.get("/exit-requests/all", requirePermission("support:full"), async (req, res): Promise<void> => {
 
   const requests = await db.select({
     id: exitRequestsTable.id,
@@ -193,10 +188,10 @@ router.get("/exit-requests/all", requireAuth, async (req, res): Promise<void> =>
 });
 
 // Group admin — view exit requests for their specific group (read-only)
-router.get("/groups/:groupId/exit-requests", requireAuth, async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId, 10);
+router.get("/groups/:groupId/exit-requests", requireAuth, requireStaffGate, async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId as string, 10);
   const userId = req.session!.userId!;
-  const userRole = (req.session as any).userRole ?? (req.session as any).role;
+  const userRole = req.session!.userRole ?? "";
 
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
   if (!group) {
@@ -204,8 +199,8 @@ router.get("/groups/:groupId/exit-requests", requireAuth, async (req, res): Prom
     return;
   }
 
-  if (group.adminId !== userId && userRole !== "super_admin") {
-    res.status(403).json({ error: "Only the group admin can view exit requests" });
+  if (group.adminId !== userId && !hasPermission(userRole, "support:full")) {
+    res.status(403).json({ error: "Only the group admin or support staff can view exit requests" });
     return;
   }
 
@@ -231,14 +226,14 @@ router.get("/groups/:groupId/exit-requests", requireAuth, async (req, res): Prom
 });
 
 // Super admin approves an exit request
-router.post("/exit-requests/:id/approve", requireAuth, async (req, res): Promise<void> => {
-  const requestId = parseInt(req.params.id, 10);
+router.post("/exit-requests/:id/approve", requireAuth, requireStaffGate, async (req, res): Promise<void> => {
+  const requestId = parseInt(req.params.id as string, 10);
   const adminId = req.session!.userId!;
-  const userRole = (req.session as any).userRole ?? (req.session as any).role;
+  const userRole = req.session!.userRole ?? "";
   const { note } = req.body as { note?: string };
 
-  if (userRole !== "super_admin") {
-    res.status(403).json({ error: "Only Aventum Capital super admins can approve exit requests" });
+  if (!hasPermission(userRole, "support:full")) {
+    res.status(403).json({ error: "Only Aventum Capital support staff can approve exit requests" });
     return;
   }
 
@@ -279,14 +274,14 @@ router.post("/exit-requests/:id/approve", requireAuth, async (req, res): Promise
 });
 
 // Super admin denies an exit request
-router.post("/exit-requests/:id/deny", requireAuth, async (req, res): Promise<void> => {
-  const requestId = parseInt(req.params.id, 10);
+router.post("/exit-requests/:id/deny", requireAuth, requireStaffGate, async (req, res): Promise<void> => {
+  const requestId = parseInt(req.params.id as string, 10);
   const adminId = req.session!.userId!;
-  const userRole = (req.session as any).userRole ?? (req.session as any).role;
+  const userRole = req.session!.userRole ?? "";
   const { note } = req.body as { note?: string };
 
-  if (userRole !== "super_admin") {
-    res.status(403).json({ error: "Only Aventum Capital super admins can deny exit requests" });
+  if (!hasPermission(userRole, "support:full")) {
+    res.status(403).json({ error: "Only Aventum Capital support staff can deny exit requests" });
     return;
   }
 

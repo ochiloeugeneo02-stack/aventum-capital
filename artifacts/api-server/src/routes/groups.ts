@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, groupsTable, groupMembersTable, usersTable, contributionCyclesTable, contributionsTable, groupDeleteRequestsTable } from "@workspace/db";
 import { eq, and, inArray, sql } from "drizzle-orm";
-import { requireAuth } from "../lib/auth";
+import { requireAuth, requireStaffGate, isStaffRole, hasPermission } from "../lib/auth";
 import { CreateGroupBody, UpdateGroupBody, InviteMemberBody } from "@workspace/api-zod";
 import { createAuditLog } from "../lib/auditLog";
 import { formatUser } from "./users";
@@ -51,22 +51,22 @@ async function getGroupWithCounts(g: typeof groupsTable.$inferSelect) {
   };
 }
 
-/** Returns true if the session user is the group's admin or a super_admin. */
+/** Returns true if the session user is the group's admin or has groups:full staff permission. */
 function isGroupAdmin(
   sessionUserId: number | undefined,
   sessionRole: string | undefined,
   group: typeof groupsTable.$inferSelect,
 ): boolean {
-  return sessionRole === "super_admin" || sessionUserId === group.adminId;
+  return hasPermission(sessionRole ?? "", "groups:full") || sessionUserId === group.adminId;
 }
 
-router.get("/groups", requireAuth, async (req, res): Promise<void> => {
+router.get("/groups", requireAuth, requireStaffGate, async (req, res): Promise<void> => {
   const userId = req.session!.userId!;
   const role = req.session!.userRole;
 
   let groups: (typeof groupsTable.$inferSelect)[];
 
-  if (role === "super_admin") {
+  if (hasPermission(role ?? "", "groups:view")) {
     groups = await db.select().from(groupsTable).orderBy(groupsTable.createdAt);
   } else {
     const [memberships, adminGroups] = await Promise.all([
@@ -100,8 +100,8 @@ router.post("/groups", requireAuth, async (req, res): Promise<void> => {
   const sessionUserId = req.session!.userId!;
   const sessionRole = req.session!.userRole;
 
-  // Super admins may specify a different group admin via body.adminId
-  const adminId = (sessionRole === "super_admin" && req.body.adminId)
+  // Staff with groups:full permission may specify a different group admin via body.adminId
+  const adminId = (hasPermission(sessionRole ?? "", "groups:full") && req.body.adminId)
     ? parseInt(String(req.body.adminId), 10)
     : sessionUserId;
 
@@ -136,8 +136,8 @@ router.post("/groups", requireAuth, async (req, res): Promise<void> => {
   res.status(201).json(await getGroupWithCounts(group));
 });
 
-router.get("/groups/:groupId", requireAuth, async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId, 10);
+router.get("/groups/:groupId", requireAuth, requireStaffGate, async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId as string, 10);
   const userId = req.session!.userId!;
   const role = req.session!.userRole;
 
@@ -147,8 +147,8 @@ router.get("/groups/:groupId", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  // Only members, the group admin, or super_admin can view group details
-  if (role !== "super_admin" && group.adminId !== userId) {
+  // Staff with groups:view can see any group; otherwise must be admin or member
+  if (!hasPermission(role ?? "", "groups:view") && group.adminId !== userId) {
     const [membership] = await db.select().from(groupMembersTable)
       .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, userId)))
       .limit(1);
@@ -208,7 +208,7 @@ router.get("/groups/:groupId", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.put("/groups/:groupId", requireAuth, async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId, 10);
+  const groupId = parseInt(req.params.groupId as string, 10);
 
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
   if (!group) {
@@ -237,8 +237,8 @@ router.put("/groups/:groupId", requireAuth, async (req, res): Promise<void> => {
   res.json(await getGroupWithCounts(updated));
 });
 
-router.get("/groups/:groupId/members", requireAuth, async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId, 10);
+router.get("/groups/:groupId/members", requireAuth, requireStaffGate, async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId as string, 10);
   const userId = req.session!.userId!;
   const role = req.session!.userRole;
 
@@ -248,8 +248,8 @@ router.get("/groups/:groupId/members", requireAuth, async (req, res): Promise<vo
     return;
   }
 
-  // Only members, the group admin, or super_admin can view the member list
-  if (role !== "super_admin" && group.adminId !== userId) {
+  // Staff with groups:view can see any group's member list; otherwise must be admin or member
+  if (!hasPermission(role ?? "", "groups:view") && group.adminId !== userId) {
     const [membership] = await db.select().from(groupMembersTable)
       .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, userId)))
       .limit(1);
@@ -296,7 +296,7 @@ router.get("/groups/:groupId/members", requireAuth, async (req, res): Promise<vo
 });
 
 router.post("/groups/:groupId/invite", requireAuth, async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId, 10);
+  const groupId = parseInt(req.params.groupId as string, 10);
 
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
   if (!group) {
@@ -442,8 +442,8 @@ router.post("/groups/:groupId/invite", requireAuth, async (req, res): Promise<vo
 });
 
 router.delete("/groups/:groupId/members/:userId", requireAuth, async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId, 10);
-  const targetUserId = parseInt(req.params.userId, 10);
+  const groupId = parseInt(req.params.groupId as string, 10);
+  const targetUserId = parseInt(req.params.userId as string, 10);
 
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
   if (!group) {
@@ -500,13 +500,13 @@ router.delete("/groups/:groupId/members/:userId", requireAuth, async (req, res):
 });
 
 router.post("/groups/:groupId/approve-next-cycle", requireAuth, async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId, 10);
+  const groupId = parseInt(req.params.groupId as string, 10);
 
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
   if (!group) { res.status(404).json({ error: "Group not found" }); return; }
 
   const sessionUserId = req.session!.userId!;
-  const isAdmin = group.adminId === sessionUserId || req.session?.userRole === "super_admin";
+  const isAdmin = group.adminId === sessionUserId || hasPermission(req.session?.userRole ?? "", "groups:full");
   if (!isAdmin) { res.status(403).json({ error: "Only the group admin can approve the next cycle" }); return; }
 
   if (group.status !== "awaiting_cycle_approval") {
@@ -543,13 +543,13 @@ router.post("/groups/:groupId/approve-next-cycle", requireAuth, async (req, res)
 });
 
 router.post("/groups/:groupId/deny-next-cycle", requireAuth, async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId, 10);
+  const groupId = parseInt(req.params.groupId as string, 10);
 
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
   if (!group) { res.status(404).json({ error: "Group not found" }); return; }
 
   const sessionUserId = req.session!.userId!;
-  const isAdmin = group.adminId === sessionUserId || req.session?.userRole === "super_admin";
+  const isAdmin = group.adminId === sessionUserId || hasPermission(req.session?.userRole ?? "", "groups:full");
   if (!isAdmin) { res.status(403).json({ error: "Only the group admin can manage cycle approval" }); return; }
 
   if (group.status !== "awaiting_cycle_approval") {
@@ -574,7 +574,7 @@ router.post("/groups/:groupId/deny-next-cycle", requireAuth, async (req, res): P
 });
 
 router.post("/groups/:groupId/pause", requireAuth, async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId, 10);
+  const groupId = parseInt(req.params.groupId as string, 10);
 
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
   if (!group) {
@@ -593,7 +593,7 @@ router.post("/groups/:groupId/pause", requireAuth, async (req, res): Promise<voi
 });
 
 router.post("/groups/:groupId/resume", requireAuth, async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId, 10);
+  const groupId = parseInt(req.params.groupId as string, 10);
 
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
   if (!group) {
@@ -614,7 +614,7 @@ router.post("/groups/:groupId/resume", requireAuth, async (req, res): Promise<vo
 // ── Group Delete Requests ─────────────────────────────────────────────────────
 
 router.post("/groups/:groupId/delete-request", requireAuth, async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId, 10);
+  const groupId = parseInt(req.params.groupId as string, 10);
   const userId = req.session!.userId!;
   const { reason } = req.body as { reason?: string };
 
@@ -689,7 +689,7 @@ router.get("/groups/delete-requests/mine", requireAuth, async (req, res): Promis
 });
 
 router.get("/groups/:groupId/delete-request", requireAuth, async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId, 10);
+  const groupId = parseInt(req.params.groupId as string, 10);
   const [existing] = await db.select().from(groupDeleteRequestsTable)
     .where(eq(groupDeleteRequestsTable.groupId, groupId))
     .limit(1);

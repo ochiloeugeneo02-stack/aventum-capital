@@ -25,7 +25,7 @@ import {
   Clock, Loader2, ChevronRight, Search, Shield, Activity, TrendingUp,
   X, Zap, MessageCircle, Send, ChevronLeft, HelpCircle, LogOut, Trash2,
   Building2, Globe, Mail, Users2, Pencil, Check, CalendarRange, StickyNote, Download,
-  Settings, KeyRound,
+  Settings, KeyRound, Unlock, UserCog, BadgeDollarSign, Layers,
 } from "lucide-react";
 
 type Section =
@@ -40,9 +40,13 @@ type Section =
   | "audit-logs"
   | "enterprise"
   | "subscribers"
+  | "unlock-requests"
+  | "role-requests"
+  | "finance-approvals"
+  | "departments"
   | "profile";
 
-interface NavItem { id: Section; label: string; icon: React.ElementType; badge?: number; }
+interface NavItem { id: Section; label: string; icon: React.ElementType; badge?: number; roles?: string[]; }
 
 interface SupportTicket {
   id: number;
@@ -183,6 +187,12 @@ function Badge({ status }: { status: string }) {
     confirmed: "bg-green-50 text-green-700 border border-green-200",
     failed: "bg-red-50 text-red-700 border border-red-200",
     super_admin: "bg-purple-50 text-purple-700 border border-purple-200",
+    ceo: "bg-yellow-50 text-yellow-800 border border-yellow-200",
+    cto_admin: "bg-indigo-50 text-indigo-700 border border-indigo-200",
+    it_support: "bg-sky-50 text-sky-700 border border-sky-200",
+    finance: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    marketing: "bg-pink-50 text-pink-700 border border-pink-200",
+    relationship_manager: "bg-orange-50 text-orange-700 border border-orange-200",
     group_admin: "bg-blue-50 text-blue-700 border border-blue-200",
     member: "bg-[#F5F4F0] text-[#6B7280] border border-[#E8E4DF]",
     open: "bg-blue-50 text-blue-700 border border-blue-200",
@@ -259,6 +269,39 @@ export default function SuperAdmin() {
   const [subFilter, setSubFilter] = useState<"all" | "active" | "unsubscribed">("active");
   const [groupsFilter, setGroupsFilter] = useState<"all" | "active" | "paused" | "deleted">("all");
 
+  // RBAC workflow panels state
+  const [unlockRequests, setUnlockRequests] = useState<any[]>([]);
+  const [unlockLoading, setUnlockLoading] = useState(false);
+  const [unlockActionId, setUnlockActionId] = useState<number | null>(null);
+
+  const [roleRequests, setRoleRequests] = useState<any[]>([]);
+  const [roleReqLoading, setRoleReqLoading] = useState(false);
+  const [roleReqActionId, setRoleReqActionId] = useState<number | null>(null);
+
+  const [financeApprovals, setFinanceApprovals] = useState<any[]>([]);
+  const [financeLoading, setFinanceLoading] = useState(false);
+  const [financeActionId, setFinanceActionId] = useState<number | null>(null);
+
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [deptLoading, setDeptLoading] = useState(false);
+  const [newDeptName, setNewDeptName] = useState("");
+  const [newDeptRole, setNewDeptRole] = useState("");
+  const [addingDept, setAddingDept] = useState(false);
+  const [selectedDeptId, setSelectedDeptId] = useState<number | null>(null);
+  const [deptStaffMap, setDeptStaffMap] = useState<Record<number, any[]>>({});
+  const [loadingDeptStaff, setLoadingDeptStaff] = useState<number | null>(null);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignDeptId, setAssignDeptId] = useState<number | string>("");
+  const [assignUserId, setAssignUserId] = useState<number | string>("");
+  const [assigningUser, setAssigningUser] = useState(false);
+  const [allUsersForDept, setAllUsersForDept] = useState<any[]>([]);
+
+  // Role change request initiation
+  const [roleReqTarget, setRoleReqTarget] = useState<any | null>(null);
+  const [roleReqNewRole, setRoleReqNewRole] = useState("");
+  const [roleReqReason, setRoleReqReason] = useState("");
+  const [submittingRoleReq, setSubmittingRoleReq] = useState(false);
+
   const [chatGroup, setChatGroup] = useState<any | null>(null);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
@@ -267,10 +310,10 @@ export default function SuperAdmin() {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const { data: stats, isLoading: statsLoading } = useGetAdminStats({ query: { queryKey: getGetAdminStatsQueryKey() } });
-  const { data: users, isLoading: usersLoading } = useListUsers({}, { query: { queryKey: getListUsersQueryKey() }, enabled: section === "users" });
-  const { data: contribs } = useListAllContributions({}, { query: { queryKey: getListAllContributionsQueryKey() }, enabled: section === "contributions" });
-  const { data: payouts } = useListAllPayouts({}, { query: { queryKey: getListAllPayoutsQueryKey() }, enabled: section === "payouts" });
-  const { data: auditLogs } = useListAuditLogs({}, { query: { queryKey: getListAuditLogsQueryKey() }, enabled: section === "audit-logs" });
+  const { data: users, isLoading: usersLoading } = useListUsers({}, { query: { queryKey: getListUsersQueryKey(), enabled: section === "users" } });
+  const { data: contribs } = useListAllContributions({}, { query: { queryKey: getListAllContributionsQueryKey(), enabled: section === "contributions" } });
+  const { data: payouts } = useListAllPayouts({}, { query: { queryKey: getListAllPayoutsQueryKey(), enabled: section === "payouts" } });
+  const { data: auditLogs } = useListAuditLogs({}, { query: { queryKey: getListAuditLogsQueryKey(), enabled: section === "audit-logs" } });
 
   const completePayout = useCompletePayout({
     mutation: {
@@ -407,8 +450,144 @@ export default function SuperAdmin() {
     setSubLoading(false);
   }, []);
 
+  const loadUnlockRequests = useCallback(async () => {
+    setUnlockLoading(true);
+    try { setUnlockRequests(await apiRequest<any[]>("/api/admin/unlock-requests")); } catch {}
+    setUnlockLoading(false);
+  }, []);
+
+  const loadRoleRequests = useCallback(async () => {
+    setRoleReqLoading(true);
+    try { setRoleRequests(await apiRequest<any[]>("/api/admin/role-requests")); } catch {}
+    setRoleReqLoading(false);
+  }, []);
+
+  const loadFinanceApprovals = useCallback(async () => {
+    setFinanceLoading(true);
+    try { setFinanceApprovals(await apiRequest<any[]>("/api/admin/finance-approvals")); } catch {}
+    setFinanceLoading(false);
+  }, []);
+
+  const loadDepartments = useCallback(async () => {
+    setDeptLoading(true);
+    try { setDepartments(await apiRequest<any[]>("/api/admin/departments")); } catch {}
+    setDeptLoading(false);
+  }, []);
+
+  const loadDeptStaff = useCallback(async (deptId: number) => {
+    setLoadingDeptStaff(deptId);
+    try {
+      const staff = await apiRequest<any[]>(`/api/admin/departments/${deptId}/staff`);
+      setDeptStaffMap(prev => ({ ...prev, [deptId]: staff }));
+    } catch {}
+    setLoadingDeptStaff(null);
+  }, []);
+
+  const openAssignModal = useCallback(async () => {
+    setShowAssignModal(true);
+    try {
+      const users = await apiRequest<{ users: any[] }>("/api/users");
+      setAllUsersForDept(users?.users ?? []);
+    } catch {}
+  }, []);
+
+  const handleAssignUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assignUserId || !assignDeptId) return;
+    setAssigningUser(true);
+    try {
+      await apiRequest(`/api/admin/departments/${assignDeptId}/assign`, {
+        method: "POST",
+        body: JSON.stringify({ userId: Number(assignUserId) }),
+      });
+      toast({ title: "User assigned to department" });
+      setShowAssignModal(false);
+      setAssignUserId("");
+      setAssignDeptId("");
+      // Refresh staff for that dept if it was open
+      if (selectedDeptId === Number(assignDeptId)) {
+        await loadDeptStaff(Number(assignDeptId));
+      }
+      await loadDepartments();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Failed to assign", variant: "destructive" });
+    }
+    setAssigningUser(false);
+  };
+
+  const handleSubmitRoleReq = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!roleReqTarget || !roleReqNewRole) return;
+    setSubmittingRoleReq(true);
+    try {
+      await apiRequest("/api/admin/role-requests", {
+        method: "POST",
+        body: JSON.stringify({ targetUserId: roleReqTarget.id, requestedRole: roleReqNewRole, reason: roleReqReason || undefined }),
+      });
+      toast({ title: "Role change request submitted for approval" });
+      setRoleReqTarget(null);
+      setRoleReqNewRole("");
+      setRoleReqReason("");
+      await loadRoleRequests();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Failed to submit", variant: "destructive" });
+    }
+    setSubmittingRoleReq(false);
+  };
+
+  const handleUnlockAction = async (id: number, action: "approve" | "deny") => {
+    setUnlockActionId(id);
+    try {
+      await apiRequest(`/api/admin/unlock-requests/${id}/${action}`, { method: "POST", body: JSON.stringify({}) });
+      toast({ title: action === "approve" ? "Account unlocked" : "Request denied" });
+      await loadUnlockRequests();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Action failed", variant: "destructive" });
+    }
+    setUnlockActionId(null);
+  };
+
+  const handleRoleReqAction = async (id: number, action: "approve" | "deny") => {
+    setRoleReqActionId(id);
+    try {
+      await apiRequest(`/api/admin/role-requests/${id}/${action}`, { method: "POST", body: JSON.stringify({}) });
+      toast({ title: action === "approve" ? "Role change approved" : "Request denied" });
+      await loadRoleRequests();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Action failed", variant: "destructive" });
+    }
+    setRoleReqActionId(null);
+  };
+
+  const handleFinanceAction = async (id: number, action: "approve" | "deny") => {
+    setFinanceActionId(id);
+    try {
+      await apiRequest(`/api/admin/finance-approvals/${id}/${action}`, { method: "POST", body: JSON.stringify({}) });
+      toast({ title: action === "approve" ? "Finance action approved" : "Request denied" });
+      await loadFinanceApprovals();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Action failed", variant: "destructive" });
+    }
+    setFinanceActionId(null);
+  };
+
+  const handleAddDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDeptName.trim() || !newDeptRole.trim()) return;
+    setAddingDept(true);
+    try {
+      await apiRequest("/api/admin/departments", { method: "POST", body: JSON.stringify({ name: newDeptName.trim(), role: newDeptRole.trim() }) });
+      toast({ title: "Department created" });
+      setNewDeptName(""); setNewDeptRole("");
+      await loadDepartments();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Failed", variant: "destructive" });
+    }
+    setAddingDept(false);
+  };
+
   // Pre-load on mount so the badge count is always visible in the nav
-  useEffect(() => { loadDeleteReqs(); }, []);
+  useEffect(() => { loadDeleteReqs(); loadUnlockRequests(); }, []);
 
   useEffect(() => {
     if (section === "support") loadSupport();
@@ -417,6 +596,10 @@ export default function SuperAdmin() {
     if (section === "groups") loadAllGroups();
     if (section === "enterprise") loadEnterprises();
     if (section === "subscribers") loadSubscribers();
+    if (section === "unlock-requests") loadUnlockRequests();
+    if (section === "role-requests") loadRoleRequests();
+    if (section === "finance-approvals") loadFinanceApprovals();
+    if (section === "departments") loadDepartments();
   }, [section]);
 
   const saveProfileName = async () => {
@@ -540,21 +723,32 @@ export default function SuperAdmin() {
   const unreadSupportCount = supportTickets.reduce((sum, t) => sum + (t.unreadCount ?? 0), 0);
   const pendingSwap = swapRequests.filter(r => r.status === "pending").length;
   const pendingClosures = deleteReqs.filter(r => r.status === "pending").length;
+  const pendingUnlock = unlockRequests.filter(r => r.status === "pending").length;
+  const pendingRoleReqs = roleRequests.filter(r => r.status === "pending").length;
+  const pendingFinance = financeApprovals.filter(r => r.status === "pending").length;
 
-  const navItems: NavItem[] = [
-    { id: "overview",      label: "Overview",           icon: LayoutDashboard },
-    { id: "users",         label: "Users",               icon: Users },
-    { id: "groups",        label: "Groups",              icon: FolderOpen },
-    { id: "enterprise",    label: "Enterprise",          icon: Building2 },
-    { id: "contributions", label: "Contributions",       icon: CreditCard },
-    { id: "payouts",       label: "Payouts",             icon: DollarSign },
-    { id: "support",       label: "Support Tickets",     icon: MessageCircle, badge: unreadSupportCount || openSupportCount || undefined },
-    { id: "closures",      label: "Group Closures",      icon: Trash2, badge: pendingClosures || undefined },
-    { id: "swap-requests", label: "Swap Requests",       icon: ArrowLeftRight, badge: pendingSwap || undefined },
-    { id: "audit-logs",    label: "Audit Log",           icon: FileText },
-    { id: "subscribers",   label: "Newsletter",          icon: Mail },
-    { id: "profile",       label: "My Profile",          icon: Settings },
+  const role = user?.role ?? "";
+
+  const allNavItems: NavItem[] = [
+    { id: "overview",          label: "Overview",           icon: LayoutDashboard },
+    { id: "users",             label: "Users",               icon: Users,                  roles: ["ceo", "super_admin", "cto_admin", "it_support"] },
+    { id: "groups",            label: "Groups",              icon: FolderOpen,              roles: ["ceo", "super_admin", "cto_admin", "it_support", "finance", "relationship_manager"] },
+    { id: "enterprise",        label: "Enterprise",          icon: Building2,               roles: ["ceo", "super_admin", "cto_admin", "relationship_manager"] },
+    { id: "contributions",     label: "Contributions",       icon: CreditCard,              roles: ["ceo", "super_admin", "cto_admin", "finance", "relationship_manager"] },
+    { id: "payouts",           label: "Payouts",             icon: DollarSign,              roles: ["ceo", "super_admin", "cto_admin", "finance", "relationship_manager"] },
+    { id: "support",           label: "Support Tickets",     icon: MessageCircle,           roles: ["ceo", "super_admin", "cto_admin", "it_support", "relationship_manager"], badge: unreadSupportCount || openSupportCount || undefined },
+    { id: "closures",          label: "Group Closures",      icon: Trash2,                  roles: ["ceo", "super_admin", "cto_admin", "it_support"], badge: pendingClosures || undefined },
+    { id: "swap-requests",     label: "Swap Requests",       icon: ArrowLeftRight,          roles: ["ceo", "super_admin", "relationship_manager"], badge: pendingSwap || undefined },
+    { id: "unlock-requests",   label: "Account Unlocks",     icon: Unlock,                  roles: ["ceo", "super_admin", "cto_admin", "it_support"], badge: pendingUnlock || undefined },
+    { id: "role-requests",     label: "Role Changes",        icon: UserCog,                 roles: ["ceo", "super_admin", "cto_admin"], badge: pendingRoleReqs || undefined },
+    { id: "finance-approvals", label: "Finance Approvals",   icon: BadgeDollarSign,         roles: ["ceo", "super_admin", "finance"], badge: pendingFinance || undefined },
+    { id: "departments",       label: "Departments",         icon: Layers,                  roles: ["ceo", "super_admin", "cto_admin"] },
+    { id: "audit-logs",        label: "Audit Log",           icon: FileText,                roles: ["ceo", "super_admin", "cto_admin", "it_support", "finance"] },
+    { id: "subscribers",       label: "Newsletter",          icon: Mail,                    roles: ["ceo", "super_admin", "marketing"] },
+    { id: "profile",           label: "My Profile",          icon: Settings },
   ];
+
+  const navItems = allNavItems.filter(n => !n.roles || n.roles.includes(role));
 
   const filteredUsers = ((users as any)?.users ?? []).filter((u: any) =>
     !search || u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase())
@@ -721,7 +915,7 @@ export default function SuperAdmin() {
               {usersLoading ? (
                 <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[#3A5A40]" /></div>
               ) : (
-                <DataTable headers={["User", "Email", "Status", "2FA", "Joined"]}>
+                <DataTable headers={["User", "Email", "Role", "Status", "2FA", "Joined", ""]}>
                   {filteredUsers.map((u: any) => (
                     <tr key={u.id} className="hover:bg-[#FAFAF9] transition-colors">
                       <td className="px-5 py-3.5">
@@ -731,12 +925,89 @@ export default function SuperAdmin() {
                         </div>
                       </td>
                       <td className="px-5 py-3.5 text-sm text-[#6B7280]">{u.email}</td>
+                      <td className="px-5 py-3.5"><Badge status={u.role} /></td>
                       <td className="px-5 py-3.5"><Badge status={u.isActive ? "active" : "paused"} /></td>
                       <td className="px-5 py-3.5"><span className={cn("text-[11px] font-medium", u.twoFactorEnabled ? "text-emerald-600" : "text-[#9CA3AF]")}>{u.twoFactorEnabled ? "✓ On" : "Off"}</span></td>
                       <td className="px-5 py-3.5 text-sm text-[#9CA3AF]">{formatDate(u.createdAt)}</td>
+                      <td className="px-5 py-3.5">
+                        {/* roles:request = it_support only per RBAC matrix */}
+                        {user?.role === "it_support" && (
+                          <button
+                            onClick={() => { setRoleReqTarget(u); setRoleReqNewRole(""); setRoleReqReason(""); }}
+                            className="flex items-center gap-1 text-xs text-[#3A5A40] hover:text-[#344E41] font-medium px-2.5 py-1.5 rounded-lg hover:bg-[#EAF0EB] transition-colors whitespace-nowrap"
+                          >
+                            <UserCog className="w-3.5 h-3.5" />
+                            Request Role Change
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </DataTable>
+              )}
+
+              {/* Role change request modal */}
+              {roleReqTarget && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+                  <div className="bg-white rounded-2xl shadow-xl border border-[#E8E4DF] w-full max-w-md mx-4 p-6">
+                    <div className="flex items-center justify-between mb-5">
+                      <div>
+                        <h3 className="text-base font-semibold text-[#1F2937]">Request Role Change</h3>
+                        <p className="text-xs text-[#9CA3AF] mt-0.5">For: {roleReqTarget.name} ({roleReqTarget.email})</p>
+                      </div>
+                      <button onClick={() => setRoleReqTarget(null)} className="text-[#9CA3AF] hover:text-[#374151] transition-colors">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <form onSubmit={handleSubmitRoleReq} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-[#374151] mb-1.5">Current role</label>
+                        <p className="text-sm text-[#6B7280]">{roleReqTarget.role?.replace(/_/g, " ")}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-[#374151] mb-1.5">Requested new role <span className="text-red-500">*</span></label>
+                        <select
+                          value={roleReqNewRole}
+                          onChange={e => setRoleReqNewRole(e.target.value)}
+                          required
+                          className="w-full px-3 py-2 text-sm border border-[#E8E4DF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#3A5A40]/20 bg-white"
+                        >
+                          <option value="" disabled>Select new role…</option>
+                          {["member","group_admin","org_admin","super_admin","ceo","cto_admin","it_support","finance","marketing","relationship_manager"].map(r => (
+                            <option key={r} value={r}>{r.replace(/_/g, " ")}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-[#374151] mb-1.5">Reason (optional)</label>
+                        <textarea
+                          value={roleReqReason}
+                          onChange={e => setRoleReqReason(e.target.value)}
+                          placeholder="Explain why the role change is needed…"
+                          rows={3}
+                          className="w-full px-3 py-2 text-sm border border-[#E8E4DF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#3A5A40]/20 bg-white resize-none"
+                        />
+                      </div>
+                      <div className="flex gap-3 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setRoleReqTarget(null)}
+                          className="flex-1 px-4 py-2 text-sm font-medium text-[#374151] bg-[#F5F5F4] hover:bg-[#E8E4DF] rounded-xl transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={submittingRoleReq || !roleReqNewRole}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#3A5A40] hover:bg-[#344E41] disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors"
+                        >
+                          {submittingRoleReq && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                          Submit Request
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -782,13 +1053,16 @@ export default function SuperAdmin() {
                       <td className="px-5 py-3.5"><Badge status={g.status} /></td>
                       <td className="px-5 py-3.5 text-xs text-[#9CA3AF]">{formatDate(g.createdAt)}</td>
                       <td className="px-5 py-3.5">
-                        <button
-                          onClick={() => openGroupChat(g)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#3A5A40] bg-[#3A5A40]/10 hover:bg-[#3A5A40]/20 rounded-lg transition-colors"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          Monitor Chat
-                        </button>
+                        {/* chat:manage: ceo, super_admin, relationship_manager only */}
+                        {["ceo", "super_admin", "relationship_manager"].includes(user?.role ?? "") && (
+                          <button
+                            onClick={() => openGroupChat(g)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#3A5A40] bg-[#3A5A40]/10 hover:bg-[#3A5A40]/20 rounded-lg transition-colors"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            Monitor Chat
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -900,7 +1174,29 @@ export default function SuperAdmin() {
                     <td className="px-5 py-3.5"><Badge status={p.status} /></td>
                     <td className="px-5 py-3.5">
                       {p.status === "pending" && (
-                        <button onClick={() => completePayout.mutate({ payoutId: p.id })} disabled={completePayout.isPending} className="text-xs font-medium text-[#3A5A40] hover:underline disabled:opacity-50">Mark Paid</button>
+                        <>
+                          {/* Direct completion: CEO, super_admin, CFO (finance + isFinanceAdmin), group_admin, org_admin */}
+                          {(["super_admin", "ceo", "group_admin", "org_admin"].includes(user?.role ?? "") || (user?.role === "finance" && user?.isFinanceAdmin)) && (
+                            <button onClick={() => completePayout.mutate({ payoutId: p.id })} disabled={completePayout.isPending} className="text-xs font-medium text-[#3A5A40] hover:underline disabled:opacity-50">Mark Paid</button>
+                          )}
+                          {/* Finance staff (non-CFO): routes through dual-control approval queue */}
+                          {user?.role === "finance" && !user?.isFinanceAdmin && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await apiRequest("/api/admin/finance-approvals", { method: "POST", body: JSON.stringify({ actionType: "payout_transfer", actionPayload: { payoutId: p.id } }) });
+                                  toast({ title: "Approval request submitted", description: "A CFO or CEO must approve this payout." });
+                                  queryClient.invalidateQueries({ queryKey: getListAllPayoutsQueryKey() });
+                                } catch (err: any) {
+                                  toast({ title: "Error", description: err?.data?.error ?? "Could not submit approval request", variant: "destructive" });
+                                }
+                              }}
+                              className="text-xs font-medium text-amber-700 hover:underline"
+                            >
+                              Request Approval
+                            </button>
+                          )}
+                        </>
                       )}
                     </td>
                   </tr>
@@ -931,6 +1227,8 @@ export default function SuperAdmin() {
                         {" · "}{formatTime(activeTicket.createdAt)}
                       </div>
                     </div>
+                    {/* Action buttons — hidden for view-only roles (e.g. relationship_manager has support:view only) */}
+                    {["ceo", "super_admin", "cto_admin", "it_support"].includes(user?.role ?? "") && (
                     <div className="flex gap-2 shrink-0">
                       {activeTicket.status !== "closed" ? (
                         <>
@@ -954,6 +1252,7 @@ export default function SuperAdmin() {
                         </button>
                       )}
                     </div>
+                    )}
                   </div>
 
                   {showCloseNote && (
@@ -1006,7 +1305,7 @@ export default function SuperAdmin() {
                     </div>
                   )}
 
-                  {activeTicket.status !== "closed" && (
+                  {activeTicket.status !== "closed" && ["ceo", "super_admin", "cto_admin", "it_support"].includes(user?.role ?? "") && (
                     <div className="px-5 py-4 border-t border-[#E8E4DF] bg-white">
                       <div className="flex gap-2 items-end">
                         <textarea
@@ -1325,17 +1624,20 @@ export default function SuperAdmin() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {!enterpriseEditing ? (
-                          <button onClick={startEdit} className="flex items-center gap-1.5 text-xs font-medium text-[#6B7280] hover:text-[#1C3229] bg-[#F0EDE8] hover:bg-[#E8E4DF] px-3 py-1.5 rounded-lg transition-colors">
-                            <Pencil className="w-3.5 h-3.5" /> Edit
-                          </button>
-                        ) : (
-                          <>
-                            <button onClick={() => setEnterpriseEditing(false)} className="text-xs font-medium text-[#9CA3AF] hover:text-[#374151] px-3 py-1.5 rounded-lg hover:bg-[#F0EDE8] transition-colors">Cancel</button>
-                            <button onClick={saveEdit} disabled={enterpriseSaving} className="flex items-center gap-1.5 text-xs font-semibold bg-[#1C3229] text-white px-3 py-1.5 rounded-lg hover:bg-[#243D2F] transition-colors disabled:opacity-50">
-                              {enterpriseSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Save
+                        {/* Enterprise edit: ceo, super_admin, relationship_manager only; cto_admin is view-only */}
+                        {["ceo", "super_admin", "relationship_manager"].includes(user?.role ?? "") && (
+                          !enterpriseEditing ? (
+                            <button onClick={startEdit} className="flex items-center gap-1.5 text-xs font-medium text-[#6B7280] hover:text-[#1C3229] bg-[#F0EDE8] hover:bg-[#E8E4DF] px-3 py-1.5 rounded-lg transition-colors">
+                              <Pencil className="w-3.5 h-3.5" /> Edit
                             </button>
-                          </>
+                          ) : (
+                            <>
+                              <button onClick={() => setEnterpriseEditing(false)} className="text-xs font-medium text-[#9CA3AF] hover:text-[#374151] px-3 py-1.5 rounded-lg hover:bg-[#F0EDE8] transition-colors">Cancel</button>
+                              <button onClick={saveEdit} disabled={enterpriseSaving} className="flex items-center gap-1.5 text-xs font-semibold bg-[#1C3229] text-white px-3 py-1.5 rounded-lg hover:bg-[#243D2F] transition-colors disabled:opacity-50">
+                                {enterpriseSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Save
+                              </button>
+                            </>
+                          )
                         )}
                         <button onClick={() => { setEnterpriseDetail(null); setEnterpriseEditing(false); }} className="w-7 h-7 flex items-center justify-center rounded-lg text-[#9CA3AF] hover:text-[#374151] hover:bg-[#F0EDE8] transition-colors">
                           <X className="w-4 h-4" />
@@ -1722,6 +2024,414 @@ export default function SuperAdmin() {
                   </button>
                 </form>
               </div>
+            </div>
+          )}
+
+          {/* ── ACCOUNT UNLOCK REQUESTS ────────────────────────────── */}
+          {section === "unlock-requests" && (
+            <div>
+              <SectionHeader title="Account Unlock Requests" sub="Users who passed security question verification and need their accounts unlocked" onRefresh={loadUnlockRequests} loading={unlockLoading} />
+              {unlockLoading ? (
+                <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[#3A5A40]" /></div>
+              ) : unlockRequests.length === 0 ? (
+                <EmptyState icon={Unlock} title="No unlock requests" sub="Pending requests will appear here" />
+              ) : (
+                <div className="space-y-4">
+                  {unlockRequests.map(r => {
+                    const isActing = unlockActionId === r.id;
+                    return (
+                      <div key={r.id} className="bg-white rounded-2xl border border-[#E8E4DF] p-5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-start gap-3">
+                            <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                              <Unlock className="w-4 h-4 text-amber-600" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-[#1F2937] text-sm">{r.user?.name ?? `User #${r.userId}`}</div>
+                              <div className="text-xs text-[#6B7280]">{r.user?.email}</div>
+                              <div className="text-xs text-[#9CA3AF] mt-0.5">Verified {formatTime(r.verifiedAt)} · Request #{r.id}</div>
+                            </div>
+                          </div>
+                          <Badge status={r.status} />
+                        </div>
+                        {r.status === "pending" && (
+                          <div className="flex gap-3 mt-4 pt-4 border-t border-[#F0EDE8]">
+                            <button
+                              onClick={() => handleUnlockAction(r.id, "approve")}
+                              disabled={isActing}
+                              className="flex items-center gap-2 px-4 py-2 bg-[#3A5A40] hover:bg-[#344E41] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
+                            >
+                              {isActing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                              Unlock account
+                            </button>
+                            <button
+                              onClick={() => handleUnlockAction(r.id, "deny")}
+                              disabled={isActing}
+                              className="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 border border-red-200 disabled:opacity-60 text-red-700 text-sm font-semibold rounded-xl transition-colors"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              Deny
+                            </button>
+                          </div>
+                        )}
+                        {r.status !== "pending" && r.reviewedBy && (
+                          <div className="mt-3 text-xs text-[#9CA3AF]">
+                            Reviewed by {r.reviewer?.name ?? `User #${r.reviewedBy}`} · {formatTime(r.reviewedAt)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── ROLE CHANGE REQUESTS ────────────────────────────────── */}
+          {section === "role-requests" && (
+            <div>
+              <SectionHeader title="Role Change Requests" sub="Staff role change requests awaiting approval" onRefresh={loadRoleRequests} loading={roleReqLoading} />
+              {roleReqLoading ? (
+                <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[#3A5A40]" /></div>
+              ) : roleRequests.length === 0 ? (
+                <EmptyState icon={UserCog} title="No role change requests" sub="Pending requests will appear here" />
+              ) : (
+                <div className="space-y-4">
+                  {roleRequests.map(r => {
+                    const isActing = roleReqActionId === r.id;
+                    return (
+                      <div key={r.id} className="bg-white rounded-2xl border border-[#E8E4DF] p-5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium text-[#1F2937] text-sm">{r.targetUser?.name ?? `User #${r.targetUserId}`}</span>
+                              <span className="text-xs text-[#9CA3AF]">→</span>
+                              <Badge status={r.requestedRole} />
+                            </div>
+                            <div className="text-xs text-[#6B7280]">Requested by: {r.requester?.name ?? `User #${r.requestedBy}`}</div>
+                            {r.reason && <div className="text-xs text-[#9CA3AF] mt-1 italic">"{r.reason}"</div>}
+                            <div className="text-xs text-[#9CA3AF] mt-0.5">{formatTime(r.createdAt)}</div>
+                          </div>
+                          <Badge status={r.status} />
+                        </div>
+                        {r.status === "pending" && (
+                          <div className="flex gap-3 mt-4 pt-4 border-t border-[#F0EDE8]">
+                            <button
+                              onClick={() => handleRoleReqAction(r.id, "approve")}
+                              disabled={isActing}
+                              className="flex items-center gap-2 px-4 py-2 bg-[#3A5A40] hover:bg-[#344E41] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
+                            >
+                              {isActing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleRoleReqAction(r.id, "deny")}
+                              disabled={isActing}
+                              className="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 border border-red-200 disabled:opacity-60 text-red-700 text-sm font-semibold rounded-xl transition-colors"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              Deny
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── FINANCE APPROVAL REQUESTS ───────────────────────────── */}
+          {section === "finance-approvals" && (
+            <div>
+              <SectionHeader title="Finance Approvals" sub="Finance actions submitted for dual-control approval" onRefresh={loadFinanceApprovals} loading={financeLoading} />
+              {/* Non-CFO finance staff can only view their own submissions, not approve */}
+              {user?.role === "finance" && !user?.isFinanceAdmin && (
+                <div className="mb-4 flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  You can view your submitted requests here. Approval authority is held by the CFO and executive team.
+                </div>
+              )}
+              {financeLoading ? (
+                <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[#3A5A40]" /></div>
+              ) : financeApprovals.length === 0 ? (
+                <EmptyState icon={BadgeDollarSign} title="No finance approvals" sub="Finance action requests will appear here" />
+              ) : (
+                <div className="space-y-4">
+                  {financeApprovals.map(r => {
+                    const isActing = financeActionId === r.id;
+                    // Only CFO (isFinanceAdmin), CEO, and super_admin can approve/deny
+                    const canApprove = user?.isFinanceAdmin || ["ceo", "super_admin"].includes(user?.role ?? "");
+                    let payload: Record<string, unknown> = {};
+                    try {
+                      payload = typeof r.actionPayload === "object" && r.actionPayload !== null
+                        ? r.actionPayload
+                        : JSON.parse(r.actionPayload ?? "{}");
+                    } catch {}
+                    return (
+                      <div key={r.id} className="bg-white rounded-2xl border border-[#E8E4DF] p-5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <code className="text-xs bg-[#F0F5F1] text-[#3A5A40] px-2 py-0.5 rounded-lg font-mono font-semibold">{r.actionType}</code>
+                              <Badge status={r.status} />
+                            </div>
+                            <div className="text-xs text-[#6B7280]">Submitted by: {r.requester?.name ?? `User #${r.requestedBy}`}</div>
+                            {Object.keys(payload).length > 0 && (
+                              <div className="mt-2 text-xs font-mono text-[#9CA3AF] bg-[#F9F8F5] border border-[#E8E4DF] rounded-lg px-3 py-2">
+                                {JSON.stringify(payload, null, 2)}
+                              </div>
+                            )}
+                            <div className="text-xs text-[#9CA3AF] mt-1">{formatTime(r.createdAt)}</div>
+                          </div>
+                        </div>
+                        {r.status === "pending" && canApprove && (
+                          <div className="flex gap-3 mt-4 pt-4 border-t border-[#F0EDE8]">
+                            <button
+                              onClick={() => handleFinanceAction(r.id, "approve")}
+                              disabled={isActing}
+                              className="flex items-center gap-2 px-4 py-2 bg-[#3A5A40] hover:bg-[#344E41] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
+                            >
+                              {isActing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleFinanceAction(r.id, "deny")}
+                              disabled={isActing}
+                              className="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 border border-red-200 disabled:opacity-60 text-red-700 text-sm font-semibold rounded-xl transition-colors"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              Deny
+                            </button>
+                          </div>
+                        )}
+                        {r.status === "pending" && !canApprove && (
+                          <div className="mt-4 pt-4 border-t border-[#F0EDE8] text-xs text-[#9CA3AF]">
+                            Awaiting CFO approval
+                          </div>
+                        )}
+                        {r.status !== "pending" && r.reviewedBy && (
+                          <div className="mt-3 text-xs text-[#9CA3AF]">
+                            Reviewed by {r.reviewer?.name ?? `User #${r.reviewedBy}`} · {formatTime(r.reviewedAt)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── DEPARTMENTS ─────────────────────────────────────────── */}
+          {section === "departments" && (
+            <div className="max-w-3xl space-y-6">
+              <SectionHeader title="Departments" sub="Manage staff departments, roles, and assignments" onRefresh={loadDepartments} loading={deptLoading} />
+
+              {/* Actions row */}
+              <div className="flex gap-3 flex-wrap">
+                {/* Add department inline form */}
+                <div className="flex-1 bg-white rounded-2xl border border-[#E8E4DF] p-5">
+                  <h3 className="text-sm font-semibold text-[#1F2937] mb-4">Add new department</h3>
+                  <form onSubmit={handleAddDepartment} className="flex gap-3 flex-wrap">
+                    <input
+                      type="text"
+                      placeholder="Department name"
+                      value={newDeptName}
+                      onChange={e => setNewDeptName(e.target.value)}
+                      required
+                      className="flex-1 min-w-[140px] px-3 py-2 text-sm border border-[#E8E4DF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#3A5A40]/20 bg-white"
+                    />
+                    <select
+                      value={newDeptRole}
+                      onChange={e => setNewDeptRole(e.target.value)}
+                      required
+                      className="px-3 py-2 text-sm border border-[#E8E4DF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#3A5A40]/20 bg-white"
+                    >
+                      <option value="" disabled>Select role</option>
+                      {["ceo","cto_admin","it_support","finance","marketing","relationship_manager","super_admin"].map(r => (
+                        <option key={r} value={r}>{r.replace(/_/g, " ")}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="submit"
+                      disabled={addingDept || !newDeptName.trim() || !newDeptRole}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-[#3A5A40] hover:bg-[#344E41] disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors"
+                    >
+                      {addingDept ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                      Add
+                    </button>
+                  </form>
+                </div>
+
+                {/* Assign user button */}
+                <div className="flex items-start pt-1">
+                  <button
+                    onClick={openAssignModal}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-[#EAF0EB] hover:bg-[#D4E3D6] text-[#3A5A40] text-sm font-medium rounded-xl transition-colors whitespace-nowrap"
+                  >
+                    <UserCog className="w-4 h-4" />
+                    Assign User to Department
+                  </button>
+                </div>
+              </div>
+
+              {/* Department list */}
+              {deptLoading ? (
+                <div className="flex justify-center py-10"><Loader2 className="w-5 h-5 animate-spin text-[#3A5A40]" /></div>
+              ) : departments.length === 0 ? (
+                <EmptyState icon={Layers} title="No departments yet" sub="Add your first department above" />
+              ) : (
+                <div className="space-y-3">
+                  {departments.map((d: any) => {
+                    const isExpanded = selectedDeptId === d.id;
+                    const staff = deptStaffMap[d.id] ?? [];
+                    return (
+                      <div key={d.id} className="bg-white rounded-2xl border border-[#E8E4DF] overflow-hidden">
+                        <div className="flex items-center justify-between px-5 py-3.5">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-full bg-[#EAF0EB] flex items-center justify-center flex-shrink-0">
+                              <Layers className="w-4 h-4 text-[#3A5A40]" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-[#1F2937] truncate">{d.name}</p>
+                              <p className="text-xs text-[#9CA3AF]">Created {formatDate(d.createdAt)}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                            <Badge status={d.role} />
+                            <span className="text-xs text-[#6B7280] bg-[#F5F5F4] px-2 py-1 rounded-lg">
+                              {d.memberCount ?? 0} {(d.memberCount ?? 0) === 1 ? "member" : "members"}
+                            </span>
+                            <button
+                              onClick={async () => {
+                                if (isExpanded) {
+                                  setSelectedDeptId(null);
+                                } else {
+                                  setSelectedDeptId(d.id);
+                                  if (!deptStaffMap[d.id]) await loadDeptStaff(d.id);
+                                }
+                              }}
+                              className="flex items-center gap-1 text-xs text-[#3A5A40] hover:text-[#344E41] font-medium px-3 py-1.5 rounded-lg hover:bg-[#EAF0EB] transition-colors"
+                            >
+                              {loadingDeptStaff === d.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Users2 className="w-3.5 h-3.5" />
+                              )}
+                              {isExpanded ? "Hide Staff" : "View Staff"}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Staff list — expanded */}
+                        {isExpanded && (
+                          <div className="border-t border-[#F0EDE9] px-5 py-4 bg-[#FAFAF9]">
+                            {loadingDeptStaff === d.id ? (
+                              <div className="flex justify-center py-4"><Loader2 className="w-4 h-4 animate-spin text-[#3A5A40]" /></div>
+                            ) : staff.length === 0 ? (
+                              <div className="text-center py-4">
+                                <p className="text-sm text-[#9CA3AF]">No staff assigned to this department yet.</p>
+                                <button
+                                  onClick={() => { setAssignDeptId(d.id); openAssignModal(); }}
+                                  className="mt-2 text-xs text-[#3A5A40] underline underline-offset-2 hover:no-underline"
+                                >
+                                  Assign someone now
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide mb-3">Staff members</p>
+                                {staff.map((u: any) => (
+                                  <div key={u.id} className="flex items-center justify-between bg-white rounded-xl border border-[#E8E4DF] px-4 py-2.5">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#3A5A40] to-[#6B9E77] flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                                        {(u.name ?? "?")[0].toUpperCase()}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="text-sm font-medium text-[#1F2937] truncate">{u.name}</p>
+                                        <p className="text-xs text-[#9CA3AF] truncate">{u.email}</p>
+                                      </div>
+                                    </div>
+                                    <Badge status={u.role} />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Assign User Modal */}
+              {showAssignModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+                  <div className="bg-white rounded-2xl shadow-xl border border-[#E8E4DF] w-full max-w-md mx-4 p-6">
+                    <div className="flex items-center justify-between mb-5">
+                      <h3 className="text-base font-semibold text-[#1F2937]">Assign User to Department</h3>
+                      <button onClick={() => { setShowAssignModal(false); setAssignUserId(""); setAssignDeptId(""); }} className="text-[#9CA3AF] hover:text-[#374151] transition-colors">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <form onSubmit={handleAssignUser} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-[#374151] mb-1.5">Select Department</label>
+                        <select
+                          value={assignDeptId}
+                          onChange={e => setAssignDeptId(e.target.value)}
+                          required
+                          className="w-full px-3 py-2 text-sm border border-[#E8E4DF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#3A5A40]/20 bg-white"
+                        >
+                          <option value="" disabled>Choose a department…</option>
+                          {departments.map((d: any) => (
+                            <option key={d.id} value={d.id}>{d.name} ({d.role.replace(/_/g, " ")})</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-[#374151] mb-1.5">Select User</label>
+                        <select
+                          value={assignUserId}
+                          onChange={e => setAssignUserId(e.target.value)}
+                          required
+                          className="w-full px-3 py-2 text-sm border border-[#E8E4DF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#3A5A40]/20 bg-white"
+                        >
+                          <option value="" disabled>Choose a user…</option>
+                          {allUsersForDept.map((u: any) => (
+                            <option key={u.id} value={u.id}>{u.name} — {u.email} ({u.role.replace(/_/g, " ")})</option>
+                          ))}
+                        </select>
+                        {allUsersForDept.length === 0 && (
+                          <p className="mt-1 text-xs text-[#9CA3AF] flex items-center gap-1">
+                            <Loader2 className="w-3 h-3 animate-spin" /> Loading users…
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-3 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => { setShowAssignModal(false); setAssignUserId(""); setAssignDeptId(""); }}
+                          className="flex-1 px-4 py-2 text-sm font-medium text-[#374151] bg-[#F5F5F4] hover:bg-[#E8E4DF] rounded-xl transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={assigningUser || !assignUserId || !assignDeptId}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#3A5A40] hover:bg-[#344E41] disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors"
+                        >
+                          {assigningUser && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                          Assign
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

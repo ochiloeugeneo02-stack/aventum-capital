@@ -13,4 +13,10 @@ export const UserRole = {
   group_admin: "group_admin",
   org_admin: "org_admin",
   super_admin: "super_admin",
+  ceo: "ceo",
+  cto_admin: "cto_admin",
+  it_support: "it_support",
+  finance: "finance",
+  marketing: "marketing",
+  relationship_manager: "relationship_manager",
 } as const;

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { supportTickets, supportMessages, usersTable, groupsTable } from "@workspace/db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
-import { requireAuth, requireRole } from "../lib/auth";
+import { requireAuth, requireRole, requirePermission } from "../lib/auth";
 
 const router = Router();
 
@@ -164,7 +164,7 @@ router.post("/support/tickets/:id/messages", requireAuth, async (req, res) => {
 ═══════════════════════════════════════════════════════════════════ */
 
 /* ── Admin: list all tickets ───────────────────────────────────── */
-router.get("/admin/support/tickets", requireAuth, requireRole("super_admin"), async (req, res) => {
+router.get("/admin/support/tickets", requireAuth, requirePermission("support:view"), async (req, res) => {
   try {
     const { status, category } = req.query as { status?: string; category?: string };
 
@@ -211,7 +211,7 @@ router.get("/admin/support/tickets", requireAuth, requireRole("super_admin"), as
 });
 
 /* ── Admin: get single ticket with messages ────────────────────── */
-router.get("/admin/support/tickets/:id", requireAuth, requireRole("super_admin"), async (req, res) => {
+router.get("/admin/support/tickets/:id", requireAuth, requirePermission("support:view"), async (req, res) => {
   try {
     const ticketId = Number(req.params.id);
 
@@ -272,7 +272,7 @@ router.get("/admin/support/tickets/:id", requireAuth, requireRole("super_admin")
 });
 
 /* ── Admin: reply to ticket ────────────────────────────────────── */
-router.post("/admin/support/tickets/:id/messages", requireAuth, requireRole("super_admin"), async (req, res) => {
+router.post("/admin/support/tickets/:id/messages", requireAuth, requirePermission("support:full"), async (req, res) => {
   try {
     const ticketId = Number(req.params.id);
     const { message } = req.body;
@@ -298,7 +298,7 @@ router.post("/admin/support/tickets/:id/messages", requireAuth, requireRole("sup
 });
 
 /* ── Admin: delete group via group_deletion ticket ─────────────── */
-router.post("/admin/support/tickets/:id/delete-group", requireAuth, requireRole("super_admin"), async (req, res) => {
+router.post("/admin/support/tickets/:id/delete-group", requireAuth, requirePermission("support:full"), async (req, res) => {
   try {
     const ticketId = Number(req.params.id);
     const adminId = req.session!.userId!;
@@ -332,7 +332,7 @@ router.post("/admin/support/tickets/:id/delete-group", requireAuth, requireRole(
 });
 
 /* ── Admin: close ticket ───────────────────────────────────────── */
-router.post("/admin/support/tickets/:id/close", requireAuth, requireRole("super_admin"), async (req, res) => {
+router.post("/admin/support/tickets/:id/close", requireAuth, requirePermission("support:full"), async (req, res) => {
   try {
     const ticketId = Number(req.params.id);
     const { note } = req.body;
@@ -362,7 +362,7 @@ router.post("/admin/support/tickets/:id/close", requireAuth, requireRole("super_
 });
 
 /* ── Admin: reopen ticket ──────────────────────────────────────── */
-router.post("/admin/support/tickets/:id/reopen", requireAuth, requireRole("super_admin"), async (req, res) => {
+router.post("/admin/support/tickets/:id/reopen", requireAuth, requirePermission("support:full"), async (req, res) => {
   try {
     const ticketId = Number(req.params.id);
     await db.update(supportTickets).set({ status: "open", closedAt: null, closedBy: null, updatedAt: new Date() }).where(eq(supportTickets.id, ticketId));

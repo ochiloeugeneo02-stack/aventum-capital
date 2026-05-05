@@ -13,3 +13,8 @@ export * from "./turnSwapRequests";
 export * from "./groupDeleteRequests";
 export * from "./supportTickets";
 export * from "./newsletterSubscribers";
+export * from "./departments";
+export * from "./securityQuestions";
+export * from "./unlockRequests";
+export * from "./roleChangeRequests";
+export * from "./financeApprovalRequests";

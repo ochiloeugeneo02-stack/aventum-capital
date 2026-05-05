@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, usersTable, groupsTable, groupMembersTable, contributionsTable, payoutsTable, contributionCyclesTable, organizationsTable, auditLogsTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
-import { requireAuth, requireRole } from "../lib/auth";
+import { requireAuth, requireRole, requirePermission, requireStaffGate, isStaffRole, hasPermission } from "../lib/auth";
 import { asyncHandler } from "../lib/asyncHandler";
 import { formatUser } from "./users";
 import { formatPayout } from "./payouts";
@@ -15,7 +15,7 @@ async function getGroupCurrency(groupId: number | null): Promise<string> {
   return group?.currency ?? "USD";
 }
 
-router.get("/dashboard/summary", requireAuth, asyncHandler(async (req, res): Promise<void> => {
+router.get("/dashboard/summary", requireAuth, requireStaffGate, asyncHandler(async (req, res): Promise<void> => {
   const userId = req.session!.userId!;
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
@@ -110,7 +110,7 @@ router.get("/dashboard/summary", requireAuth, asyncHandler(async (req, res): Pro
   });
 }));
 
-router.get("/dashboard/admin-stats", requireRole("super_admin"), asyncHandler(async (_req, res): Promise<void> => {
+router.get("/dashboard/admin-stats", requirePermission("dashboard:adminStats"), asyncHandler(async (_req, res): Promise<void> => {
   const [users, groups, orgs, activeGroups, totalContrib, totalPaidOut, pendingPayouts] = await Promise.all([
     db.select({ count: sql<number>`count(*)` }).from(usersTable),
     db.select({ count: sql<number>`count(*)` }).from(groupsTable),
@@ -133,17 +133,22 @@ router.get("/dashboard/admin-stats", requireRole("super_admin"), asyncHandler(as
   });
 }));
 
-router.get("/dashboard/activity", requireAuth, asyncHandler(async (req, res): Promise<void> => {
+router.get("/dashboard/activity", requireAuth, requireStaffGate, asyncHandler(async (req, res): Promise<void> => {
   const userId = req.session!.userId!;
   const role = req.session!.userRole;
 
+  // Only finance:view roles (ceo, super_admin, cto_admin, finance, relationship_manager)
+  // see platform-wide financial activity. Marketing and other non-finance staff see only
+  // their own data (they have no financial tools access per the access matrix).
+  const canSeeAll = hasPermission(role ?? "", "finance:view");
+
   const contributions = await db.select().from(contributionsTable)
-    .where(role === "super_admin" ? sql`true` : eq(contributionsTable.userId, userId))
+    .where(canSeeAll ? sql`true` : eq(contributionsTable.userId, userId))
     .orderBy(sql`${contributionsTable.createdAt} DESC`)
     .limit(5);
 
   const payouts = await db.select().from(payoutsTable)
-    .where(role === "super_admin" ? sql`true` : eq(payoutsTable.recipientId, userId))
+    .where(canSeeAll ? sql`true` : eq(payoutsTable.recipientId, userId))
     .orderBy(sql`${payoutsTable.createdAt} DESC`)
     .limit(5);
 

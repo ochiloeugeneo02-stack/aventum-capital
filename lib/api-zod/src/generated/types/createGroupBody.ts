@@ -13,4 +13,5 @@ export interface CreateGroupBody {
   schedule?: CreateGroupBodySchedule;
   maxMembers?: number;
   organizationId?: number | null;
+  currency?: string | null;
 }

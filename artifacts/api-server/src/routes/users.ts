@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq, ilike, or, sql } from "drizzle-orm";
-import { requireAuth, requireRole } from "../lib/auth";
+import { requireAuth, requireRole, requirePermission, hasPermission } from "../lib/auth";
 import { asyncHandler } from "../lib/asyncHandler";
 import { UpdateUserBody } from "@workspace/api-zod";
 
@@ -25,7 +25,7 @@ function formatUser(u: typeof usersTable.$inferSelect) {
   };
 }
 
-router.get("/users", requireRole("super_admin"), asyncHandler(async (req, res): Promise<void> => {
+router.get("/users", requirePermission("users:manage"), asyncHandler(async (req, res): Promise<void> => {
   const page = parseInt(String(req.query.page ?? "1"), 10);
   const limit = parseInt(String(req.query.limit ?? "20"), 10);
   const search = req.query.search ? String(req.query.search) : undefined;
@@ -69,7 +69,10 @@ router.put("/users/:userId", requireAuth, asyncHandler(async (req, res): Promise
   const raw = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
   const userId = parseInt(raw, 10);
 
-  if (req.session?.userId !== userId && req.session?.userRole !== "super_admin") {
+  const actorId = req.session?.userId;
+  const actorRole = req.session?.userRole ?? "";
+  const canManageUsers = hasPermission(actorRole, "users:manage");
+  if (actorId !== userId && !canManageUsers) {
     res.status(403).json({ error: "Forbidden" });
     return;
   }
@@ -88,7 +91,7 @@ router.put("/users/:userId", requireAuth, asyncHandler(async (req, res): Promise
   if (parsed.data.emailMarketing !== undefined) updateData.emailMarketing = parsed.data.emailMarketing;
   if (parsed.data.notificationEmail !== undefined) updateData.notificationEmail = parsed.data.notificationEmail;
   if (parsed.data.notificationSms !== undefined) updateData.notificationSms = parsed.data.notificationSms;
-  if ("avatar" in req.body) updateData.avatar = req.body.avatar ?? null;
+  if (parsed.data.avatar !== undefined) updateData.avatar = parsed.data.avatar ?? null;
 
   const [user] = await db.update(usersTable).set(updateData).where(eq(usersTable.id, userId)).returning();
   if (!user) {

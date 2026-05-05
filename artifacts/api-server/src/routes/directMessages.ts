@@ -42,7 +42,7 @@ router.get("/dm/conversations", requireAuth, async (req, res): Promise<void> => 
 
 router.get("/dm/:otherUserId", requireAuth, async (req, res): Promise<void> => {
   const userId = req.session.userId!;
-  const otherUserId = parseInt(req.params.otherUserId);
+  const otherUserId = parseInt(req.params.otherUserId as string);
   if (isNaN(otherUserId)) { res.status(400).json({ error: "Invalid user ID" }); return; }
 
   const [otherUser] = await db.select({
@@ -84,7 +84,7 @@ router.get("/dm/:otherUserId", requireAuth, async (req, res): Promise<void> => {
 
 router.post("/dm/:otherUserId", requireAuth, async (req, res): Promise<void> => {
   const fromUserId = req.session.userId!;
-  const toUserId = parseInt(req.params.otherUserId);
+  const toUserId = parseInt(req.params.otherUserId as string);
   if (isNaN(toUserId)) { res.status(400).json({ error: "Invalid user ID" }); return; }
   if (toUserId === fromUserId) { res.status(400).json({ error: "Cannot message yourself" }); return; }
 

@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
-import { db, payoutsTable, usersTable, groupsTable } from "@workspace/db";
+import { db, payoutsTable, usersTable, groupsTable, financeApprovalRequestsTable } from "@workspace/db";
 import { eq, and, inArray, sql } from "drizzle-orm";
-import { requireAuth, requireRole } from "../lib/auth";
+import { requireAuth, requireRole, requirePermission } from "../lib/auth";
 import { asyncHandler } from "../lib/asyncHandler";
 import { createAuditLog } from "../lib/auditLog";
 import { formatUser } from "./users";
@@ -54,7 +54,7 @@ router.get("/payouts", requireAuth, asyncHandler(async (req, res): Promise<void>
   res.json(result);
 }));
 
-router.get("/payouts/all", requireRole("super_admin"), asyncHandler(async (req, res): Promise<void> => {
+router.get("/payouts/all", requirePermission("finance:view"), asyncHandler(async (req, res): Promise<void> => {
   const page = parseInt(String(req.query.page ?? "1"), 10);
   const limit = parseInt(String(req.query.limit ?? "20"), 10);
   const offset = (page - 1) * limit;
@@ -112,8 +112,8 @@ router.get("/payouts/all", requireRole("super_admin"), asyncHandler(async (req, 
   });
 }));
 
-router.post("/payouts/:payoutId/complete", requireRole("super_admin", "group_admin"), asyncHandler(async (req, res): Promise<void> => {
-  const payoutId = parseInt(req.params.payoutId, 10);
+router.post("/payouts/:payoutId/complete", requirePermission("payouts:manage"), asyncHandler(async (req, res): Promise<void> => {
+  const payoutId = parseInt(req.params.payoutId as string, 10);
   const sessionUserId = req.session!.userId!;
   const sessionRole = req.session!.userRole;
 
@@ -123,12 +123,41 @@ router.post("/payouts/:payoutId/complete", requireRole("super_admin", "group_adm
     return;
   }
 
-  if (sessionRole !== "super_admin") {
+  // Determine authorization level for this completion attempt
+  const isStaffApprover = ["super_admin", "ceo"].includes(sessionRole ?? "");
+  const isFinanceAdmin = req.session!.isFinanceAdmin === true;
+  const isFinanceStaff = sessionRole === "finance" && !isFinanceAdmin;
+
+  if (!isStaffApprover && !isFinanceAdmin && !isFinanceStaff) {
+    // Group admins can only complete payouts for their own group
     const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, payout.groupId)).limit(1);
     if (!group || group.adminId !== sessionUserId) {
       res.status(403).json({ error: "You can only complete payouts for groups you administer" });
       return;
     }
+  }
+
+  // Finance staff (non-CFO) must route through dual-control approval queue
+  if (isFinanceStaff) {
+    if (payout.status === "paid") {
+      res.status(400).json({ error: "Payout has already been completed" });
+      return;
+    }
+    const [approval] = await db.insert(financeApprovalRequestsTable).values({
+      requestedBy: sessionUserId,
+      actionType: "payout_transfer",
+      actionPayload: JSON.stringify({ payoutId }),
+      status: "pending",
+    }).returning();
+    await createAuditLog({
+      action: "finance.approval_requested",
+      performedBy: sessionUserId,
+      targetType: "payout",
+      targetId: payout.id,
+      details: `Finance staff requested payout completion for payout #${payoutId}; routed to approval queue as #${approval.id}`,
+    });
+    res.status(202).json({ approvalRequired: true, approvalId: approval.id, message: "Payout completion queued for CFO/CEO approval." });
+    return;
   }
 
   if (payout.status === "paid") {

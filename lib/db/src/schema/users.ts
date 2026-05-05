@@ -24,6 +24,13 @@ export const usersTable = pgTable("users", {
   twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
   twoFactorBackupCodes: text("two_factor_backup_codes"),
   avatar: text("avatar"),
+  // RBAC additions
+  departmentId: integer("department_id"),
+  isFinanceAdmin: boolean("is_finance_admin").notNull().default(false),
+  failedLoginAttempts: integer("failed_login_attempts").notNull().default(0),
+  lockedAt: timestamp("locked_at", { withTimezone: true }),
+  securityQuestionsSet: boolean("security_questions_set").notNull().default(false),
+  requiresPasswordReset: boolean("requires_password_reset").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

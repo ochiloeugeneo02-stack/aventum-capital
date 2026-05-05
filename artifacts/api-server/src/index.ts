@@ -43,6 +43,68 @@ async function ensureAppSchema() {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar text;
     `);
 
+    // ── RBAC / Auth-hardening columns ──────────────────────────────────────────
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS department_id integer;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS is_finance_admin boolean NOT NULL DEFAULT false;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts integer NOT NULL DEFAULT 0;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_at timestamp with time zone;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS security_questions_set boolean NOT NULL DEFAULT false;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS requires_password_reset boolean NOT NULL DEFAULT false;
+    `);
+
+    // ── RBAC / Auth-hardening tables ───────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS departments (
+        id serial PRIMARY KEY,
+        name text NOT NULL,
+        role text NOT NULL,
+        created_at timestamp with time zone NOT NULL DEFAULT now()
+      );
+
+      CREATE TABLE IF NOT EXISTS security_questions (
+        id serial PRIMARY KEY,
+        user_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        question_index integer NOT NULL,
+        question_text text NOT NULL,
+        answer_hash text NOT NULL,
+        created_at timestamp with time zone NOT NULL DEFAULT now()
+      );
+
+      CREATE TABLE IF NOT EXISTS unlock_requests (
+        id serial PRIMARY KEY,
+        user_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        status text NOT NULL DEFAULT 'pending',
+        verified_at timestamp with time zone NOT NULL DEFAULT now(),
+        reviewed_by integer REFERENCES users(id) ON DELETE SET NULL,
+        reviewed_at timestamp with time zone,
+        created_at timestamp with time zone NOT NULL DEFAULT now()
+      );
+
+      CREATE TABLE IF NOT EXISTS role_change_requests (
+        id serial PRIMARY KEY,
+        requested_by integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        target_user_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        requested_role text NOT NULL,
+        reason text,
+        status text NOT NULL DEFAULT 'pending',
+        reviewed_by integer REFERENCES users(id) ON DELETE SET NULL,
+        reviewed_at timestamp with time zone,
+        created_at timestamp with time zone NOT NULL DEFAULT now()
+      );
+
+      CREATE TABLE IF NOT EXISTS finance_approval_requests (
+        id serial PRIMARY KEY,
+        requested_by integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        action_type text NOT NULL,
+        action_payload text NOT NULL DEFAULT '{}',
+        status text NOT NULL DEFAULT 'pending',
+        reviewed_by integer REFERENCES users(id) ON DELETE SET NULL,
+        reviewed_at timestamp with time zone,
+        created_at timestamp with time zone NOT NULL DEFAULT now()
+      );
+    `);
+
     // Session table for connect-pg-simple
     await client.query(`
       CREATE TABLE IF NOT EXISTS user_sessions (
@@ -178,7 +240,7 @@ async function ensureAppSchema() {
          AND lower(u.email) = 'thewave.grpevents@gmail.com'
        RETURNING gm.id, gm.group_id`
     );
-    if (theWaveRemoval.rowCount > 0) {
+    if ((theWaveRemoval.rowCount ?? 0) > 0) {
       logger.info({ removedMemberships: theWaveRemoval.rowCount }, "Removed TheWave from groups for invite retest");
     }
 

@@ -6,12 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * Always assigned as 'member' server-side. Privileged roles require admin approval.
+ */
 export type RegisterBodyRole =
   (typeof RegisterBodyRole)[keyof typeof RegisterBodyRole];
 
 export const RegisterBodyRole = {
   member: "member",
-  group_admin: "group_admin",
-  org_admin: "org_admin",
-  super_admin: "super_admin",
 } as const;

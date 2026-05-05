@@ -10,6 +10,7 @@ import {
   getListGroupsQueryKey,
   getGetGroupMembersQueryKey,
 } from "@workspace/api-client-react";
+import type { CreateGroupBodySchedule } from "@workspace/api-client-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { BackButton } from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
@@ -524,7 +525,7 @@ export default function AdminGroup() {
         toast({ title: "Group created!", description: "Your new savings group is ready." });
         queryClient.invalidateQueries({ queryKey: getListGroupsQueryKey() });
         setShowCreate(false);
-        setCreateForm({ name: "", contributionAmount: "", schedule: "bi-weekly", maxMembers: "5" });
+        setCreateForm({ name: "", currency: "", contributionAmount: "", schedule: "bi-weekly", maxMembers: "5" });
       },
       onError: (e: any) => {
         toast({ title: "Error", description: e?.response?.data?.error ?? "Could not create group", variant: "destructive" });
@@ -577,10 +578,10 @@ export default function AdminGroup() {
     createMutation.mutate({
       data: {
         name: createForm.name,
-        currency: createForm.currency,
         contributionAmount: parseFloat(createForm.contributionAmount),
-        schedule: createForm.schedule as any,
+        schedule: createForm.schedule as CreateGroupBodySchedule,
         maxMembers: parseInt(createForm.maxMembers, 10),
+        currency: createForm.currency || undefined,
       },
     });
   };

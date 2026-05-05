@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import { db, usersTable, groupsTable, groupMembersTable, contributionCyclesTable, contributionsTable, payoutsTable } from "@workspace/db";
 import { eq, and, inArray } from "drizzle-orm";
-import { requireAuth, requireRole } from "../lib/auth";
+import { requireAuth, requireRole, requirePermission } from "../lib/auth";
+import { financeApprovalRequestsTable } from "@workspace/db";
 import { getUncachableStripeClient, getStripePublishableKey } from "../lib/stripeClient";
 import { createAuditLog } from "../lib/auditLog";
 import { formatUser } from "./users";
@@ -443,8 +444,11 @@ router.post("/stripe/confirm-contribution", requireAuth, async (req, res): Promi
  *
  * Body: { payoutId }
  */
-router.post("/stripe/create-payout-transfer", requireRole("super_admin", "group_admin"), async (req, res): Promise<void> => {
+router.post("/stripe/create-payout-transfer", requirePermission("finance:full"), async (req, res): Promise<void> => {
   const { payoutId } = req.body;
+  const actorId = req.session!.userId!;
+  const actorRole = req.session!.userRole;
+  const isFinanceAdmin = req.session!.isFinanceAdmin;
 
   if (!payoutId) {
     res.status(400).json({ error: "payoutId is required" });
@@ -461,6 +465,26 @@ router.post("/stripe/create-payout-transfer", requireRole("super_admin", "group_
     return;
   }
 
+  // Dual-control: finance staff (non-CFO) must route through approval queue
+  const canExecuteDirectly = isFinanceAdmin || actorRole === "ceo" || actorRole === "super_admin";
+  if (!canExecuteDirectly) {
+    const [request] = await db.insert(financeApprovalRequestsTable).values({
+      requestedBy: actorId,
+      actionType: "payout_transfer",
+      actionPayload: JSON.stringify({ payoutId }),
+      status: "pending",
+    }).returning();
+    await createAuditLog({
+      action: "finance.approval_requested",
+      performedBy: actorId,
+      targetType: "payout",
+      targetId: payoutId,
+      details: `Payout transfer submitted for CFO approval (requestId: ${request.id})`,
+    });
+    res.status(202).json({ queued: true, requestId: request.id, message: "Payout transfer submitted for CFO approval" });
+    return;
+  }
+
   const [recipient] = await db.select().from(usersTable).where(eq(usersTable.id, payout.recipientId)).limit(1);
   if (!recipient) {
     res.status(404).json({ error: "Recipient user not found" });
@@ -473,7 +497,6 @@ router.post("/stripe/create-payout-transfer", requireRole("super_admin", "group_
   const transactionFee = Number((amount * TRANSACTION_FEE_RATE).toFixed(2));
   const netAmount = Number((amount - transactionFee).toFixed(2));
 
-  // Mark payout as paid in our DB
   const [updated] = await db.update(payoutsTable)
     .set({ status: "paid", paidAt: new Date() })
     .where(eq(payoutsTable.id, payoutId))
@@ -481,7 +504,7 @@ router.post("/stripe/create-payout-transfer", requireRole("super_admin", "group_
 
   await createAuditLog({
     action: "payout.complete",
-    performedBy: req.session!.userId!,
+    performedBy: actorId,
     targetType: "payout",
     targetId: payoutId,
     details: `Transfer of ${currency} ${netAmount.toLocaleString()} to ${recipient.email}; transaction fee ${currency} ${transactionFee.toLocaleString()} (${Number(TRANSACTION_FEE_RATE * 100).toFixed(0)}%)`,

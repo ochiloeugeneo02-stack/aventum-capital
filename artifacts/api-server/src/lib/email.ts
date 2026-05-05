@@ -775,6 +775,35 @@ export async function sendSwapRequestNotificationToAdmin(opts: {
   return sendViaResend(opts.email, `Turn swap request — ${opts.groupName}`, html);
 }
 
+export async function sendUnlockRequestNotification(opts: {
+  staffEmail: string;
+  staffName: string;
+  lockedUserName: string;
+  lockedUserEmail: string;
+  unlockRequestId: number;
+  appBaseUrl: string;
+}): Promise<boolean> {
+  const staffUrl = `${opts.appBaseUrl}/staff`;
+  const html = buildEmailWrapper({
+    headerTitle: "Account unlock request",
+    headerSubtitle: `Action required — a user has verified their security questions`,
+    bodyHtml: `
+      <p style="font-size:15px;color:#374151;margin:0 0 20px;">Hi <strong>${opts.staffName}</strong>,</p>
+      <p style="font-size:15px;color:#374151;margin:0 0 24px;">
+        <strong>${opts.lockedUserName}</strong> (${opts.lockedUserEmail}) has successfully answered their security questions and is requesting an account unlock.
+      </p>
+      <div style="background:#fbfaf7;border:1px solid #ebe8df;border-radius:16px;padding:18px 22px;margin-bottom:24px;">
+        <div style="font-size:10px;font-weight:700;color:#9aa38d;letter-spacing:1.8px;text-transform:uppercase;margin-bottom:10px;">Request details</div>
+        <div style="font-size:14px;color:#374151;margin-bottom:6px;"><strong>User:</strong> ${opts.lockedUserName}</div>
+        <div style="font-size:14px;color:#374151;margin-bottom:6px;"><strong>Email:</strong> ${opts.lockedUserEmail}</div>
+        <div style="font-size:14px;color:#374151;"><strong>Request ID:</strong> #${opts.unlockRequestId}</div>
+      </div>
+      <p style="font-size:14px;color:#374151;margin:0 0 20px;">Please log in to the staff portal to review and approve or deny this unlock request.</p>
+      <a href="${staffUrl}" style="display:inline-block;background:#3A5A40;color:#ffffff;text-decoration:none;text-align:center;padding:14px 28px;border-radius:8px;font-size:14px;font-weight:700;">Review in staff portal</a>`,
+  });
+  return sendViaResend(opts.staffEmail, `Account unlock request — ${opts.lockedUserName}`, html);
+}
+
 export async function sendNewsletterConfirmationEmail(opts: {
   email: string;
   appBaseUrl: string;

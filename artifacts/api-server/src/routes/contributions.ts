@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, contributionsTable, groupsTable, contributionCyclesTable, groupMembersTable, payoutsTable } from "@workspace/db";
 import { eq, and, inArray, sql } from "drizzle-orm";
-import { requireAuth, requireRole } from "../lib/auth";
+import { requireAuth, requireRole, requirePermission } from "../lib/auth";
 import { PayContributionBody } from "@workspace/api-zod";
 import { createAuditLog } from "../lib/auditLog";
 import { formatUser } from "./users";
@@ -307,7 +307,7 @@ router.post("/contributions/pay", requireAuth, async (req, res): Promise<void> =
   res.status(201).json(await formatContribution(contribution));
 });
 
-router.get("/contributions/all", requireRole("super_admin"), async (req, res): Promise<void> => {
+router.get("/contributions/all", requirePermission("finance:view"), async (req, res): Promise<void> => {
   const page = parseInt(String(req.query.page ?? "1"), 10);
   const limit = parseInt(String(req.query.limit ?? "20"), 10);
   const offset = (page - 1) * limit;

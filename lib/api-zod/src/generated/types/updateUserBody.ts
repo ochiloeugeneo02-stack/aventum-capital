@@ -8,7 +8,10 @@
 
 export interface UpdateUserBody {
   name?: string;
-  phoneNumber?: string;
+  username?: string | null;
+  phoneNumber?: string | null;
+  location?: string | null;
+  emailMarketing?: boolean | null;
   notificationEmail?: boolean;
   notificationSms?: boolean;
   avatar?: string | null;

@@ -26,6 +26,10 @@ tags:
     description: Dashboard summary data
   - name: admin
     description: Admin operations
+  - name: rbac
+    description: Role-based access control — departments, unlock requests, role change requests, finance approvals
+  - name: security
+    description: Security questions setup and verification
 
 paths:
   /healthz:
@@ -647,6 +651,385 @@ paths:
               schema:
                 $ref: "#/components/schemas/Payout"
 
+  # RBAC — DEPARTMENTS
+  /admin/departments:
+    get:
+      operationId: listDepartments
+      tags: [rbac]
+      summary: List all departments
+      responses:
+        "200":
+          description: List of departments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Department"
+    post:
+      operationId: createDepartment
+      tags: [rbac]
+      summary: Create a department
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDepartmentBody"
+      responses:
+        "201":
+          description: Department created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Department"
+
+  /admin/departments/{departmentId}:
+    put:
+      operationId: updateDepartment
+      tags: [rbac]
+      summary: Update a department (role change propagates to all members)
+      parameters:
+        - in: path
+          name: departmentId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDepartmentBody"
+      responses:
+        "200":
+          description: Department updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Department"
+    delete:
+      operationId: deleteDepartment
+      tags: [rbac]
+      summary: Delete a department
+      parameters:
+        - in: path
+          name: departmentId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+
+  /admin/departments/{departmentId}/staff:
+    get:
+      operationId: listDepartmentStaff
+      tags: [rbac]
+      summary: List staff assigned to a department
+      parameters:
+        - in: path
+          name: departmentId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Staff list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  /admin/departments/{departmentId}/assign:
+    post:
+      operationId: assignUserToDepartment
+      tags: [rbac]
+      summary: Assign a user to a department (copies department role to user)
+      parameters:
+        - in: path
+          name: departmentId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: integer
+              required: [userId]
+      responses:
+        "200":
+          description: User assigned
+
+  # RBAC — ACCOUNT UNLOCK
+  /admin/unlock-requests:
+    post:
+      operationId: createUnlockRequest
+      tags: [rbac]
+      summary: Submit an account unlock request (user self-service after lockout)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUnlockRequestBody"
+      responses:
+        "201":
+          description: Unlock request submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnlockRequest"
+    get:
+      operationId: listUnlockRequests
+      tags: [rbac]
+      summary: List unlock requests (admin)
+      responses:
+        "200":
+          description: List of unlock requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UnlockRequest"
+
+  /admin/unlock-requests/{requestId}/approve:
+    post:
+      operationId: approveUnlockRequest
+      tags: [rbac]
+      summary: Approve an account unlock request
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Account unlocked
+
+  /admin/unlock-requests/{requestId}/deny:
+    post:
+      operationId: denyUnlockRequest
+      tags: [rbac]
+      summary: Deny an account unlock request
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Request denied
+
+  # RBAC — ROLE CHANGE REQUESTS
+  /admin/role-requests:
+    post:
+      operationId: createRoleRequest
+      tags: [rbac]
+      summary: Submit a role change request for a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRoleRequestBody"
+      responses:
+        "201":
+          description: Role change request submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleChangeRequest"
+    get:
+      operationId: listRoleRequests
+      tags: [rbac]
+      summary: List role change requests (admin)
+      responses:
+        "200":
+          description: List of role change requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RoleChangeRequest"
+
+  /admin/role-requests/{requestId}/approve:
+    post:
+      operationId: approveRoleRequest
+      tags: [rbac]
+      summary: Approve a role change request
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Role change approved
+
+  /admin/role-requests/{requestId}/deny:
+    post:
+      operationId: denyRoleRequest
+      tags: [rbac]
+      summary: Deny a role change request
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Role change denied
+
+  # RBAC — FINANCE APPROVALS (dual-control)
+  /admin/finance-approvals:
+    post:
+      operationId: createFinanceApproval
+      tags: [rbac]
+      summary: Submit a finance action for CFO dual-control approval
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFinanceApprovalBody"
+      responses:
+        "201":
+          description: Finance approval request submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceApproval"
+    get:
+      operationId: listFinanceApprovals
+      tags: [rbac]
+      summary: List finance approval requests
+      responses:
+        "200":
+          description: List of finance approval requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FinanceApproval"
+
+  /admin/finance-approvals/{requestId}/approve:
+    post:
+      operationId: approveFinanceRequest
+      tags: [rbac]
+      summary: CFO approves a finance action (dual-control)
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Finance action approved
+
+  /admin/finance-approvals/{requestId}/deny:
+    post:
+      operationId: denyFinanceRequest
+      tags: [rbac]
+      summary: CFO denies a finance action (dual-control)
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Finance action denied
+
+  # SECURITY — QUESTIONS
+  /auth/security-questions/setup:
+    post:
+      operationId: setupSecurityQuestions
+      tags: [security]
+      summary: Set up 3 security questions (required for staff portal access)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SecurityQuestionsSetupBody"
+      responses:
+        "200":
+          description: Security questions saved
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/security-questions/verify:
+    post:
+      operationId: verifySecurityQuestions
+      tags: [security]
+      summary: Verify security question answers (used during account unlock flow)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SecurityQuestionsVerifyBody"
+      responses:
+        "200":
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verified:
+                    type: boolean
+                required: [verified]
+        "400":
+          description: Validation error
+
+  # RBAC — STAFF USER MANAGEMENT
+  /admin/users/{userId}/role:
+    put:
+      operationId: updateUserRole
+      tags: [rbac]
+      summary: Directly update a user's role and/or isFinanceAdmin flag (super_admin/CEO only)
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRoleBody"
+      responses:
+        "200":
+          description: User role updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
 components:
   schemas:
     HealthStatus:
@@ -691,8 +1074,24 @@ components:
           minLength: 6
         role:
           type: string
-          enum: [member, group_admin, org_admin, super_admin]
+          enum: [member]
           default: member
+          description: "Always assigned as 'member' server-side. Privileged roles require admin approval."
+        username:
+          type: string
+          nullable: true
+        motivation:
+          type: string
+          nullable: true
+        phoneNumber:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        emailMarketing:
+          type: boolean
+          nullable: true
       required:
         - name
         - email
@@ -732,10 +1131,18 @@ components:
           type: string
         role:
           type: string
-          enum: [member, group_admin, org_admin, super_admin]
+          enum: [member, group_admin, org_admin, super_admin, ceo, cto_admin, it_support, finance, marketing, relationship_manager]
         organizationId:
           type: integer
           nullable: true
+        departmentId:
+          type: integer
+          nullable: true
+        isFinanceAdmin:
+          type: boolean
+          nullable: true
+        twoFactorEnabled:
+          type: boolean
         phoneNumber:
           type: string
           nullable: true
@@ -776,8 +1183,18 @@ components:
       properties:
         name:
           type: string
+        username:
+          type: string
+          nullable: true
         phoneNumber:
           type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        emailMarketing:
+          type: boolean
+          nullable: true
         notificationEmail:
           type: boolean
         notificationSms:
@@ -1010,6 +1427,9 @@ components:
           default: 5
         organizationId:
           type: integer
+          nullable: true
+        currency:
+          type: string
           nullable: true
       required:
         - name
@@ -1320,3 +1740,288 @@ components:
         - total
         - page
         - limit
+
+    # RBAC SCHEMAS
+    Department:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        role:
+          type: string
+          enum: [member, group_admin, org_admin, super_admin, ceo, cto_admin, it_support, finance, marketing, relationship_manager]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - role
+        - createdAt
+
+    CreateDepartmentBody:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        role:
+          type: string
+          enum: [member, group_admin, org_admin, super_admin, ceo, cto_admin, it_support, finance, marketing, relationship_manager]
+      required:
+        - name
+        - role
+
+    UpdateDepartmentBody:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        role:
+          type: string
+          enum: [member, group_admin, org_admin, super_admin, ceo, cto_admin, it_support, finance, marketing, relationship_manager]
+
+    UnlockRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        reason:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [pending, approved, denied]
+        reviewedBy:
+          type: integer
+          nullable: true
+        reviewNote:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        user:
+          $ref: "#/components/schemas/User"
+          nullable: true
+        reviewer:
+          $ref: "#/components/schemas/User"
+          nullable: true
+      required:
+        - id
+        - userId
+        - status
+        - createdAt
+
+    CreateUnlockRequestBody:
+      type: object
+      properties:
+        userId:
+          type: integer
+        reason:
+          type: string
+      required:
+        - userId
+
+    RoleChangeRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        requestedBy:
+          type: integer
+        targetUserId:
+          type: integer
+        requestedRole:
+          type: string
+          enum: [member, group_admin, org_admin, super_admin, ceo, cto_admin, it_support, finance, marketing, relationship_manager]
+        reason:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [pending, approved, denied]
+        reviewedBy:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        requester:
+          type: object
+          nullable: true
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+        targetUser:
+          type: object
+          nullable: true
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+      required:
+        - id
+        - requestedBy
+        - targetUserId
+        - requestedRole
+        - status
+        - createdAt
+
+    CreateRoleRequestBody:
+      type: object
+      properties:
+        targetUserId:
+          type: integer
+        requestedRole:
+          type: string
+          enum: [member, group_admin, org_admin, super_admin, ceo, cto_admin, it_support, finance, marketing, relationship_manager]
+        reason:
+          type: string
+      required:
+        - targetUserId
+        - requestedRole
+
+    FinanceApproval:
+      type: object
+      properties:
+        id:
+          type: integer
+        requestedBy:
+          type: integer
+        actionType:
+          type: string
+        actionPayload:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [pending, approved, denied]
+        reviewedBy:
+          type: integer
+          nullable: true
+        reviewNote:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        requester:
+          type: object
+          nullable: true
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+        reviewer:
+          type: object
+          nullable: true
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+      required:
+        - id
+        - requestedBy
+        - actionType
+        - status
+        - createdAt
+
+    CreateFinanceApprovalBody:
+      type: object
+      properties:
+        actionType:
+          type: string
+          minLength: 1
+          maxLength: 100
+        actionPayload:
+          type: object
+      required:
+        - actionType
+        - actionPayload
+
+    # SECURITY SCHEMAS
+    SecurityQuestionsSetupBody:
+      type: object
+      properties:
+        questions:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items:
+            type: object
+            properties:
+              questionIndex:
+                type: integer
+                minimum: 0
+                maximum: 11
+                description: Catalog slot index (0–11) identifying the chosen question
+              questionText:
+                type: string
+                minLength: 5
+              answer:
+                type: string
+                minLength: 2
+                maxLength: 200
+            required:
+              - questionIndex
+              - questionText
+              - answer
+      required:
+        - questions
+
+    SecurityQuestionsVerifyBody:
+      type: object
+      properties:
+        recoveryToken:
+          type: string
+          minLength: 1
+          description: Short-lived signed token issued by GET /auth/security-questions/:email
+        answers:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items:
+            type: object
+            properties:
+              questionIndex:
+                type: integer
+                minimum: 0
+                maximum: 11
+              answer:
+                type: string
+                minLength: 1
+                maxLength: 200
+            required:
+              - questionIndex
+              - answer
+      required:
+        - recoveryToken
+        - answers
+
+    UpdateUserRoleBody:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [member, group_admin, org_admin, super_admin, ceo, cto_admin, it_support, finance, marketing, relationship_manager]
+        isFinanceAdmin:
+          type: boolean

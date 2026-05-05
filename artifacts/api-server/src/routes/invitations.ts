@@ -67,7 +67,7 @@ router.get("/invitations/:token", async (req, res): Promise<void> => {
 });
 
 router.post("/invitations/:token/accept", requireAuth, async (req, res): Promise<void> => {
-  const { token } = req.params;
+  const token = req.params.token as string;
   const userId = req.session!.userId!;
 
   const [invite] = await db.select().from(invitationsTable)

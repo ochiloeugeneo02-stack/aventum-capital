@@ -194,7 +194,7 @@ function CommunityDialogFrame({
   );
 }
 
-type ExitRequestStatus = "none" | "pending" | "approved" | "denied" | "auto_approved";
+type ExitRequestStatus = "none" | "pending" | "approved" | "denied" | "auto_approved" | "cancelled";
 
 interface MyExitRequest {
   id: number;
@@ -289,9 +289,9 @@ export default function GroupDetail() {
     if (!groupId || !user) return;
     (async () => {
       try {
-        const requests = await apiRequest<MyExitRequest[]>("/api/exit-requests/mine");
-        const mine = requests.find(r => (r as any).groupId === groupId) ?? null;
-        setMyExitRequest(mine as any);
+        const requests = await apiRequest<(MyExitRequest & { groupId: number })[]>("/api/exit-requests/mine");
+        const mine = requests.find(r => r.groupId === groupId) ?? null;
+        setMyExitRequest(mine);
       } catch {}
       setExitRequestLoaded(true);
     })();

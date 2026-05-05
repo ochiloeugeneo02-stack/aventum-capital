@@ -13,6 +13,9 @@ export interface User {
   email: string;
   role: UserRole;
   organizationId?: number | null;
+  departmentId?: number | null;
+  isFinanceAdmin?: boolean | null;
+  twoFactorEnabled?: boolean;
   phoneNumber?: string | null;
   isActive: boolean;
   createdAt: Date;

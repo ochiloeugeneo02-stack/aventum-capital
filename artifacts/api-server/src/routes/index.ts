@@ -16,6 +16,7 @@ import turnSwapsRouter from "./turnSwaps";
 import supportRouter from "./support";
 import newsletterRouter from "./newsletter";
 import directMessagesRouter from "./directMessages";
+import rbacRouter from "./rbac";
 
 const router: IRouter = Router();
 
@@ -28,6 +29,7 @@ router.use(contributionsRouter);
 router.use(payoutsRouter);
 router.use(dashboardRouter);
 router.use(adminRouter);
+router.use(rbacRouter);
 router.use(stripeRouter);
 router.use(invitationsRouter);
 router.use(exitRequestsRouter);

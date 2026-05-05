@@ -12,5 +12,11 @@ export interface RegisterBody {
   email: string;
   /** @minLength 6 */
   password: string;
+  /** Always assigned as 'member' server-side. Privileged roles require admin approval. */
   role?: RegisterBodyRole;
+  username?: string | null;
+  motivation?: string | null;
+  phoneNumber?: string | null;
+  location?: string | null;
+  emailMarketing?: boolean | null;
 }

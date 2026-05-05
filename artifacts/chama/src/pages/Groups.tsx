@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useListGroups, useCreateGroup, getListGroupsQueryKey } from "@workspace/api-client-react";
+import type { CreateGroupBodySchedule } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -61,9 +62,9 @@ export default function Groups() {
       data: {
         name: form.name.trim(),
         contributionAmount: Number(form.contributionAmount),
-        schedule: form.schedule as any,
+        schedule: form.schedule as CreateGroupBodySchedule,
         maxMembers: Number(form.maxMembers),
-        currency: form.currency,
+        currency: form.currency || undefined,
       },
     });
   }

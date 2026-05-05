@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, turnSwapRequestsTable, groupMembersTable, groupsTable, usersTable } from "@workspace/db";
 import { eq, and, desc, inArray } from "drizzle-orm";
-import { requireAuth } from "../lib/auth";
+import { requireAuth, requirePermission, requireStaffGate, hasPermission } from "../lib/auth";
 import { logger } from "../lib/logger";
 import { getAppBaseUrl } from "../lib/appUrl";
 import { sendSwapRequestNotificationToAdmin } from "../lib/email";
@@ -18,7 +18,7 @@ async function getMembership(userId: number, groupId: number) {
 }
 
 router.post("/groups/:groupId/swap-requests", requireAuth, async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId);
+  const groupId = parseInt(req.params.groupId as string);
   if (isNaN(groupId)) { res.status(400).json({ error: "Invalid group ID" }); return; }
 
   const requesterId = req.session.userId!;
@@ -90,14 +90,14 @@ router.post("/groups/:groupId/swap-requests", requireAuth, async (req, res): Pro
   res.status(201).json(swapRequest);
 });
 
-router.get("/groups/:groupId/swap-requests", requireAuth, async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId);
+router.get("/groups/:groupId/swap-requests", requireAuth, requireStaffGate, async (req, res): Promise<void> => {
+  const groupId = parseInt(req.params.groupId as string);
   if (isNaN(groupId)) { res.status(400).json({ error: "Invalid group ID" }); return; }
 
   const userId = req.session.userId!;
   const userRole = req.session.userRole;
 
-  if (userRole !== "super_admin") {
+  if (!hasPermission(userRole ?? "", "swapRequests:adminView")) {
     const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
     if (!group || group.adminId !== userId) {
       res.status(403).json({ error: "Not authorized" });
@@ -138,7 +138,7 @@ router.get("/groups/:groupId/swap-requests", requireAuth, async (req, res): Prom
 });
 
 router.get("/groups/:groupId/swap-requests/my", requireAuth, async (req, res): Promise<void> => {
-  const groupId = parseInt(req.params.groupId);
+  const groupId = parseInt(req.params.groupId as string);
   if (isNaN(groupId)) { res.status(400).json({ error: "Invalid group ID" }); return; }
 
   const userId = req.session.userId!;
@@ -183,7 +183,7 @@ router.get("/swap-requests/incoming", requireAuth, async (req, res): Promise<voi
 });
 
 router.post("/swap-requests/:id/approve", requireAuth, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
 
   const userId = req.session.userId!;
@@ -201,7 +201,7 @@ router.post("/swap-requests/:id/approve", requireAuth, async (req, res): Promise
 
   const { adminNote } = req.body;
 
-  if (userRole === "super_admin") {
+  if (hasPermission(userRole ?? "", "swapRequests:adminView")) {
     await db.update(turnSwapRequestsTable).set({
       status: "approved",
       adminNote: adminNote ?? swapRequest.adminNote,
@@ -210,7 +210,7 @@ router.post("/swap-requests/:id/approve", requireAuth, async (req, res): Promise
     }).where(eq(turnSwapRequestsTable.id, id));
 
     await executeSwap(swapRequest.groupId, swapRequest.requesterId, swapRequest.targetMemberId);
-    logger.info({ id }, "Turn swap approved by super admin and executed");
+    logger.info({ id }, "Turn swap approved by staff admin and executed");
     res.json({ message: "Swap approved and executed" });
     return;
   }
@@ -247,7 +247,7 @@ router.post("/swap-requests/:id/approve", requireAuth, async (req, res): Promise
 });
 
 router.post("/swap-requests/:id/deny", requireAuth, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
 
   const userId = req.session.userId!;
@@ -275,7 +275,8 @@ router.post("/swap-requests/:id/deny", requireAuth, async (req, res): Promise<vo
     return;
   }
 
-  if (userRole !== "super_admin" && group.adminId !== userId) {
+  const isStaffAdmin = hasPermission(userRole ?? "", "swapRequests:adminView");
+  if (!isStaffAdmin && group.adminId !== userId) {
     res.status(403).json({ error: "Not authorized" });
     return;
   }
@@ -284,9 +285,9 @@ router.post("/swap-requests/:id/deny", requireAuth, async (req, res): Promise<vo
   await db.update(turnSwapRequestsTable).set({
     status: "denied",
     adminNote: adminNote ?? null,
-    groupAdminId: userRole !== "super_admin" ? userId : swapRequest.groupAdminId,
-    groupAdminDecidedAt: userRole !== "super_admin" ? new Date() : swapRequest.groupAdminDecidedAt,
-    superAdminDecidedAt: userRole === "super_admin" ? new Date() : undefined,
+    groupAdminId: !isStaffAdmin ? userId : swapRequest.groupAdminId,
+    groupAdminDecidedAt: !isStaffAdmin ? new Date() : swapRequest.groupAdminDecidedAt,
+    superAdminDecidedAt: isStaffAdmin ? new Date() : undefined,
     updatedAt: new Date(),
   }).where(eq(turnSwapRequestsTable.id, id));
 
@@ -294,7 +295,7 @@ router.post("/swap-requests/:id/deny", requireAuth, async (req, res): Promise<vo
 });
 
 router.delete("/swap-requests/:id", requireAuth, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
 
   const userId = req.session.userId!;
@@ -308,8 +309,7 @@ router.delete("/swap-requests/:id", requireAuth, async (req, res): Promise<void>
   res.json({ message: "Swap request cancelled" });
 });
 
-router.get("/admin/swap-requests", requireAuth, async (req, res): Promise<void> => {
-  if (req.session.userRole !== "super_admin") { res.status(403).json({ error: "Not authorized" }); return; }
+router.get("/admin/swap-requests", requirePermission("swapRequests:adminView"), async (req, res): Promise<void> => {
 
   const requests = await db
     .select({

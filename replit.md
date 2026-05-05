@@ -51,11 +51,57 @@ Digital rotational savings (chama) platform. Members contribute on a rotating sc
 - Super admin can read all messages and send messages to the group (visible to members)
 - Backend (`groupChat.ts`) already treated `super_admin` role as a virtual member for this
 
+## Staff Portal RBAC & Security Hardening
+
+### New Staff Roles
+Six new roles added: `ceo`, `cto_admin`, `it_support`, `finance`, `marketing`, `relationship_manager`. `STAFF_ROLES` exported from `StaffPortal.tsx` and used in `ProtectedRoute.tsx` and `auth.ts`.
+
+### RBAC Permission System
+`requirePermission(permission)` middleware in `artifacts/api-server/src/lib/auth.ts`. Permission map:
+- `ceo`: all permissions
+- `cto_admin`: users, groups, audit, unlock, roles, departments
+- `it_support`: unlock requests, departments, support
+- `finance`: contributions, payouts, finance approvals
+- `marketing`: newsletter, enterprise
+- `relationship_manager`: support, groups (view), swaps
+
+### Account Lockout & Recovery
+- Failed login counter (`failedLoginAttempts` column) increments on each wrong password
+- After 5 failures: `lockedAt` timestamp set, login returns `{ error: "accountLocked" }`
+- Recovery: StaffPortal shows locked-account flow → user answers 3 security questions → `POST /api/auth/security-questions/verify` → unlock request created → IT/Support reviews in portal
+- Unlock approval resets lock and sends password reset email
+
+### Security Questions
+- 3 questions required at first login (setup flow in `SecurityQuestionsSetup.tsx`)
+- Stored hashed (bcrypt) in `security_questions` table
+- `POST /api/auth/security-questions/setup` — save answers (authenticated)
+- `POST /api/auth/security-questions/verify` — verify for locked accounts
+- `GET /api/auth/security-questions/:email` — fetch question prompts (only if account locked)
+
+### New DB Tables
+- `departments` — id, name, role, created_at
+- `security_questions` — user_id, question_index, question_text, answer_hash
+- `unlock_requests` — user_id, verified_at, status, reviewed_by, reviewed_at
+- `role_change_requests` — requested_by, target_user_id, requested_role, reason, status
+- `finance_approval_requests` — requested_by, action_type, action_payload, status
+
+### New Admin API Routes
+All in `artifacts/api-server/src/routes/rbac.ts`, registered in routes/index.ts:
+- `GET/POST/action /api/admin/unlock-requests/:id/approve|deny`
+- `GET/POST/action /api/admin/role-requests/:id/approve|deny`
+- `GET/POST/action /api/admin/finance-approvals/:id/approve|deny`
+- `GET/POST /api/admin/departments`
+- `PUT /api/admin/staff-users/:userId/role` — direct role/isFinanceAdmin update
+
+### SuperAdmin Sidebar RBAC Gating
+`allNavItems` array with `roles?: string[]` field — each nav item only shown to permitted roles. New sections: Account Unlocks, Role Changes, Finance Approvals, Departments. New badge colors for all 6 staff roles.
+
 ## Super Admin Control Panel (`/admin`)
 - Full-page layout with dark forest green sidebar navigation (no `DashboardLayout`)
-- Sections: Overview (KPIs + quick actions), Users, Groups (with status filters + chat monitor), Contributions, Payouts, Delete Requests, Exit Requests, Swap Requests, Audit Log
+- Sections: Overview (KPIs + quick actions), Users, Groups (with status filters + chat monitor), Contributions, Payouts, Delete Requests, Exit Requests, Swap Requests, Audit Log, Account Unlocks, Role Changes, Finance Approvals, Departments
 - Pending request badges show on sidebar nav items for actionable items
 - All approve/reject actions wired to existing API endpoints
+- Sidebar items are RBAC-gated by user role — each role sees only permitted sections
 
 ## Key Zod schemas (api-zod/src/generated/api.ts)
 - `CreateGroupBody` — includes `currency?: string`

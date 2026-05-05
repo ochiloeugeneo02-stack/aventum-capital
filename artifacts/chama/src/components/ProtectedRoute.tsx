@@ -1,5 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Redirect, useLocation } from "wouter";
+import { STAFF_ROLES } from "@/pages/StaffPortal";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -23,18 +24,18 @@ export function ProtectedRoute({ children, roles, memberOnly }: ProtectedRoutePr
   }
 
   if (!isAuthenticated) {
-    // Staff portal routes redirect to the staff login
     if (location === "/admin") return <Redirect to="/staff" />;
     return <Redirect to="/login" />;
   }
 
+  const isStaff = user && STAFF_ROLES.includes(user.role);
+
   if (roles && user && !roles.includes(user.role)) {
-    // Super admins trying to hit a role-gated member route → staff portal
-    if (user.role === "super_admin") return <Redirect to="/staff" />;
+    if (isStaff) return <Redirect to="/staff" />;
     return <Redirect to="/dashboard" />;
   }
 
-  if (memberOnly && user?.role === "super_admin") {
+  if (memberOnly && isStaff) {
     return <Redirect to="/staff" />;
   }
 

@@ -19,14 +19,21 @@ import type {
 import type {
   ActivityItem,
   AdminStats,
+  AssignUserToDepartmentBody,
   AuditLogListResponse,
   AuthResponse,
   Contribution,
   ContributionListResponse,
+  CreateDepartmentBody,
+  CreateFinanceApprovalBody,
   CreateGroupBody,
   CreateOrganizationBody,
+  CreateRoleRequestBody,
+  CreateUnlockRequestBody,
   DashboardSummary,
+  Department,
   ErrorResponse,
+  FinanceApproval,
   Group,
   GroupDetails,
   GroupMember,
@@ -45,12 +52,19 @@ import type {
   Payout,
   PayoutListResponse,
   RegisterBody,
+  RoleChangeRequest,
+  SecurityQuestionsSetupBody,
+  SecurityQuestionsVerifyBody,
   SuccessResponse,
   TriggerPayoutBody,
+  UnlockRequest,
+  UpdateDepartmentBody,
   UpdateGroupBody,
   UpdateUserBody,
+  UpdateUserRoleBody,
   User,
   UserListResponse,
+  VerifySecurityQuestions200,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -2604,4 +2618,1768 @@ export const useTriggerPayout = <
   TContext
 > => {
   return useMutation(getTriggerPayoutMutationOptions(options));
+};
+
+/**
+ * @summary List all departments
+ */
+export const getListDepartmentsUrl = () => {
+  return `/api/admin/departments`;
+};
+
+export const listDepartments = async (
+  options?: RequestInit,
+): Promise<Department[]> => {
+  return customFetch<Department[]>(getListDepartmentsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListDepartmentsQueryKey = () => {
+  return [`/api/admin/departments`] as const;
+};
+
+export const getListDepartmentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDepartments>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listDepartments>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListDepartmentsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listDepartments>>> = ({
+    signal,
+  }) => listDepartments({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDepartments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListDepartmentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDepartments>>
+>;
+export type ListDepartmentsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all departments
+ */
+
+export function useListDepartments<
+  TData = Awaited<ReturnType<typeof listDepartments>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listDepartments>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListDepartmentsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a department
+ */
+export const getCreateDepartmentUrl = () => {
+  return `/api/admin/departments`;
+};
+
+export const createDepartment = async (
+  createDepartmentBody: CreateDepartmentBody,
+  options?: RequestInit,
+): Promise<Department> => {
+  return customFetch<Department>(getCreateDepartmentUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createDepartmentBody),
+  });
+};
+
+export const getCreateDepartmentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createDepartment>>,
+    TError,
+    { data: BodyType<CreateDepartmentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createDepartment>>,
+  TError,
+  { data: BodyType<CreateDepartmentBody> },
+  TContext
+> => {
+  const mutationKey = ["createDepartment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createDepartment>>,
+    { data: BodyType<CreateDepartmentBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createDepartment(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateDepartmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createDepartment>>
+>;
+export type CreateDepartmentMutationBody = BodyType<CreateDepartmentBody>;
+export type CreateDepartmentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a department
+ */
+export const useCreateDepartment = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createDepartment>>,
+    TError,
+    { data: BodyType<CreateDepartmentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createDepartment>>,
+  TError,
+  { data: BodyType<CreateDepartmentBody> },
+  TContext
+> => {
+  return useMutation(getCreateDepartmentMutationOptions(options));
+};
+
+/**
+ * @summary Update a department (role change propagates to all members)
+ */
+export const getUpdateDepartmentUrl = (departmentId: number) => {
+  return `/api/admin/departments/${departmentId}`;
+};
+
+export const updateDepartment = async (
+  departmentId: number,
+  updateDepartmentBody: UpdateDepartmentBody,
+  options?: RequestInit,
+): Promise<Department> => {
+  return customFetch<Department>(getUpdateDepartmentUrl(departmentId), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateDepartmentBody),
+  });
+};
+
+export const getUpdateDepartmentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDepartment>>,
+    TError,
+    { departmentId: number; data: BodyType<UpdateDepartmentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateDepartment>>,
+  TError,
+  { departmentId: number; data: BodyType<UpdateDepartmentBody> },
+  TContext
+> => {
+  const mutationKey = ["updateDepartment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateDepartment>>,
+    { departmentId: number; data: BodyType<UpdateDepartmentBody> }
+  > = (props) => {
+    const { departmentId, data } = props ?? {};
+
+    return updateDepartment(departmentId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateDepartmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateDepartment>>
+>;
+export type UpdateDepartmentMutationBody = BodyType<UpdateDepartmentBody>;
+export type UpdateDepartmentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a department (role change propagates to all members)
+ */
+export const useUpdateDepartment = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDepartment>>,
+    TError,
+    { departmentId: number; data: BodyType<UpdateDepartmentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateDepartment>>,
+  TError,
+  { departmentId: number; data: BodyType<UpdateDepartmentBody> },
+  TContext
+> => {
+  return useMutation(getUpdateDepartmentMutationOptions(options));
+};
+
+/**
+ * @summary Delete a department
+ */
+export const getDeleteDepartmentUrl = (departmentId: number) => {
+  return `/api/admin/departments/${departmentId}`;
+};
+
+export const deleteDepartment = async (
+  departmentId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteDepartmentUrl(departmentId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteDepartmentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteDepartment>>,
+    TError,
+    { departmentId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteDepartment>>,
+  TError,
+  { departmentId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteDepartment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteDepartment>>,
+    { departmentId: number }
+  > = (props) => {
+    const { departmentId } = props ?? {};
+
+    return deleteDepartment(departmentId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteDepartmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteDepartment>>
+>;
+
+export type DeleteDepartmentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a department
+ */
+export const useDeleteDepartment = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteDepartment>>,
+    TError,
+    { departmentId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteDepartment>>,
+  TError,
+  { departmentId: number },
+  TContext
+> => {
+  return useMutation(getDeleteDepartmentMutationOptions(options));
+};
+
+/**
+ * @summary List staff assigned to a department
+ */
+export const getListDepartmentStaffUrl = (departmentId: number) => {
+  return `/api/admin/departments/${departmentId}/staff`;
+};
+
+export const listDepartmentStaff = async (
+  departmentId: number,
+  options?: RequestInit,
+): Promise<User[]> => {
+  return customFetch<User[]>(getListDepartmentStaffUrl(departmentId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListDepartmentStaffQueryKey = (departmentId: number) => {
+  return [`/api/admin/departments/${departmentId}/staff`] as const;
+};
+
+export const getListDepartmentStaffQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDepartmentStaff>>,
+  TError = ErrorType<unknown>,
+>(
+  departmentId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDepartmentStaff>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListDepartmentStaffQueryKey(departmentId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listDepartmentStaff>>
+  > = ({ signal }) =>
+    listDepartmentStaff(departmentId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!departmentId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDepartmentStaff>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListDepartmentStaffQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDepartmentStaff>>
+>;
+export type ListDepartmentStaffQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List staff assigned to a department
+ */
+
+export function useListDepartmentStaff<
+  TData = Awaited<ReturnType<typeof listDepartmentStaff>>,
+  TError = ErrorType<unknown>,
+>(
+  departmentId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDepartmentStaff>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListDepartmentStaffQueryOptions(
+    departmentId,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Assign a user to a department (copies department role to user)
+ */
+export const getAssignUserToDepartmentUrl = (departmentId: number) => {
+  return `/api/admin/departments/${departmentId}/assign`;
+};
+
+export const assignUserToDepartment = async (
+  departmentId: number,
+  assignUserToDepartmentBody: AssignUserToDepartmentBody,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getAssignUserToDepartmentUrl(departmentId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(assignUserToDepartmentBody),
+  });
+};
+
+export const getAssignUserToDepartmentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof assignUserToDepartment>>,
+    TError,
+    { departmentId: number; data: BodyType<AssignUserToDepartmentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof assignUserToDepartment>>,
+  TError,
+  { departmentId: number; data: BodyType<AssignUserToDepartmentBody> },
+  TContext
+> => {
+  const mutationKey = ["assignUserToDepartment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof assignUserToDepartment>>,
+    { departmentId: number; data: BodyType<AssignUserToDepartmentBody> }
+  > = (props) => {
+    const { departmentId, data } = props ?? {};
+
+    return assignUserToDepartment(departmentId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AssignUserToDepartmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof assignUserToDepartment>>
+>;
+export type AssignUserToDepartmentMutationBody =
+  BodyType<AssignUserToDepartmentBody>;
+export type AssignUserToDepartmentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Assign a user to a department (copies department role to user)
+ */
+export const useAssignUserToDepartment = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof assignUserToDepartment>>,
+    TError,
+    { departmentId: number; data: BodyType<AssignUserToDepartmentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof assignUserToDepartment>>,
+  TError,
+  { departmentId: number; data: BodyType<AssignUserToDepartmentBody> },
+  TContext
+> => {
+  return useMutation(getAssignUserToDepartmentMutationOptions(options));
+};
+
+/**
+ * @summary Submit an account unlock request (user self-service after lockout)
+ */
+export const getCreateUnlockRequestUrl = () => {
+  return `/api/admin/unlock-requests`;
+};
+
+export const createUnlockRequest = async (
+  createUnlockRequestBody: CreateUnlockRequestBody,
+  options?: RequestInit,
+): Promise<UnlockRequest> => {
+  return customFetch<UnlockRequest>(getCreateUnlockRequestUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createUnlockRequestBody),
+  });
+};
+
+export const getCreateUnlockRequestMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createUnlockRequest>>,
+    TError,
+    { data: BodyType<CreateUnlockRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createUnlockRequest>>,
+  TError,
+  { data: BodyType<CreateUnlockRequestBody> },
+  TContext
+> => {
+  const mutationKey = ["createUnlockRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createUnlockRequest>>,
+    { data: BodyType<CreateUnlockRequestBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createUnlockRequest(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateUnlockRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createUnlockRequest>>
+>;
+export type CreateUnlockRequestMutationBody = BodyType<CreateUnlockRequestBody>;
+export type CreateUnlockRequestMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Submit an account unlock request (user self-service after lockout)
+ */
+export const useCreateUnlockRequest = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createUnlockRequest>>,
+    TError,
+    { data: BodyType<CreateUnlockRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createUnlockRequest>>,
+  TError,
+  { data: BodyType<CreateUnlockRequestBody> },
+  TContext
+> => {
+  return useMutation(getCreateUnlockRequestMutationOptions(options));
+};
+
+/**
+ * @summary List unlock requests (admin)
+ */
+export const getListUnlockRequestsUrl = () => {
+  return `/api/admin/unlock-requests`;
+};
+
+export const listUnlockRequests = async (
+  options?: RequestInit,
+): Promise<UnlockRequest[]> => {
+  return customFetch<UnlockRequest[]>(getListUnlockRequestsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListUnlockRequestsQueryKey = () => {
+  return [`/api/admin/unlock-requests`] as const;
+};
+
+export const getListUnlockRequestsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listUnlockRequests>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listUnlockRequests>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListUnlockRequestsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listUnlockRequests>>
+  > = ({ signal }) => listUnlockRequests({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listUnlockRequests>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListUnlockRequestsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listUnlockRequests>>
+>;
+export type ListUnlockRequestsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List unlock requests (admin)
+ */
+
+export function useListUnlockRequests<
+  TData = Awaited<ReturnType<typeof listUnlockRequests>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listUnlockRequests>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListUnlockRequestsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Approve an account unlock request
+ */
+export const getApproveUnlockRequestUrl = (requestId: number) => {
+  return `/api/admin/unlock-requests/${requestId}/approve`;
+};
+
+export const approveUnlockRequest = async (
+  requestId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getApproveUnlockRequestUrl(requestId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getApproveUnlockRequestMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveUnlockRequest>>,
+    TError,
+    { requestId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof approveUnlockRequest>>,
+  TError,
+  { requestId: number },
+  TContext
+> => {
+  const mutationKey = ["approveUnlockRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof approveUnlockRequest>>,
+    { requestId: number }
+  > = (props) => {
+    const { requestId } = props ?? {};
+
+    return approveUnlockRequest(requestId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApproveUnlockRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof approveUnlockRequest>>
+>;
+
+export type ApproveUnlockRequestMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Approve an account unlock request
+ */
+export const useApproveUnlockRequest = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveUnlockRequest>>,
+    TError,
+    { requestId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof approveUnlockRequest>>,
+  TError,
+  { requestId: number },
+  TContext
+> => {
+  return useMutation(getApproveUnlockRequestMutationOptions(options));
+};
+
+/**
+ * @summary Deny an account unlock request
+ */
+export const getDenyUnlockRequestUrl = (requestId: number) => {
+  return `/api/admin/unlock-requests/${requestId}/deny`;
+};
+
+export const denyUnlockRequest = async (
+  requestId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDenyUnlockRequestUrl(requestId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getDenyUnlockRequestMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof denyUnlockRequest>>,
+    TError,
+    { requestId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof denyUnlockRequest>>,
+  TError,
+  { requestId: number },
+  TContext
+> => {
+  const mutationKey = ["denyUnlockRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof denyUnlockRequest>>,
+    { requestId: number }
+  > = (props) => {
+    const { requestId } = props ?? {};
+
+    return denyUnlockRequest(requestId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DenyUnlockRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof denyUnlockRequest>>
+>;
+
+export type DenyUnlockRequestMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Deny an account unlock request
+ */
+export const useDenyUnlockRequest = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof denyUnlockRequest>>,
+    TError,
+    { requestId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof denyUnlockRequest>>,
+  TError,
+  { requestId: number },
+  TContext
+> => {
+  return useMutation(getDenyUnlockRequestMutationOptions(options));
+};
+
+/**
+ * @summary Submit a role change request for a user
+ */
+export const getCreateRoleRequestUrl = () => {
+  return `/api/admin/role-requests`;
+};
+
+export const createRoleRequest = async (
+  createRoleRequestBody: CreateRoleRequestBody,
+  options?: RequestInit,
+): Promise<RoleChangeRequest> => {
+  return customFetch<RoleChangeRequest>(getCreateRoleRequestUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createRoleRequestBody),
+  });
+};
+
+export const getCreateRoleRequestMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRoleRequest>>,
+    TError,
+    { data: BodyType<CreateRoleRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createRoleRequest>>,
+  TError,
+  { data: BodyType<CreateRoleRequestBody> },
+  TContext
+> => {
+  const mutationKey = ["createRoleRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createRoleRequest>>,
+    { data: BodyType<CreateRoleRequestBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createRoleRequest(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateRoleRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createRoleRequest>>
+>;
+export type CreateRoleRequestMutationBody = BodyType<CreateRoleRequestBody>;
+export type CreateRoleRequestMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Submit a role change request for a user
+ */
+export const useCreateRoleRequest = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRoleRequest>>,
+    TError,
+    { data: BodyType<CreateRoleRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createRoleRequest>>,
+  TError,
+  { data: BodyType<CreateRoleRequestBody> },
+  TContext
+> => {
+  return useMutation(getCreateRoleRequestMutationOptions(options));
+};
+
+/**
+ * @summary List role change requests (admin)
+ */
+export const getListRoleRequestsUrl = () => {
+  return `/api/admin/role-requests`;
+};
+
+export const listRoleRequests = async (
+  options?: RequestInit,
+): Promise<RoleChangeRequest[]> => {
+  return customFetch<RoleChangeRequest[]>(getListRoleRequestsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListRoleRequestsQueryKey = () => {
+  return [`/api/admin/role-requests`] as const;
+};
+
+export const getListRoleRequestsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRoleRequests>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listRoleRequests>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListRoleRequestsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listRoleRequests>>
+  > = ({ signal }) => listRoleRequests({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listRoleRequests>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListRoleRequestsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listRoleRequests>>
+>;
+export type ListRoleRequestsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List role change requests (admin)
+ */
+
+export function useListRoleRequests<
+  TData = Awaited<ReturnType<typeof listRoleRequests>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listRoleRequests>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListRoleRequestsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Approve a role change request
+ */
+export const getApproveRoleRequestUrl = (requestId: number) => {
+  return `/api/admin/role-requests/${requestId}/approve`;
+};
+
+export const approveRoleRequest = async (
+  requestId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getApproveRoleRequestUrl(requestId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getApproveRoleRequestMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveRoleRequest>>,
+    TError,
+    { requestId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof approveRoleRequest>>,
+  TError,
+  { requestId: number },
+  TContext
+> => {
+  const mutationKey = ["approveRoleRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof approveRoleRequest>>,
+    { requestId: number }
+  > = (props) => {
+    const { requestId } = props ?? {};
+
+    return approveRoleRequest(requestId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApproveRoleRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof approveRoleRequest>>
+>;
+
+export type ApproveRoleRequestMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Approve a role change request
+ */
+export const useApproveRoleRequest = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveRoleRequest>>,
+    TError,
+    { requestId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof approveRoleRequest>>,
+  TError,
+  { requestId: number },
+  TContext
+> => {
+  return useMutation(getApproveRoleRequestMutationOptions(options));
+};
+
+/**
+ * @summary Deny a role change request
+ */
+export const getDenyRoleRequestUrl = (requestId: number) => {
+  return `/api/admin/role-requests/${requestId}/deny`;
+};
+
+export const denyRoleRequest = async (
+  requestId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDenyRoleRequestUrl(requestId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getDenyRoleRequestMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof denyRoleRequest>>,
+    TError,
+    { requestId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof denyRoleRequest>>,
+  TError,
+  { requestId: number },
+  TContext
+> => {
+  const mutationKey = ["denyRoleRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof denyRoleRequest>>,
+    { requestId: number }
+  > = (props) => {
+    const { requestId } = props ?? {};
+
+    return denyRoleRequest(requestId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DenyRoleRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof denyRoleRequest>>
+>;
+
+export type DenyRoleRequestMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Deny a role change request
+ */
+export const useDenyRoleRequest = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof denyRoleRequest>>,
+    TError,
+    { requestId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof denyRoleRequest>>,
+  TError,
+  { requestId: number },
+  TContext
+> => {
+  return useMutation(getDenyRoleRequestMutationOptions(options));
+};
+
+/**
+ * @summary Submit a finance action for CFO dual-control approval
+ */
+export const getCreateFinanceApprovalUrl = () => {
+  return `/api/admin/finance-approvals`;
+};
+
+export const createFinanceApproval = async (
+  createFinanceApprovalBody: CreateFinanceApprovalBody,
+  options?: RequestInit,
+): Promise<FinanceApproval> => {
+  return customFetch<FinanceApproval>(getCreateFinanceApprovalUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createFinanceApprovalBody),
+  });
+};
+
+export const getCreateFinanceApprovalMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createFinanceApproval>>,
+    TError,
+    { data: BodyType<CreateFinanceApprovalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createFinanceApproval>>,
+  TError,
+  { data: BodyType<CreateFinanceApprovalBody> },
+  TContext
+> => {
+  const mutationKey = ["createFinanceApproval"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createFinanceApproval>>,
+    { data: BodyType<CreateFinanceApprovalBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createFinanceApproval(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateFinanceApprovalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createFinanceApproval>>
+>;
+export type CreateFinanceApprovalMutationBody =
+  BodyType<CreateFinanceApprovalBody>;
+export type CreateFinanceApprovalMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Submit a finance action for CFO dual-control approval
+ */
+export const useCreateFinanceApproval = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createFinanceApproval>>,
+    TError,
+    { data: BodyType<CreateFinanceApprovalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createFinanceApproval>>,
+  TError,
+  { data: BodyType<CreateFinanceApprovalBody> },
+  TContext
+> => {
+  return useMutation(getCreateFinanceApprovalMutationOptions(options));
+};
+
+/**
+ * @summary List finance approval requests
+ */
+export const getListFinanceApprovalsUrl = () => {
+  return `/api/admin/finance-approvals`;
+};
+
+export const listFinanceApprovals = async (
+  options?: RequestInit,
+): Promise<FinanceApproval[]> => {
+  return customFetch<FinanceApproval[]>(getListFinanceApprovalsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListFinanceApprovalsQueryKey = () => {
+  return [`/api/admin/finance-approvals`] as const;
+};
+
+export const getListFinanceApprovalsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listFinanceApprovals>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listFinanceApprovals>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListFinanceApprovalsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listFinanceApprovals>>
+  > = ({ signal }) => listFinanceApprovals({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listFinanceApprovals>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListFinanceApprovalsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listFinanceApprovals>>
+>;
+export type ListFinanceApprovalsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List finance approval requests
+ */
+
+export function useListFinanceApprovals<
+  TData = Awaited<ReturnType<typeof listFinanceApprovals>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listFinanceApprovals>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListFinanceApprovalsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary CFO approves a finance action (dual-control)
+ */
+export const getApproveFinanceRequestUrl = (requestId: number) => {
+  return `/api/admin/finance-approvals/${requestId}/approve`;
+};
+
+export const approveFinanceRequest = async (
+  requestId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getApproveFinanceRequestUrl(requestId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getApproveFinanceRequestMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveFinanceRequest>>,
+    TError,
+    { requestId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof approveFinanceRequest>>,
+  TError,
+  { requestId: number },
+  TContext
+> => {
+  const mutationKey = ["approveFinanceRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof approveFinanceRequest>>,
+    { requestId: number }
+  > = (props) => {
+    const { requestId } = props ?? {};
+
+    return approveFinanceRequest(requestId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApproveFinanceRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof approveFinanceRequest>>
+>;
+
+export type ApproveFinanceRequestMutationError = ErrorType<unknown>;
+
+/**
+ * @summary CFO approves a finance action (dual-control)
+ */
+export const useApproveFinanceRequest = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveFinanceRequest>>,
+    TError,
+    { requestId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof approveFinanceRequest>>,
+  TError,
+  { requestId: number },
+  TContext
+> => {
+  return useMutation(getApproveFinanceRequestMutationOptions(options));
+};
+
+/**
+ * @summary CFO denies a finance action (dual-control)
+ */
+export const getDenyFinanceRequestUrl = (requestId: number) => {
+  return `/api/admin/finance-approvals/${requestId}/deny`;
+};
+
+export const denyFinanceRequest = async (
+  requestId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDenyFinanceRequestUrl(requestId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getDenyFinanceRequestMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof denyFinanceRequest>>,
+    TError,
+    { requestId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof denyFinanceRequest>>,
+  TError,
+  { requestId: number },
+  TContext
+> => {
+  const mutationKey = ["denyFinanceRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof denyFinanceRequest>>,
+    { requestId: number }
+  > = (props) => {
+    const { requestId } = props ?? {};
+
+    return denyFinanceRequest(requestId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DenyFinanceRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof denyFinanceRequest>>
+>;
+
+export type DenyFinanceRequestMutationError = ErrorType<unknown>;
+
+/**
+ * @summary CFO denies a finance action (dual-control)
+ */
+export const useDenyFinanceRequest = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof denyFinanceRequest>>,
+    TError,
+    { requestId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof denyFinanceRequest>>,
+  TError,
+  { requestId: number },
+  TContext
+> => {
+  return useMutation(getDenyFinanceRequestMutationOptions(options));
+};
+
+/**
+ * @summary Set up 3 security questions (required for staff portal access)
+ */
+export const getSetupSecurityQuestionsUrl = () => {
+  return `/api/auth/security-questions/setup`;
+};
+
+export const setupSecurityQuestions = async (
+  securityQuestionsSetupBody: SecurityQuestionsSetupBody,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getSetupSecurityQuestionsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(securityQuestionsSetupBody),
+  });
+};
+
+export const getSetupSecurityQuestionsMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setupSecurityQuestions>>,
+    TError,
+    { data: BodyType<SecurityQuestionsSetupBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setupSecurityQuestions>>,
+  TError,
+  { data: BodyType<SecurityQuestionsSetupBody> },
+  TContext
+> => {
+  const mutationKey = ["setupSecurityQuestions"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setupSecurityQuestions>>,
+    { data: BodyType<SecurityQuestionsSetupBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return setupSecurityQuestions(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetupSecurityQuestionsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setupSecurityQuestions>>
+>;
+export type SetupSecurityQuestionsMutationBody =
+  BodyType<SecurityQuestionsSetupBody>;
+export type SetupSecurityQuestionsMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Set up 3 security questions (required for staff portal access)
+ */
+export const useSetupSecurityQuestions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setupSecurityQuestions>>,
+    TError,
+    { data: BodyType<SecurityQuestionsSetupBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setupSecurityQuestions>>,
+  TError,
+  { data: BodyType<SecurityQuestionsSetupBody> },
+  TContext
+> => {
+  return useMutation(getSetupSecurityQuestionsMutationOptions(options));
+};
+
+/**
+ * @summary Verify security question answers (used during account unlock flow)
+ */
+export const getVerifySecurityQuestionsUrl = () => {
+  return `/api/auth/security-questions/verify`;
+};
+
+export const verifySecurityQuestions = async (
+  securityQuestionsVerifyBody: SecurityQuestionsVerifyBody,
+  options?: RequestInit,
+): Promise<VerifySecurityQuestions200> => {
+  return customFetch<VerifySecurityQuestions200>(
+    getVerifySecurityQuestionsUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(securityQuestionsVerifyBody),
+    },
+  );
+};
+
+export const getVerifySecurityQuestionsMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifySecurityQuestions>>,
+    TError,
+    { data: BodyType<SecurityQuestionsVerifyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof verifySecurityQuestions>>,
+  TError,
+  { data: BodyType<SecurityQuestionsVerifyBody> },
+  TContext
+> => {
+  const mutationKey = ["verifySecurityQuestions"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof verifySecurityQuestions>>,
+    { data: BodyType<SecurityQuestionsVerifyBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return verifySecurityQuestions(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VerifySecurityQuestionsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof verifySecurityQuestions>>
+>;
+export type VerifySecurityQuestionsMutationBody =
+  BodyType<SecurityQuestionsVerifyBody>;
+export type VerifySecurityQuestionsMutationError = ErrorType<void>;
+
+/**
+ * @summary Verify security question answers (used during account unlock flow)
+ */
+export const useVerifySecurityQuestions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifySecurityQuestions>>,
+    TError,
+    { data: BodyType<SecurityQuestionsVerifyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof verifySecurityQuestions>>,
+  TError,
+  { data: BodyType<SecurityQuestionsVerifyBody> },
+  TContext
+> => {
+  return useMutation(getVerifySecurityQuestionsMutationOptions(options));
+};
+
+/**
+ * @summary Directly update a user's role and/or isFinanceAdmin flag (super_admin/CEO only)
+ */
+export const getUpdateUserRoleUrl = (userId: number) => {
+  return `/api/admin/users/${userId}/role`;
+};
+
+export const updateUserRole = async (
+  userId: number,
+  updateUserRoleBody: UpdateUserRoleBody,
+  options?: RequestInit,
+): Promise<User> => {
+  return customFetch<User>(getUpdateUserRoleUrl(userId), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateUserRoleBody),
+  });
+};
+
+export const getUpdateUserRoleMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateUserRole>>,
+    TError,
+    { userId: number; data: BodyType<UpdateUserRoleBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateUserRole>>,
+  TError,
+  { userId: number; data: BodyType<UpdateUserRoleBody> },
+  TContext
+> => {
+  const mutationKey = ["updateUserRole"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateUserRole>>,
+    { userId: number; data: BodyType<UpdateUserRoleBody> }
+  > = (props) => {
+    const { userId, data } = props ?? {};
+
+    return updateUserRole(userId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateUserRoleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateUserRole>>
+>;
+export type UpdateUserRoleMutationBody = BodyType<UpdateUserRoleBody>;
+export type UpdateUserRoleMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Directly update a user's role and/or isFinanceAdmin flag (super_admin/CEO only)
+ */
+export const useUpdateUserRole = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateUserRole>>,
+    TError,
+    { userId: number; data: BodyType<UpdateUserRoleBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateUserRole>>,
+  TError,
+  { userId: number; data: BodyType<UpdateUserRoleBody> },
+  TContext
+> => {
+  return useMutation(getUpdateUserRoleMutationOptions(options));
 };

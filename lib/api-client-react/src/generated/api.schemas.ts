@@ -19,14 +19,14 @@ export interface SuccessResponse {
   message?: string;
 }
 
+/**
+ * Always assigned as 'member' server-side. Privileged roles require admin approval.
+ */
 export type RegisterBodyRole =
   (typeof RegisterBodyRole)[keyof typeof RegisterBodyRole];
 
 export const RegisterBodyRole = {
   member: "member",
-  group_admin: "group_admin",
-  org_admin: "org_admin",
-  super_admin: "super_admin",
 } as const;
 
 export interface RegisterBody {
@@ -34,7 +34,13 @@ export interface RegisterBody {
   email: string;
   /** @minLength 6 */
   password: string;
+  /** Always assigned as 'member' server-side. Privileged roles require admin approval. */
   role?: RegisterBodyRole;
+  username?: string | null;
+  motivation?: string | null;
+  phoneNumber?: string | null;
+  location?: string | null;
+  emailMarketing?: boolean | null;
 }
 
 export interface LoginBody {
@@ -50,6 +56,12 @@ export const UserRole = {
   group_admin: "group_admin",
   org_admin: "org_admin",
   super_admin: "super_admin",
+  ceo: "ceo",
+  cto_admin: "cto_admin",
+  it_support: "it_support",
+  finance: "finance",
+  marketing: "marketing",
+  relationship_manager: "relationship_manager",
 } as const;
 
 export interface User {
@@ -58,6 +70,9 @@ export interface User {
   email: string;
   role: UserRole;
   organizationId?: number | null;
+  departmentId?: number | null;
+  isFinanceAdmin?: boolean | null;
+  twoFactorEnabled?: boolean;
   phoneNumber?: string | null;
   isActive: boolean;
   createdAt: string;
@@ -77,7 +92,10 @@ export interface UserListResponse {
 
 export interface UpdateUserBody {
   name?: string;
-  phoneNumber?: string;
+  username?: string | null;
+  phoneNumber?: string | null;
+  location?: string | null;
+  emailMarketing?: boolean | null;
   notificationEmail?: boolean;
   notificationSms?: boolean;
   avatar?: string | null;
@@ -199,6 +217,7 @@ export interface CreateGroupBody {
   schedule?: CreateGroupBodySchedule;
   maxMembers?: number;
   organizationId?: number | null;
+  currency?: string | null;
 }
 
 export type UpdateGroupBodySchedule =
@@ -359,6 +378,285 @@ export interface AuditLogListResponse {
   limit: number;
 }
 
+export type DepartmentRole =
+  (typeof DepartmentRole)[keyof typeof DepartmentRole];
+
+export const DepartmentRole = {
+  member: "member",
+  group_admin: "group_admin",
+  org_admin: "org_admin",
+  super_admin: "super_admin",
+  ceo: "ceo",
+  cto_admin: "cto_admin",
+  it_support: "it_support",
+  finance: "finance",
+  marketing: "marketing",
+  relationship_manager: "relationship_manager",
+} as const;
+
+export interface Department {
+  id: number;
+  name: string;
+  role: DepartmentRole;
+  createdAt: string;
+}
+
+export type CreateDepartmentBodyRole =
+  (typeof CreateDepartmentBodyRole)[keyof typeof CreateDepartmentBodyRole];
+
+export const CreateDepartmentBodyRole = {
+  member: "member",
+  group_admin: "group_admin",
+  org_admin: "org_admin",
+  super_admin: "super_admin",
+  ceo: "ceo",
+  cto_admin: "cto_admin",
+  it_support: "it_support",
+  finance: "finance",
+  marketing: "marketing",
+  relationship_manager: "relationship_manager",
+} as const;
+
+export interface CreateDepartmentBody {
+  /** @minLength 1 */
+  name: string;
+  role: CreateDepartmentBodyRole;
+}
+
+export type UpdateDepartmentBodyRole =
+  (typeof UpdateDepartmentBodyRole)[keyof typeof UpdateDepartmentBodyRole];
+
+export const UpdateDepartmentBodyRole = {
+  member: "member",
+  group_admin: "group_admin",
+  org_admin: "org_admin",
+  super_admin: "super_admin",
+  ceo: "ceo",
+  cto_admin: "cto_admin",
+  it_support: "it_support",
+  finance: "finance",
+  marketing: "marketing",
+  relationship_manager: "relationship_manager",
+} as const;
+
+export interface UpdateDepartmentBody {
+  /** @minLength 1 */
+  name?: string;
+  role?: UpdateDepartmentBodyRole;
+}
+
+export type UnlockRequestStatus =
+  (typeof UnlockRequestStatus)[keyof typeof UnlockRequestStatus];
+
+export const UnlockRequestStatus = {
+  pending: "pending",
+  approved: "approved",
+  denied: "denied",
+} as const;
+
+export interface UnlockRequest {
+  id: number;
+  userId: number;
+  reason?: string | null;
+  status: UnlockRequestStatus;
+  reviewedBy?: number | null;
+  reviewNote?: string | null;
+  createdAt: string;
+  reviewedAt?: string | null;
+  user?: User | null;
+  reviewer?: User | null;
+}
+
+export interface CreateUnlockRequestBody {
+  userId: number;
+  reason?: string;
+}
+
+export type RoleChangeRequestRequestedRole =
+  (typeof RoleChangeRequestRequestedRole)[keyof typeof RoleChangeRequestRequestedRole];
+
+export const RoleChangeRequestRequestedRole = {
+  member: "member",
+  group_admin: "group_admin",
+  org_admin: "org_admin",
+  super_admin: "super_admin",
+  ceo: "ceo",
+  cto_admin: "cto_admin",
+  it_support: "it_support",
+  finance: "finance",
+  marketing: "marketing",
+  relationship_manager: "relationship_manager",
+} as const;
+
+export type RoleChangeRequestStatus =
+  (typeof RoleChangeRequestStatus)[keyof typeof RoleChangeRequestStatus];
+
+export const RoleChangeRequestStatus = {
+  pending: "pending",
+  approved: "approved",
+  denied: "denied",
+} as const;
+
+export type RoleChangeRequestRequester = {
+  name?: string;
+  email?: string;
+} | null;
+
+export type RoleChangeRequestTargetUser = {
+  name?: string;
+  email?: string;
+} | null;
+
+export interface RoleChangeRequest {
+  id: number;
+  requestedBy: number;
+  targetUserId: number;
+  requestedRole: RoleChangeRequestRequestedRole;
+  reason?: string | null;
+  status: RoleChangeRequestStatus;
+  reviewedBy?: number | null;
+  createdAt: string;
+  requester?: RoleChangeRequestRequester;
+  targetUser?: RoleChangeRequestTargetUser;
+}
+
+export type CreateRoleRequestBodyRequestedRole =
+  (typeof CreateRoleRequestBodyRequestedRole)[keyof typeof CreateRoleRequestBodyRequestedRole];
+
+export const CreateRoleRequestBodyRequestedRole = {
+  member: "member",
+  group_admin: "group_admin",
+  org_admin: "org_admin",
+  super_admin: "super_admin",
+  ceo: "ceo",
+  cto_admin: "cto_admin",
+  it_support: "it_support",
+  finance: "finance",
+  marketing: "marketing",
+  relationship_manager: "relationship_manager",
+} as const;
+
+export interface CreateRoleRequestBody {
+  targetUserId: number;
+  requestedRole: CreateRoleRequestBodyRequestedRole;
+  reason?: string;
+}
+
+export type FinanceApprovalStatus =
+  (typeof FinanceApprovalStatus)[keyof typeof FinanceApprovalStatus];
+
+export const FinanceApprovalStatus = {
+  pending: "pending",
+  approved: "approved",
+  denied: "denied",
+} as const;
+
+export type FinanceApprovalRequester = {
+  name?: string;
+  email?: string;
+} | null;
+
+export type FinanceApprovalReviewer = {
+  name?: string;
+  email?: string;
+} | null;
+
+export interface FinanceApproval {
+  id: number;
+  requestedBy: number;
+  actionType: string;
+  actionPayload?: string | null;
+  status: FinanceApprovalStatus;
+  reviewedBy?: number | null;
+  reviewNote?: string | null;
+  createdAt: string;
+  reviewedAt?: string | null;
+  requester?: FinanceApprovalRequester;
+  reviewer?: FinanceApprovalReviewer;
+}
+
+export type CreateFinanceApprovalBodyActionPayload = { [key: string]: unknown };
+
+export interface CreateFinanceApprovalBody {
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
+  actionType: string;
+  actionPayload: CreateFinanceApprovalBodyActionPayload;
+}
+
+export type SecurityQuestionsSetupBodyQuestionsItem = {
+  /**
+   * Catalog slot index (0–11) identifying the chosen question
+   * @minimum 0
+   * @maximum 11
+   */
+  questionIndex: number;
+  /** @minLength 5 */
+  questionText: string;
+  /**
+   * @minLength 2
+   * @maxLength 200
+   */
+  answer: string;
+};
+
+export interface SecurityQuestionsSetupBody {
+  /**
+   * @minItems 3
+   * @maxItems 3
+   */
+  questions: SecurityQuestionsSetupBodyQuestionsItem[];
+}
+
+export type SecurityQuestionsVerifyBodyAnswersItem = {
+  /**
+   * @minimum 0
+   * @maximum 11
+   */
+  questionIndex: number;
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  answer: string;
+};
+
+export interface SecurityQuestionsVerifyBody {
+  /**
+   * Short-lived signed token issued by GET /auth/security-questions/:email
+   * @minLength 1
+   */
+  recoveryToken: string;
+  /**
+   * @minItems 3
+   * @maxItems 3
+   */
+  answers: SecurityQuestionsVerifyBodyAnswersItem[];
+}
+
+export type UpdateUserRoleBodyRole =
+  (typeof UpdateUserRoleBodyRole)[keyof typeof UpdateUserRoleBodyRole];
+
+export const UpdateUserRoleBodyRole = {
+  member: "member",
+  group_admin: "group_admin",
+  org_admin: "org_admin",
+  super_admin: "super_admin",
+  ceo: "ceo",
+  cto_admin: "cto_admin",
+  it_support: "it_support",
+  finance: "finance",
+  marketing: "marketing",
+  relationship_manager: "relationship_manager",
+} as const;
+
+export interface UpdateUserRoleBody {
+  role?: UpdateUserRoleBodyRole;
+  isFinanceAdmin?: boolean;
+}
+
 export type ListUsersParams = {
   page?: number;
   limit?: number;
@@ -397,4 +695,12 @@ export type ListAllPayoutsParams = {
 export type ListAuditLogsParams = {
   page?: number;
   limit?: number;
+};
+
+export type AssignUserToDepartmentBody = {
+  userId: number;
+};
+
+export type VerifySecurityQuestions200 = {
+  verified: boolean;
 };

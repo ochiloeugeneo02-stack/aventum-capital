@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, organizationsTable, usersTable, groupsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
-import { requireAuth, requireRole } from "../lib/auth";
+import { requireAuth, requireRole, requirePermission } from "../lib/auth";
 import { asyncHandler } from "../lib/asyncHandler";
 import { CreateOrganizationBody } from "@workspace/api-zod";
 
@@ -98,13 +98,13 @@ router.get("/organizations/:orgId", requireAuth, asyncHandler(async (req, res): 
   res.json(await buildOrg(org, true));
 }));
 
-router.get("/admin/organizations", requireAuth, requireRole("super_admin"), asyncHandler(async (_req, res): Promise<void> => {
+router.get("/admin/organizations", requireAuth, requirePermission("organizations:view"), asyncHandler(async (_req, res): Promise<void> => {
   const orgs = await db.select().from(organizationsTable).orderBy(organizationsTable.createdAt);
   const result = await Promise.all(orgs.map((o) => buildOrg(o)));
   res.json(result);
 }));
 
-router.patch("/admin/organizations/:orgId", requireAuth, requireRole("super_admin"), asyncHandler(async (req, res): Promise<void> => {
+router.patch("/admin/organizations/:orgId", requireAuth, requirePermission("organizations:full"), asyncHandler(async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.orgId) ? req.params.orgId[0] : req.params.orgId;
   const orgId = parseInt(raw, 10);
 

@@ -14,8 +14,8 @@ import { cn } from "@/lib/utils";
 
 const slideVariants = {
   enter: (dir: number) => ({ x: dir * 52, opacity: 0 }),
-  center: { x: 0, opacity: 1, transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] } },
-  exit: (dir: number) => ({ x: dir * -52, opacity: 0, transition: { duration: 0.22, ease: "easeIn" } }),
+  center: { x: 0, opacity: 1, transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
+  exit: (dir: number) => ({ x: dir * -52, opacity: 0, transition: { duration: 0.22, ease: "easeIn" as const } }),
 };
 
 async function reverseGeocode(lat: number, lon: number): Promise<string> {
