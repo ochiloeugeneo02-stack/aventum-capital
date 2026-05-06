@@ -21,6 +21,7 @@ import {
   useCreateRoleRequest,
   useCreateFinanceApproval,
   useInviteStaffUser,
+  useResendStaffInvite,
   getGetAdminStatsQueryKey,
   getListUsersQueryKey,
   getListAllContributionsQueryKey,
@@ -314,6 +315,22 @@ export default function SuperAdmin() {
   const [inviteStaffRole, setInviteStaffRole] = useState<InviteStaffBodyRole | "">("");
   const [inviteStaffDeptId, setInviteStaffDeptId] = useState<string>("");
   const [invitingStaff, setInvitingStaff] = useState(false);
+
+  // Resend invite
+  const [resendingInviteId, setResendingInviteId] = useState<number | null>(null);
+  const resendInviteMutation = useResendStaffInvite({
+    mutation: {
+      onSuccess: (data, variables) => {
+        toast({ title: "Invite resent", description: data.message });
+        queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+        setResendingInviteId(null);
+      },
+      onError: (err: any) => {
+        toast({ title: "Failed to resend invite", description: err?.response?.data?.error ?? "Something went wrong.", variant: "destructive" });
+        setResendingInviteId(null);
+      },
+    },
+  });
 
   const handleInviteStaff = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1099,16 +1116,39 @@ export default function SuperAdmin() {
                       <td className="px-5 py-3.5"><span className={cn("text-[11px] font-medium", u.twoFactorEnabled ? "text-emerald-600" : "text-[#9CA3AF]")}>{u.twoFactorEnabled ? "✓ On" : "Off"}</span></td>
                       <td className="px-5 py-3.5 text-sm text-[#9CA3AF]">{formatDate(u.createdAt)}</td>
                       <td className="px-5 py-3.5">
-                        {/* roles:request = it_support only per RBAC matrix */}
-                        {user?.role === "it_support" && (
-                          <button
-                            onClick={() => { setRoleReqTarget(u); setRoleReqNewRole(""); setRoleReqReason(""); }}
-                            className="flex items-center gap-1 text-xs text-[#3A5A40] hover:text-[#344E41] font-medium px-2.5 py-1.5 rounded-lg hover:bg-[#EAF0EB] transition-colors whitespace-nowrap"
-                          >
-                            <UserCog className="w-3.5 h-3.5" />
-                            Request Role Change
-                          </button>
-                        )}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* Resend invite — shown to ceo/super_admin/cto_admin for staff with expired/missing invite token */}
+                          {["ceo", "super_admin", "cto_admin"].includes(user?.role ?? "") &&
+                            u.requiresPasswordReset &&
+                            ["ceo","cto_admin","it_support","finance","marketing","relationship_manager","super_admin"].includes(u.role) &&
+                            (!u.passwordResetTokenExpiry || new Date(u.passwordResetTokenExpiry) < new Date()) && (
+                            <button
+                              disabled={resendingInviteId === u.id}
+                              onClick={() => {
+                                setResendingInviteId(u.id);
+                                resendInviteMutation.mutate({ userId: u.id });
+                              }}
+                              className="flex items-center gap-1 text-xs text-amber-700 hover:text-amber-900 font-medium px-2.5 py-1.5 rounded-lg hover:bg-amber-50 border border-amber-200 transition-colors whitespace-nowrap disabled:opacity-50"
+                            >
+                              {resendingInviteId === u.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Mail className="w-3.5 h-3.5" />
+                              )}
+                              Resend Invite
+                            </button>
+                          )}
+                          {/* roles:request = it_support only per RBAC matrix */}
+                          {user?.role === "it_support" && (
+                            <button
+                              onClick={() => { setRoleReqTarget(u); setRoleReqNewRole(""); setRoleReqReason(""); }}
+                              className="flex items-center gap-1 text-xs text-[#3A5A40] hover:text-[#344E41] font-medium px-2.5 py-1.5 rounded-lg hover:bg-[#EAF0EB] transition-colors whitespace-nowrap"
+                            >
+                              <UserCog className="w-3.5 h-3.5" />
+                              Request Role Change
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                     );

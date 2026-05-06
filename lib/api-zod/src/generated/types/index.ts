@@ -62,6 +62,7 @@ export * from "./payoutListResponse";
 export * from "./payoutStatus";
 export * from "./registerBody";
 export * from "./registerBodyRole";
+export * from "./resendStaffInvite200";
 export * from "./roleChangeRequest";
 export * from "./roleChangeRequestRequestedRole";
 export * from "./roleChangeRequestRequester";

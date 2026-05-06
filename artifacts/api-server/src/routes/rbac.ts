@@ -529,6 +529,48 @@ router.put("/admin/staff-users/:userId/role", requirePermission("roles:assign"),
   await handleUpdateUserRole(parseInt(req.params.userId as string, 10), req.body, req.session!.userId!, res);
 }));
 
+// ─── Resend staff invitation ──────────────────────────────────────────────────
+
+router.post("/admin/staff-users/:userId/resend-invite", requirePermission("roles:assign"), asyncHandler(async (req, res) => {
+  const userId = parseInt(req.params.userId as string, 10);
+  const adminId = req.session!.userId!;
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  // Enforce server-side: only staff accounts can receive a staff invite email
+  if (!(STAFF_ONLY_ROLES as readonly string[]).includes(user.role)) {
+    res.status(409).json({ error: "This user is not a staff member and cannot receive a staff invitation." });
+    return;
+  }
+
+  if (!user.requiresPasswordReset) {
+    res.status(409).json({ error: "This user has already set their password and does not need a new invite." });
+    return;
+  }
+
+  // Only block resend if a valid (non-expired) token already exists
+  const tokenStillValid = user.passwordResetToken && user.passwordResetTokenExpiry && user.passwordResetTokenExpiry > new Date();
+  if (tokenStillValid) {
+    res.status(409).json({ error: "This user's invite link is still active. Ask them to check their email." });
+    return;
+  }
+
+  // Generate a fresh 24h token and resend the welcome email
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  await db.update(usersTable).set({ passwordResetToken: token, passwordResetTokenExpiry: expiry }).where(eq(usersTable.id, userId));
+
+  sendStaffWelcomeEmail({ email: user.email, name: user.name, role: user.role, token, appBaseUrl: getAppBaseUrl(req) }).catch((err) => {
+    logger.error({ err, email: user.email, userId }, "Staff re-invite email failed to send");
+  });
+
+  await createAuditLog({ action: "user.staff_reinvited", performedBy: adminId, targetType: "user", targetId: userId, details: `Invitation resent to ${user.email}` });
+  logger.info({ userId, adminId }, "Staff invite resent");
+
+  res.json({ success: true, message: `A new invitation email has been sent to ${user.email}.` });
+}));
+
 // ─── Staff user invitation ────────────────────────────────────────────────────
 
 router.post("/admin/staff-users", requirePermission("roles:assign"), asyncHandler(async (req, res) => {

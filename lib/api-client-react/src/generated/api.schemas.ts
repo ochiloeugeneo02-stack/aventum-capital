@@ -75,6 +75,8 @@ export interface User {
   twoFactorEnabled?: boolean;
   phoneNumber?: string | null;
   isActive: boolean;
+  requiresPasswordReset?: boolean;
+  passwordResetTokenExpiry?: string | null;
   createdAt: string;
 }
 
@@ -745,4 +747,9 @@ export type GetSecurityQuestionsParams = {
    * Short-lived recovery challenge token issued by the login lockout response
    */
   challenge: string;
+};
+
+export type ResendStaffInvite200 = {
+  success: boolean;
+  message: string;
 };

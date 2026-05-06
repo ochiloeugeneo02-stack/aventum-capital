@@ -69,6 +69,8 @@ export const LoginUserResponse = zod.object({
     twoFactorEnabled: zod.boolean().optional(),
     phoneNumber: zod.string().nullish(),
     isActive: zod.boolean(),
+    requiresPasswordReset: zod.boolean().optional(),
+    passwordResetTokenExpiry: zod.coerce.date().nullish(),
     createdAt: zod.coerce.date(),
   }),
   message: zod.string().optional(),
@@ -107,6 +109,8 @@ export const GetCurrentUserResponse = zod.object({
   twoFactorEnabled: zod.boolean().optional(),
   phoneNumber: zod.string().nullish(),
   isActive: zod.boolean(),
+  requiresPasswordReset: zod.boolean().optional(),
+  passwordResetTokenExpiry: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
 });
 
@@ -146,6 +150,8 @@ export const ListUsersResponse = zod.object({
       twoFactorEnabled: zod.boolean().optional(),
       phoneNumber: zod.string().nullish(),
       isActive: zod.boolean(),
+      requiresPasswordReset: zod.boolean().optional(),
+      passwordResetTokenExpiry: zod.coerce.date().nullish(),
       createdAt: zod.coerce.date(),
     }),
   ),
@@ -183,6 +189,8 @@ export const GetUserResponse = zod.object({
   twoFactorEnabled: zod.boolean().optional(),
   phoneNumber: zod.string().nullish(),
   isActive: zod.boolean(),
+  requiresPasswordReset: zod.boolean().optional(),
+  passwordResetTokenExpiry: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
 });
 
@@ -226,6 +234,8 @@ export const UpdateUserResponse = zod.object({
   twoFactorEnabled: zod.boolean().optional(),
   phoneNumber: zod.string().nullish(),
   isActive: zod.boolean(),
+  requiresPasswordReset: zod.boolean().optional(),
+  passwordResetTokenExpiry: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
 });
 
@@ -380,6 +390,8 @@ export const GetGroupResponse = zod.object({
         twoFactorEnabled: zod.boolean().optional(),
         phoneNumber: zod.string().nullish(),
         isActive: zod.boolean(),
+        requiresPasswordReset: zod.boolean().optional(),
+        passwordResetTokenExpiry: zod.coerce.date().nullish(),
         createdAt: zod.coerce.date(),
       }),
       contributionStatus: zod
@@ -411,6 +423,8 @@ export const GetGroupResponse = zod.object({
       twoFactorEnabled: zod.boolean().optional(),
       phoneNumber: zod.string().nullish(),
       isActive: zod.boolean(),
+      requiresPasswordReset: zod.boolean().optional(),
+      passwordResetTokenExpiry: zod.coerce.date().nullish(),
       createdAt: zod.coerce.date(),
     })
     .nullish(),
@@ -502,6 +516,8 @@ export const GetGroupMembersResponseItem = zod.object({
     twoFactorEnabled: zod.boolean().optional(),
     phoneNumber: zod.string().nullish(),
     isActive: zod.boolean(),
+    requiresPasswordReset: zod.boolean().optional(),
+    passwordResetTokenExpiry: zod.coerce.date().nullish(),
     createdAt: zod.coerce.date(),
   }),
   contributionStatus: zod
@@ -605,6 +621,8 @@ export const ListContributionsResponseItem = zod.object({
       twoFactorEnabled: zod.boolean().optional(),
       phoneNumber: zod.string().nullish(),
       isActive: zod.boolean(),
+      requiresPasswordReset: zod.boolean().optional(),
+      passwordResetTokenExpiry: zod.coerce.date().nullish(),
       createdAt: zod.coerce.date(),
     })
     .nullish(),
@@ -688,6 +706,8 @@ export const ListAllContributionsResponse = zod.object({
           twoFactorEnabled: zod.boolean().optional(),
           phoneNumber: zod.string().nullish(),
           isActive: zod.boolean(),
+          requiresPasswordReset: zod.boolean().optional(),
+          passwordResetTokenExpiry: zod.coerce.date().nullish(),
           createdAt: zod.coerce.date(),
         })
         .nullish(),
@@ -761,6 +781,8 @@ export const ListPayoutsResponseItem = zod.object({
       twoFactorEnabled: zod.boolean().optional(),
       phoneNumber: zod.string().nullish(),
       isActive: zod.boolean(),
+      requiresPasswordReset: zod.boolean().optional(),
+      passwordResetTokenExpiry: zod.coerce.date().nullish(),
       createdAt: zod.coerce.date(),
     })
     .nullish(),
@@ -832,6 +854,8 @@ export const ListAllPayoutsResponse = zod.object({
           twoFactorEnabled: zod.boolean().optional(),
           phoneNumber: zod.string().nullish(),
           isActive: zod.boolean(),
+          requiresPasswordReset: zod.boolean().optional(),
+          passwordResetTokenExpiry: zod.coerce.date().nullish(),
           createdAt: zod.coerce.date(),
         })
         .nullish(),
@@ -903,6 +927,8 @@ export const CompletePayoutResponse = zod.object({
       twoFactorEnabled: zod.boolean().optional(),
       phoneNumber: zod.string().nullish(),
       isActive: zod.boolean(),
+      requiresPasswordReset: zod.boolean().optional(),
+      passwordResetTokenExpiry: zod.coerce.date().nullish(),
       createdAt: zod.coerce.date(),
     })
     .nullish(),
@@ -959,6 +985,8 @@ export const GetDashboardSummaryResponse = zod.object({
     twoFactorEnabled: zod.boolean().optional(),
     phoneNumber: zod.string().nullish(),
     isActive: zod.boolean(),
+    requiresPasswordReset: zod.boolean().optional(),
+    passwordResetTokenExpiry: zod.coerce.date().nullish(),
     createdAt: zod.coerce.date(),
   }),
   currentGroup: zod
@@ -1007,6 +1035,8 @@ export const GetDashboardSummaryResponse = zod.object({
       twoFactorEnabled: zod.boolean().optional(),
       phoneNumber: zod.string().nullish(),
       isActive: zod.boolean(),
+      requiresPasswordReset: zod.boolean().optional(),
+      passwordResetTokenExpiry: zod.coerce.date().nullish(),
       createdAt: zod.coerce.date(),
     })
     .nullish(),
@@ -1043,6 +1073,8 @@ export const GetDashboardSummaryResponse = zod.object({
           twoFactorEnabled: zod.boolean().optional(),
           phoneNumber: zod.string().nullish(),
           isActive: zod.boolean(),
+          requiresPasswordReset: zod.boolean().optional(),
+          passwordResetTokenExpiry: zod.coerce.date().nullish(),
           createdAt: zod.coerce.date(),
         })
         .nullish(),
@@ -1103,6 +1135,8 @@ export const GetDashboardSummaryResponse = zod.object({
           twoFactorEnabled: zod.boolean().optional(),
           phoneNumber: zod.string().nullish(),
           isActive: zod.boolean(),
+          requiresPasswordReset: zod.boolean().optional(),
+          passwordResetTokenExpiry: zod.coerce.date().nullish(),
           createdAt: zod.coerce.date(),
         })
         .nullish(),
@@ -1213,6 +1247,8 @@ export const ListAuditLogsResponse = zod.object({
           twoFactorEnabled: zod.boolean().optional(),
           phoneNumber: zod.string().nullish(),
           isActive: zod.boolean(),
+          requiresPasswordReset: zod.boolean().optional(),
+          passwordResetTokenExpiry: zod.coerce.date().nullish(),
           createdAt: zod.coerce.date(),
         })
         .nullish(),
@@ -1264,6 +1300,8 @@ export const TriggerPayoutResponse = zod.object({
       twoFactorEnabled: zod.boolean().optional(),
       phoneNumber: zod.string().nullish(),
       isActive: zod.boolean(),
+      requiresPasswordReset: zod.boolean().optional(),
+      passwordResetTokenExpiry: zod.coerce.date().nullish(),
       createdAt: zod.coerce.date(),
     })
     .nullish(),
@@ -1409,6 +1447,8 @@ export const ListDepartmentStaffResponseItem = zod.object({
   twoFactorEnabled: zod.boolean().optional(),
   phoneNumber: zod.string().nullish(),
   isActive: zod.boolean(),
+  requiresPasswordReset: zod.boolean().optional(),
+  passwordResetTokenExpiry: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const ListDepartmentStaffResponse = zod.array(
@@ -1469,6 +1509,8 @@ export const ListUnlockRequestsResponseItem = zod.object({
       twoFactorEnabled: zod.boolean().optional(),
       phoneNumber: zod.string().nullish(),
       isActive: zod.boolean(),
+      requiresPasswordReset: zod.boolean().optional(),
+      passwordResetTokenExpiry: zod.coerce.date().nullish(),
       createdAt: zod.coerce.date(),
     })
     .nullish(),
@@ -1495,6 +1537,8 @@ export const ListUnlockRequestsResponseItem = zod.object({
       twoFactorEnabled: zod.boolean().optional(),
       phoneNumber: zod.string().nullish(),
       isActive: zod.boolean(),
+      requiresPasswordReset: zod.boolean().optional(),
+      passwordResetTokenExpiry: zod.coerce.date().nullish(),
       createdAt: zod.coerce.date(),
     })
     .nullish(),
@@ -1767,6 +1811,18 @@ export const InviteStaffUserBody = zod.object({
 });
 
 /**
+ * @summary Resend invitation email for a staff member whose invite link has expired
+ */
+export const ResendStaffInviteParams = zod.object({
+  userId: zod.coerce.number(),
+});
+
+export const ResendStaffInviteResponse = zod.object({
+  success: zod.boolean(),
+  message: zod.string(),
+});
+
+/**
  * @summary Directly update a user's role and/or isFinanceAdmin flag (super_admin/CEO only)
  */
 export const UpdateUserRoleParams = zod.object({
@@ -1814,5 +1870,7 @@ export const UpdateUserRoleResponse = zod.object({
   twoFactorEnabled: zod.boolean().optional(),
   phoneNumber: zod.string().nullish(),
   isActive: zod.boolean(),
+  requiresPasswordReset: zod.boolean().optional(),
+  passwordResetTokenExpiry: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
 });

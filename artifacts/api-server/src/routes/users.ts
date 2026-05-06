@@ -22,6 +22,8 @@ function formatUser(u: typeof usersTable.$inferSelect) {
     isActive: u.isActive,
     avatar: (u as any).avatar ?? null,
     departmentId: u.departmentId ?? null,
+    requiresPasswordReset: u.requiresPasswordReset ?? false,
+    passwordResetTokenExpiry: u.passwordResetTokenExpiry?.toISOString() ?? null,
     createdAt: u.createdAt.toISOString(),
   };
 }

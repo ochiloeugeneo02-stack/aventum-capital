@@ -1068,6 +1068,45 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/staff-users/{userId}/resend-invite:
+    post:
+      operationId: resendStaffInvite
+      tags: [rbac]
+      summary: Resend invitation email for a staff member whose invite link has expired
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Invite resent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                required:
+                  - success
+                  - message
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: User does not require a password reset or their invite is still valid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/staff-users/{userId}/role:
     put:
       operationId: updateUserRole
@@ -1211,6 +1250,12 @@ components:
           nullable: true
         isActive:
           type: boolean
+        requiresPasswordReset:
+          type: boolean
+        passwordResetTokenExpiry:
+          type: string
+          format: date-time
+          nullable: true
         createdAt:
           type: string
           format: date-time

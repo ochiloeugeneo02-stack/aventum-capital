@@ -54,6 +54,7 @@ import type {
   Payout,
   PayoutListResponse,
   RegisterBody,
+  ResendStaffInvite200,
   RoleChangeRequest,
   SecurityQuestionsResponse,
   SecurityQuestionsSetupBody,
@@ -4504,6 +4505,90 @@ export const useInviteStaffUser = <
   TContext
 > => {
   return useMutation(getInviteStaffUserMutationOptions(options));
+};
+
+/**
+ * @summary Resend invitation email for a staff member whose invite link has expired
+ */
+export const getResendStaffInviteUrl = (userId: number) => {
+  return `/api/admin/staff-users/${userId}/resend-invite`;
+};
+
+export const resendStaffInvite = async (
+  userId: number,
+  options?: RequestInit,
+): Promise<ResendStaffInvite200> => {
+  return customFetch<ResendStaffInvite200>(getResendStaffInviteUrl(userId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getResendStaffInviteMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resendStaffInvite>>,
+    TError,
+    { userId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resendStaffInvite>>,
+  TError,
+  { userId: number },
+  TContext
+> => {
+  const mutationKey = ["resendStaffInvite"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resendStaffInvite>>,
+    { userId: number }
+  > = (props) => {
+    const { userId } = props ?? {};
+
+    return resendStaffInvite(userId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResendStaffInviteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resendStaffInvite>>
+>;
+
+export type ResendStaffInviteMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Resend invitation email for a staff member whose invite link has expired
+ */
+export const useResendStaffInvite = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resendStaffInvite>>,
+    TError,
+    { userId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof resendStaffInvite>>,
+  TError,
+  { userId: number },
+  TContext
+> => {
+  return useMutation(getResendStaffInviteMutationOptions(options));
 };
 
 /**

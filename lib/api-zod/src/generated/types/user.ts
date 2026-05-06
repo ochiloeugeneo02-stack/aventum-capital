@@ -18,5 +18,7 @@ export interface User {
   twoFactorEnabled?: boolean;
   phoneNumber?: string | null;
   isActive: boolean;
+  requiresPasswordReset?: boolean;
+  passwordResetTokenExpiry?: Date | null;
   createdAt: Date;
 }
