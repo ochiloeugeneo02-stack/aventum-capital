@@ -13,6 +13,8 @@ interface User {
   avatar?: string | null;
   departmentId?: number | null;
   createdAt: string;
+  requiresPasswordReset?: boolean;
+  securityQuestionsSet?: boolean;
 }
 
 interface AuthContextType {

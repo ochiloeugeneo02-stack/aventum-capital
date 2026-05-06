@@ -27,6 +27,7 @@ import SetupTwoFactor from "@/pages/SetupTwoFactor";
 import Support from "@/pages/Support";
 import Messages from "@/pages/Messages";
 import Security from "@/pages/Security";
+import SetPassword from "@/pages/SetPassword";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -59,6 +60,7 @@ function Router() {
       <Route path="/invite/:token" component={InviteAccept} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/set-password" component={SetPassword} />
       <Route path="/setup-2fa">
         <ProtectedRoute>
           <SetupTwoFactor />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useLoginUser, useVerifySecurityQuestions, getSecurityQuestions } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,6 +30,7 @@ export default function StaffPortal() {
   const [twoFactorToken, setTwoFactorToken] = useState(() => sessionStorage.getItem(SESSION_KEY_2FA_TOKEN) ?? "");
   const [validating2fa, setValidating2fa] = useState(false);
   const [resending, setResending] = useState(false);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
 
   // Locked account recovery flow
   const [accountLocked, setAccountLocked] = useState(false);
@@ -58,6 +59,7 @@ export default function StaffPortal() {
     setEmailHint("");
     setRequires2fa(false);
     setTwoFactorCode("");
+    setDevOtp(null);
   }
 
   const loginMutation = useLoginUser({
@@ -65,6 +67,7 @@ export default function StaffPortal() {
       onSuccess: async (data: any) => {
         if (data.requiresTwoFactor) {
           enter2faState(data.twoFactorToken ?? "", data.emailHint ?? "");
+          if (data.testOtp) setDevOtp(data.testOtp);
           return;
         }
         clear2faState();
@@ -107,6 +110,9 @@ export default function StaffPortal() {
     }
     setUser(u);
     toast({ title: "Welcome back", description: u.name });
+    if (u.requiresPasswordReset) {
+      navigate("/set-password");
+    }
   }
 
   async function handle2faSubmit(e: React.FormEvent) {
@@ -165,8 +171,17 @@ export default function StaffPortal() {
 
   const isStaffUser = user && STAFF_ROLES.includes(user.role);
 
-  // If authenticated as staff user — check if security questions are set up
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && isStaffUser && (user as any)?.requiresPasswordReset) {
+      navigate("/set-password");
+    }
+  }, [isLoading, isAuthenticated, isStaffUser, (user as any)?.requiresPasswordReset]);
+
+  // If authenticated as staff user — gate on password reset first, then security questions
   if (!isLoading && isAuthenticated && isStaffUser) {
+    if ((user as any).requiresPasswordReset) {
+      return null;
+    }
     if (!(user as any).securityQuestionsSet) {
       return <SecurityQuestionsSetup user={user} onComplete={() => setUser({ ...(user as any), securityQuestionsSet: true })} />;
     }
@@ -374,6 +389,20 @@ export default function StaffPortal() {
                 </button>
               </form>
 
+              {devOtp && (
+                <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300">
+                  <span className="font-medium">Demo code:</span>
+                  <code
+                    className="font-mono font-bold tracking-widest cursor-pointer hover:bg-amber-500/10 px-1 rounded"
+                    onClick={() => setTwoFactorCode(devOtp)}
+                    title="Click to fill"
+                  >
+                    {devOtp}
+                  </code>
+                  <span className="text-amber-400/60 ml-auto">(click to fill)</span>
+                </div>
+              )}
+
               <div className="mt-5 flex flex-col items-center gap-3">
                 <button
                   type="button"
@@ -387,6 +416,7 @@ export default function StaffPortal() {
                         body: JSON.stringify({ twoFactorToken }),
                       });
                       if (data.twoFactorToken) enter2faState(data.twoFactorToken, emailHint);
+                      if (data.testOtp) setDevOtp(data.testOtp);
                       setTwoFactorCode("");
                       toast({ title: "Code resent" });
                     } catch {

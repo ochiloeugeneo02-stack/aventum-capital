@@ -606,6 +606,11 @@ router.post("/auth/2fa/validate", async (req, res): Promise<void> => {
   req.session.isFinanceAdmin = user.isFinanceAdmin ?? false;
   req.session.securityQuestionsSet = user.securityQuestionsSet ?? false;
 
+  // First-login staff: session is created but frontend must prompt for a real password
+  if (user.requiresPasswordReset && isStaffRole(user.role)) {
+    logger.info({ userId: user.id }, "First-login staff: requiresPasswordReset flagged in response");
+  }
+
   logger.info({ userId: user.id }, "2FA validated, session created");
   await createAuditLog({ action: "user.login", performedBy: user.id, targetType: "user", targetId: user.id });
   res.json({ user: formatUser(user), message: "Login successful" });
@@ -684,6 +689,37 @@ router.post("/auth/2fa/enable", requireAuth, async (req, res): Promise<void> => 
 
   logger.info({ userId: req.session.userId }, "2FA enabled");
   res.json({ message: "Two-factor authentication enabled successfully" });
+});
+
+router.post("/auth/set-password", requireAuth, async (req, res): Promise<void> => {
+  const { password } = req.body;
+  if (!password || typeof password !== "string" || password.length < 8) {
+    res.status(400).json({ error: "Password must be at least 8 characters." });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId!)).limit(1);
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  if (!isStaffRole(user.role)) {
+    res.status(403).json({ error: "This endpoint is only available to staff accounts." });
+    return;
+  }
+
+  if (!user.requiresPasswordReset) {
+    res.status(400).json({ error: "No password reset is required for this account." });
+    return;
+  }
+
+  const passwordHash = await hashPassword(password);
+  await db.update(usersTable).set({ passwordHash, requiresPasswordReset: false }).where(eq(usersTable.id, user.id));
+
+  await createAuditLog({ action: "user.set_password", performedBy: user.id, targetType: "user", targetId: user.id });
+  logger.info({ userId: user.id }, "Staff member set initial password");
+  res.json({ message: "Password set successfully." });
 });
 
 router.post("/auth/2fa/disable", requireAuth, async (req, res): Promise<void> => {
