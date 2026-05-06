@@ -635,6 +635,8 @@ export default function SuperAdmin() {
     if (section === "role-requests") loadRoleRequests();
     if (section === "finance-approvals") loadFinanceApprovals();
     if (section === "departments") loadDepartments();
+    if (section === "users" && departments.length === 0) loadDepartments();
+    if (section === "profile" && departments.length === 0) loadDepartments();
   }, [section]);
 
   const saveProfileName = async () => {
@@ -964,8 +966,10 @@ export default function SuperAdmin() {
               {usersLoading ? (
                 <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[#3A5A40]" /></div>
               ) : (
-                <DataTable headers={["User", "Email", "Role", "Status", "2FA", "Joined", ""]}>
-                  {filteredUsers.map((u: any) => (
+                <DataTable headers={["User", "Email", "Role", "Department", "Status", "2FA", "Joined", ""]}>
+                  {filteredUsers.map((u: any) => {
+                    const dept = u.departmentId ? departments.find((d: any) => d.id === u.departmentId) : null;
+                    return (
                     <tr key={u.id} className="hover:bg-[#FAFAF9] transition-colors">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
@@ -975,6 +979,16 @@ export default function SuperAdmin() {
                       </td>
                       <td className="px-5 py-3.5 text-sm text-[#6B7280]">{u.email}</td>
                       <td className="px-5 py-3.5"><Badge status={u.role} /></td>
+                      <td className="px-5 py-3.5">
+                        {dept ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg bg-[#EAF0EB] text-[#3A5A40]">
+                            <Layers className="w-3 h-3" />
+                            {dept.name}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-[#C4BFBA]">—</span>
+                        )}
+                      </td>
                       <td className="px-5 py-3.5"><Badge status={u.isActive ? "active" : "paused"} /></td>
                       <td className="px-5 py-3.5"><span className={cn("text-[11px] font-medium", u.twoFactorEnabled ? "text-emerald-600" : "text-[#9CA3AF]")}>{u.twoFactorEnabled ? "✓ On" : "Off"}</span></td>
                       <td className="px-5 py-3.5 text-sm text-[#9CA3AF]">{formatDate(u.createdAt)}</td>
@@ -991,7 +1005,8 @@ export default function SuperAdmin() {
                         )}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </DataTable>
               )}
 
@@ -2088,9 +2103,20 @@ export default function SuperAdmin() {
                   <div>
                     <div className="font-semibold text-[#1F2937]">{user?.name}</div>
                     <div className="text-xs text-[#9CA3AF]">{user?.email}</div>
-                    <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#3A5A40]/10 text-[#3A5A40]">
-                      {user?.role?.replace("_", " ")}
-                    </span>
+                    <div className="flex items-center gap-2 flex-wrap mt-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#3A5A40]/10 text-[#3A5A40]">
+                        {user?.role?.replace(/_/g, " ")}
+                      </span>
+                      {user?.departmentId && (() => {
+                        const dept = departments.find((d: any) => d.id === user.departmentId);
+                        return dept ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#EAF0EB] text-[#3A5A40]">
+                            <Layers className="w-2.5 h-2.5" />
+                            {dept.name}
+                          </span>
+                        ) : null;
+                      })()}
+                    </div>
                   </div>
                 </div>
 

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, usersTable, unlockRequestsTable, roleChangeRequestsTable, financeApprovalRequestsTable, departmentsTable, groupsTable, groupMembersTable, payoutsTable } from "@workspace/db";
-import { eq, inArray, desc, and } from "drizzle-orm";
+import { eq, inArray, desc, and, sql } from "drizzle-orm";
 import { requireAuth, requirePermission, requireRole } from "../lib/auth";
 import { asyncHandler } from "../lib/asyncHandler";
 import { createAuditLog } from "../lib/auditLog";
@@ -52,8 +52,9 @@ const AssignUserBody = zod.object({
 const UpdateUserRoleBody = zod.object({
   role: zod.enum(VALID_ROLES).optional(),
   isFinanceAdmin: zod.boolean().optional(),
-}).refine(d => d.role !== undefined || d.isFinanceAdmin !== undefined, {
-  message: "At least one of role or isFinanceAdmin must be provided",
+  departmentId: zod.number().int().positive().nullable().optional(),
+}).refine(d => d.role !== undefined || d.isFinanceAdmin !== undefined || d.departmentId !== undefined, {
+  message: "At least one of role, isFinanceAdmin, or departmentId must be provided",
 });
 
 const router: IRouter = Router();
@@ -390,8 +391,12 @@ router.post("/admin/finance-approvals/:id/deny", requirePermission("financeAppro
 
 router.get("/admin/departments", requirePermission("departments:view"), asyncHandler(async (req, res) => {
   const departments = await db.select().from(departmentsTable).orderBy(departmentsTable.name);
-  const staffInDept = await db.select({ departmentId: usersTable.departmentId, count: db.$count(usersTable) })
+  const staffInDept = await db.select({ departmentId: usersTable.departmentId, count: sql<number>`count(*)` })
     .from(usersTable)
+    .where(and(
+      sql`${usersTable.departmentId} is not null`,
+      inArray(usersTable.role, [...STAFF_ONLY_ROLES]),
+    ))
     .groupBy(usersTable.departmentId);
   const countMap = new Map(staffInDept.map(s => [s.departmentId, Number(s.count)]));
 
@@ -481,28 +486,47 @@ router.get("/admin/departments/:id/staff", requirePermission("departments:view")
   res.json(staff);
 }));
 
-// ─── Staff user management (set role/isFinanceAdmin) ─────────────────────────
+// ─── Staff user management (set role/isFinanceAdmin/departmentId) ────────────
 
-router.put("/admin/users/:id/role", requirePermission("roles:assign"), asyncHandler(async (req, res) => {
-  const userId = parseInt(req.params.id as string, 10);
-  const parsed = UpdateUserRoleBody.safeParse(req.body);
+async function handleUpdateUserRole(
+  userId: number,
+  body: unknown,
+  adminId: number,
+  res: import("express").Response,
+): Promise<void> {
+  const parsed = UpdateUserRoleBody.safeParse(body);
   if (!parsed.success) { res.status(400).json({ error: "Validation error", message: parsed.error.issues[0]?.message }); return; }
-  const { role, isFinanceAdmin } = parsed.data;
+  const { role, isFinanceAdmin, departmentId } = parsed.data;
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  if (departmentId !== undefined && departmentId !== null) {
+    const [dept] = await db.select({ id: departmentsTable.id }).from(departmentsTable).where(eq(departmentsTable.id, departmentId)).limit(1);
+    if (!dept) { res.status(404).json({ error: "Department not found" }); return; }
+  }
 
   const [updated] = await db.update(usersTable)
     .set({
       ...(role !== undefined ? { role } : {}),
       ...(isFinanceAdmin !== undefined ? { isFinanceAdmin } : {}),
+      ...(departmentId !== undefined ? { departmentId: departmentId ?? null } : {}),
     })
     .where(eq(usersTable.id, userId))
     .returning();
 
-  await createAuditLog({ action: "user.role_updated", performedBy: req.session!.userId!, targetType: "user", targetId: userId, details: JSON.stringify({ role, isFinanceAdmin }) });
+  await createAuditLog({ action: "user.role_updated", performedBy: adminId, targetType: "user", targetId: userId, details: JSON.stringify({ role, isFinanceAdmin, departmentId }) });
 
-  res.json({ id: updated.id, name: updated.name, email: updated.email, role: updated.role, isFinanceAdmin: updated.isFinanceAdmin });
+  res.json({ id: updated.id, name: updated.name, email: updated.email, role: updated.role, isFinanceAdmin: updated.isFinanceAdmin, departmentId: updated.departmentId ?? null });
+}
+
+router.put("/admin/users/:id/role", requirePermission("roles:assign"), asyncHandler(async (req, res) => {
+  await handleUpdateUserRole(parseInt(req.params.id as string, 10), req.body, req.session!.userId!, res);
+}));
+
+// Named staff-users route per API contract — delegates to shared handler
+router.put("/admin/staff-users/:userId/role", requirePermission("roles:assign"), asyncHandler(async (req, res) => {
+  await handleUpdateUserRole(parseInt(req.params.userId as string, 10), req.body, req.session!.userId!, res);
 }));
 
 // ─── Staff user invitation ────────────────────────────────────────────────────

@@ -21,6 +21,7 @@ function formatUser(u: typeof usersTable.$inferSelect) {
     motivation: u.motivation ?? null,
     isActive: u.isActive,
     avatar: (u as any).avatar ?? null,
+    departmentId: u.departmentId ?? null,
     createdAt: u.createdAt.toISOString(),
   };
 }

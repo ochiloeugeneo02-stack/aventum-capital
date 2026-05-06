@@ -86,6 +86,7 @@ function formatUser(u: typeof usersTable.$inferSelect) {
     isActive: u.isActive,
     motivation: u.motivation ?? null,
     avatar: u.avatar ?? null,
+    departmentId: u.departmentId ?? null,
     twoFactorEnabled: u.twoFactorEnabled,
     isFinanceAdmin: u.isFinanceAdmin,
     securityQuestionsSet: u.securityQuestionsSet,

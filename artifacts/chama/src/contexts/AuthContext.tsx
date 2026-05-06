@@ -11,6 +11,7 @@ interface User {
   phoneNumber: string | null;
   isActive: boolean;
   avatar?: string | null;
+  departmentId?: number | null;
   createdAt: string;
 }
 
