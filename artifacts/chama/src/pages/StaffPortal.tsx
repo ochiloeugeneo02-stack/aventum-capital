@@ -446,7 +446,12 @@ export default function StaffPortal() {
                 <p className="text-[10px] text-white/20 uppercase tracking-wider mb-2.5">Quick sign in</p>
                 <div className="flex flex-col gap-1.5">
                   {[
-                    { name: "CEO", title: "ceo@aventum.co", initials: "CE", email: "admin@aventum.co", password: "Aventum2024!" },
+                    { name: "CEO",                  initials: "CE", email: "eoo.admin@aventumcapital.com",  password: "Allsaved@19" },
+                    { name: "CTO Admin",             initials: "CT", email: "cto@aventumcapital.com",        password: "Aventum@Staff1" },
+                    { name: "IT Support",            initials: "IT", email: "itsupport@aventumcapital.com",  password: "Aventum@Staff1" },
+                    { name: "Finance",               initials: "FI", email: "finance@aventumcapital.com",    password: "Aventum@Staff1" },
+                    { name: "Marketing",             initials: "MK", email: "marketing@aventumcapital.com",  password: "Aventum@Staff1" },
+                    { name: "Relationship Manager",  initials: "RM", email: "rm@aventumcapital.com",         password: "Aventum@Staff1" },
                   ].map(emp => (
                     <button
                       key={emp.name}
@@ -459,7 +464,7 @@ export default function StaffPortal() {
                       </div>
                       <div className="min-w-0">
                         <div className="text-white/70 text-xs font-medium leading-none group-hover:text-white/90 transition-colors">{emp.name}</div>
-                        <div className="text-white/25 text-[10px] mt-0.5 leading-none">{emp.title}</div>
+                        <div className="text-white/25 text-[10px] mt-0.5 leading-none truncate">{emp.email}</div>
                       </div>
                       <div className="ml-auto text-white/15 text-[10px] group-hover:text-[#A3C4A8]/50 transition-colors shrink-0">Fill →</div>
                     </button>
