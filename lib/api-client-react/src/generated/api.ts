@@ -34,11 +34,13 @@ import type {
   Department,
   ErrorResponse,
   FinanceApproval,
+  GetSecurityQuestionsParams,
   Group,
   GroupDetails,
   GroupMember,
   HealthStatus,
   InviteMemberBody,
+  InviteStaffBody,
   ListAllContributionsParams,
   ListAllPayoutsParams,
   ListAuditLogsParams,
@@ -53,6 +55,7 @@ import type {
   PayoutListResponse,
   RegisterBody,
   RoleChangeRequest,
+  SecurityQuestionsResponse,
   SecurityQuestionsSetupBody,
   SecurityQuestionsVerifyBody,
   SuccessResponse,
@@ -4298,10 +4301,216 @@ export const useVerifySecurityQuestions = <
 };
 
 /**
+ * @summary Fetch security question prompts for a locked account (requires recovery challenge)
+ */
+export const getGetSecurityQuestionsUrl = (
+  email: string,
+  params: GetSecurityQuestionsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/auth/security-questions/${email}?${stringifiedParams}`
+    : `/api/auth/security-questions/${email}`;
+};
+
+export const getSecurityQuestions = async (
+  email: string,
+  params: GetSecurityQuestionsParams,
+  options?: RequestInit,
+): Promise<SecurityQuestionsResponse> => {
+  return customFetch<SecurityQuestionsResponse>(
+    getGetSecurityQuestionsUrl(email, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetSecurityQuestionsQueryKey = (
+  email: string,
+  params?: GetSecurityQuestionsParams,
+) => {
+  return [
+    `/api/auth/security-questions/${email}`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetSecurityQuestionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSecurityQuestions>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  email: string,
+  params: GetSecurityQuestionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSecurityQuestions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSecurityQuestionsQueryKey(email, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSecurityQuestions>>
+  > = ({ signal }) =>
+    getSecurityQuestions(email, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!email,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSecurityQuestions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSecurityQuestionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSecurityQuestions>>
+>;
+export type GetSecurityQuestionsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Fetch security question prompts for a locked account (requires recovery challenge)
+ */
+
+export function useGetSecurityQuestions<
+  TData = Awaited<ReturnType<typeof getSecurityQuestions>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  email: string,
+  params: GetSecurityQuestionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSecurityQuestions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSecurityQuestionsQueryOptions(
+    email,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Invite a new staff member (creates account + sends set-password email)
+ */
+export const getInviteStaffUserUrl = () => {
+  return `/api/admin/staff-users`;
+};
+
+export const inviteStaffUser = async (
+  inviteStaffBody: InviteStaffBody,
+  options?: RequestInit,
+): Promise<User> => {
+  return customFetch<User>(getInviteStaffUserUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(inviteStaffBody),
+  });
+};
+
+export const getInviteStaffUserMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof inviteStaffUser>>,
+    TError,
+    { data: BodyType<InviteStaffBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof inviteStaffUser>>,
+  TError,
+  { data: BodyType<InviteStaffBody> },
+  TContext
+> => {
+  const mutationKey = ["inviteStaffUser"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof inviteStaffUser>>,
+    { data: BodyType<InviteStaffBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return inviteStaffUser(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type InviteStaffUserMutationResult = NonNullable<
+  Awaited<ReturnType<typeof inviteStaffUser>>
+>;
+export type InviteStaffUserMutationBody = BodyType<InviteStaffBody>;
+export type InviteStaffUserMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Invite a new staff member (creates account + sends set-password email)
+ */
+export const useInviteStaffUser = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof inviteStaffUser>>,
+    TError,
+    { data: BodyType<InviteStaffBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof inviteStaffUser>>,
+  TError,
+  { data: BodyType<InviteStaffBody> },
+  TContext
+> => {
+  return useMutation(getInviteStaffUserMutationOptions(options));
+};
+
+/**
  * @summary Directly update a user's role and/or isFinanceAdmin flag (super_admin/CEO only)
  */
 export const getUpdateUserRoleUrl = (userId: number) => {
-  return `/api/admin/users/${userId}/role`;
+  return `/api/admin/staff-users/${userId}/role`;
 };
 
 export const updateUserRole = async (

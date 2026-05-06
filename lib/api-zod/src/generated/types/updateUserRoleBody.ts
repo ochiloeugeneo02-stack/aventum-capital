@@ -10,4 +10,5 @@ import type { UpdateUserRoleBodyRole } from "./updateUserRoleBodyRole";
 export interface UpdateUserRoleBody {
   role?: UpdateUserRoleBodyRole;
   isFinanceAdmin?: boolean;
+  departmentId?: number | null;
 }

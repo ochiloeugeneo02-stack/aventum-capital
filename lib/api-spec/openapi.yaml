@@ -1004,8 +1004,71 @@ paths:
         "400":
           description: Validation error
 
+  /auth/security-questions/{email}:
+    get:
+      operationId: getSecurityQuestions
+      tags: [security]
+      summary: Fetch security question prompts for a locked account (requires recovery challenge)
+      parameters:
+        - in: path
+          name: email
+          required: true
+          schema:
+            type: string
+          description: Email address of the locked account
+        - in: query
+          name: challenge
+          required: true
+          schema:
+            type: string
+          description: Short-lived recovery challenge token issued by the login lockout response
+      responses:
+        "200":
+          description: Security questions and a signed recovery token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecurityQuestionsResponse"
+        "400":
+          description: Account not locked or questions not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Invalid or missing recovery challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   # RBAC — STAFF USER MANAGEMENT
-  /admin/users/{userId}/role:
+  /admin/staff-users:
+    post:
+      operationId: inviteStaffUser
+      tags: [rbac]
+      summary: Invite a new staff member (creates account + sends set-password email)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteStaffBody"
+      responses:
+        "201":
+          description: Staff user created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "409":
+          description: Email already in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/staff-users/{userId}/role:
     put:
       operationId: updateUserRole
       tags: [rbac]
@@ -2025,3 +2088,48 @@ components:
           enum: [member, group_admin, org_admin, super_admin, ceo, cto_admin, it_support, finance, marketing, relationship_manager]
         isFinanceAdmin:
           type: boolean
+        departmentId:
+          type: integer
+          nullable: true
+
+    InviteStaffBody:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [ceo, cto_admin, it_support, finance, marketing, relationship_manager, super_admin]
+        departmentId:
+          type: integer
+          nullable: true
+      required:
+        - name
+        - email
+        - role
+
+    SecurityQuestionsResponse:
+      type: object
+      properties:
+        questions:
+          type: array
+          items:
+            type: object
+            properties:
+              questionIndex:
+                type: integer
+              questionText:
+                type: string
+            required:
+              - questionIndex
+              - questionText
+        recoveryToken:
+          type: string
+      required:
+        - questions
+        - recoveryToken

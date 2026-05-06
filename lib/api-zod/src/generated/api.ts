@@ -1722,6 +1722,51 @@ export const VerifySecurityQuestionsResponse = zod.object({
 });
 
 /**
+ * @summary Fetch security question prompts for a locked account (requires recovery challenge)
+ */
+export const GetSecurityQuestionsParams = zod.object({
+  email: zod.coerce.string().describe("Email address of the locked account"),
+});
+
+export const GetSecurityQuestionsQueryParams = zod.object({
+  challenge: zod.coerce
+    .string()
+    .describe(
+      "Short-lived recovery challenge token issued by the login lockout response",
+    ),
+});
+
+export const GetSecurityQuestionsResponse = zod.object({
+  questions: zod.array(
+    zod.object({
+      questionIndex: zod.number(),
+      questionText: zod.string(),
+    }),
+  ),
+  recoveryToken: zod.string(),
+});
+
+/**
+ * @summary Invite a new staff member (creates account + sends set-password email)
+ */
+export const inviteStaffUserBodyNameMax = 100;
+
+export const InviteStaffUserBody = zod.object({
+  name: zod.string().min(1).max(inviteStaffUserBodyNameMax),
+  email: zod.string().email(),
+  role: zod.enum([
+    "ceo",
+    "cto_admin",
+    "it_support",
+    "finance",
+    "marketing",
+    "relationship_manager",
+    "super_admin",
+  ]),
+  departmentId: zod.number().nullish(),
+});
+
+/**
  * @summary Directly update a user's role and/or isFinanceAdmin flag (super_admin/CEO only)
  */
 export const UpdateUserRoleParams = zod.object({
@@ -1744,6 +1789,7 @@ export const UpdateUserRoleBody = zod.object({
     ])
     .optional(),
   isFinanceAdmin: zod.boolean().optional(),
+  departmentId: zod.number().nullish(),
 });
 
 export const UpdateUserRoleResponse = zod.object({

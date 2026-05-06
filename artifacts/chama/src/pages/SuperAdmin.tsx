@@ -7,11 +7,32 @@ import {
   useListAllPayouts,
   useListAuditLogs,
   useCompletePayout,
+  useListUnlockRequests,
+  useListRoleRequests,
+  useListFinanceApprovals,
+  useListDepartments,
+  useApproveUnlockRequest,
+  useDenyUnlockRequest,
+  useApproveRoleRequest,
+  useDenyRoleRequest,
+  useApproveFinanceRequest,
+  useDenyFinanceRequest,
+  useCreateDepartment,
+  useCreateRoleRequest,
+  useCreateFinanceApproval,
+  useInviteStaffUser,
   getGetAdminStatsQueryKey,
   getListUsersQueryKey,
   getListAllContributionsQueryKey,
   getListAllPayoutsQueryKey,
   getListAuditLogsQueryKey,
+  getListUnlockRequestsQueryKey,
+  getListRoleRequestsQueryKey,
+  getListFinanceApprovalsQueryKey,
+  getListDepartmentsQueryKey,
+  InviteStaffBodyRole,
+  CreateDepartmentBodyRole,
+  CreateRoleRequestBodyRequestedRole,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRegion } from "@/contexts/RegionContext";
@@ -269,23 +290,13 @@ export default function SuperAdmin() {
   const [subFilter, setSubFilter] = useState<"all" | "active" | "unsubscribed">("active");
   const [groupsFilter, setGroupsFilter] = useState<"all" | "active" | "paused" | "deleted">("all");
 
-  // RBAC workflow panels state
-  const [unlockRequests, setUnlockRequests] = useState<any[]>([]);
-  const [unlockLoading, setUnlockLoading] = useState(false);
+  // RBAC workflow panels state — data fetched via generated React Query hooks below
   const [unlockActionId, setUnlockActionId] = useState<number | null>(null);
-
-  const [roleRequests, setRoleRequests] = useState<any[]>([]);
-  const [roleReqLoading, setRoleReqLoading] = useState(false);
   const [roleReqActionId, setRoleReqActionId] = useState<number | null>(null);
-
-  const [financeApprovals, setFinanceApprovals] = useState<any[]>([]);
-  const [financeLoading, setFinanceLoading] = useState(false);
   const [financeActionId, setFinanceActionId] = useState<number | null>(null);
 
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [deptLoading, setDeptLoading] = useState(false);
   const [newDeptName, setNewDeptName] = useState("");
-  const [newDeptRole, setNewDeptRole] = useState("");
+  const [newDeptRole, setNewDeptRole] = useState<CreateDepartmentBodyRole | "">("");
   const [addingDept, setAddingDept] = useState(false);
   const [selectedDeptId, setSelectedDeptId] = useState<number | null>(null);
   const [deptStaffMap, setDeptStaffMap] = useState<Record<number, any[]>>({});
@@ -300,40 +311,27 @@ export default function SuperAdmin() {
   const [showInviteStaffModal, setShowInviteStaffModal] = useState(false);
   const [inviteStaffName, setInviteStaffName] = useState("");
   const [inviteStaffEmail, setInviteStaffEmail] = useState("");
-  const [inviteStaffRole, setInviteStaffRole] = useState("");
+  const [inviteStaffRole, setInviteStaffRole] = useState<InviteStaffBodyRole | "">("");
   const [inviteStaffDeptId, setInviteStaffDeptId] = useState<string>("");
   const [invitingStaff, setInvitingStaff] = useState(false);
 
-  const handleInviteStaff = async (e: React.FormEvent) => {
+  const handleInviteStaff = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteStaffName.trim() || !inviteStaffEmail.trim() || !inviteStaffRole) return;
     setInvitingStaff(true);
-    try {
-      await apiRequest("/api/admin/staff-users", {
-        method: "POST",
-        body: JSON.stringify({
-          name: inviteStaffName.trim(),
-          email: inviteStaffEmail.trim().toLowerCase(),
-          role: inviteStaffRole,
-          ...(inviteStaffDeptId ? { departmentId: Number(inviteStaffDeptId) } : {}),
-        }),
-      });
-      toast({ title: "Staff member invited", description: `An invitation email has been sent to ${inviteStaffEmail}.` });
-      setShowInviteStaffModal(false);
-      setInviteStaffName("");
-      setInviteStaffEmail("");
-      setInviteStaffRole("");
-      setInviteStaffDeptId("");
-      queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-    } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error ?? "Failed to invite staff member", variant: "destructive" });
-    }
-    setInvitingStaff(false);
+    inviteStaffMutation.mutate({
+      data: {
+        name: inviteStaffName.trim(),
+        email: inviteStaffEmail.trim().toLowerCase(),
+        role: inviteStaffRole,
+        ...(inviteStaffDeptId ? { departmentId: Number(inviteStaffDeptId) } : {}),
+      },
+    });
   };
 
   // Role change request initiation
   const [roleReqTarget, setRoleReqTarget] = useState<any | null>(null);
-  const [roleReqNewRole, setRoleReqNewRole] = useState("");
+  const [roleReqNewRole, setRoleReqNewRole] = useState<CreateRoleRequestBodyRequestedRole | "">("");
   const [roleReqReason, setRoleReqReason] = useState("");
   const [submittingRoleReq, setSubmittingRoleReq] = useState(false);
 
@@ -356,6 +354,168 @@ export default function SuperAdmin() {
         toast({ title: "Payout marked as completed!" });
         queryClient.invalidateQueries({ queryKey: getListAllPayoutsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
+      },
+    },
+  });
+
+  // RBAC — generated React Query hooks
+  const { data: unlockRequests = [], isLoading: unlockLoading, refetch: refetchUnlockRequests } = useListUnlockRequests({
+    query: { queryKey: getListUnlockRequestsQueryKey() },
+  });
+  const { data: roleRequests = [], isLoading: roleReqLoading, refetch: refetchRoleRequests } = useListRoleRequests({
+    query: { queryKey: getListRoleRequestsQueryKey(), enabled: section === "role-requests" },
+  });
+  const { data: financeApprovals = [], isLoading: financeLoading, refetch: refetchFinanceApprovals } = useListFinanceApprovals({
+    query: { queryKey: getListFinanceApprovalsQueryKey(), enabled: section === "finance-approvals" },
+  });
+  const { data: departments = [], isLoading: deptLoading, refetch: refetchDepartments } = useListDepartments({
+    query: { queryKey: getListDepartmentsQueryKey() },
+  });
+
+  const approveUnlockMutation = useApproveUnlockRequest({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListUnlockRequestsQueryKey() });
+        toast({ title: "Account unlocked" });
+        setUnlockActionId(null);
+      },
+      onError: (err: any) => {
+        toast({ title: "Error", description: err?.data?.error ?? "Action failed", variant: "destructive" });
+        setUnlockActionId(null);
+      },
+    },
+  });
+
+  const denyUnlockMutation = useDenyUnlockRequest({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListUnlockRequestsQueryKey() });
+        toast({ title: "Request denied" });
+        setUnlockActionId(null);
+      },
+      onError: (err: any) => {
+        toast({ title: "Error", description: err?.data?.error ?? "Action failed", variant: "destructive" });
+        setUnlockActionId(null);
+      },
+    },
+  });
+
+  const approveRoleMutation = useApproveRoleRequest({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListRoleRequestsQueryKey() });
+        toast({ title: "Role change approved" });
+        setRoleReqActionId(null);
+      },
+      onError: (err: any) => {
+        toast({ title: "Error", description: err?.data?.error ?? "Action failed", variant: "destructive" });
+        setRoleReqActionId(null);
+      },
+    },
+  });
+
+  const denyRoleMutation = useDenyRoleRequest({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListRoleRequestsQueryKey() });
+        toast({ title: "Request denied" });
+        setRoleReqActionId(null);
+      },
+      onError: (err: any) => {
+        toast({ title: "Error", description: err?.data?.error ?? "Action failed", variant: "destructive" });
+        setRoleReqActionId(null);
+      },
+    },
+  });
+
+  const approveFinanceMutation = useApproveFinanceRequest({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListFinanceApprovalsQueryKey() });
+        toast({ title: "Finance action approved" });
+        setFinanceActionId(null);
+      },
+      onError: (err: any) => {
+        toast({ title: "Error", description: err?.data?.error ?? "Action failed", variant: "destructive" });
+        setFinanceActionId(null);
+      },
+    },
+  });
+
+  const denyFinanceMutation = useDenyFinanceRequest({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListFinanceApprovalsQueryKey() });
+        toast({ title: "Request denied" });
+        setFinanceActionId(null);
+      },
+      onError: (err: any) => {
+        toast({ title: "Error", description: err?.data?.error ?? "Action failed", variant: "destructive" });
+        setFinanceActionId(null);
+      },
+    },
+  });
+
+  const createDepartmentMutation = useCreateDepartment({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListDepartmentsQueryKey() });
+        toast({ title: "Department created" });
+        setNewDeptName("");
+        setNewDeptRole("");
+        setAddingDept(false);
+      },
+      onError: (err: any) => {
+        toast({ title: "Error", description: err?.data?.error ?? "Failed", variant: "destructive" });
+        setAddingDept(false);
+      },
+    },
+  });
+
+  const createRoleRequestMutation = useCreateRoleRequest({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListRoleRequestsQueryKey() });
+        toast({ title: "Role change request submitted for approval" });
+        setRoleReqTarget(null);
+        setRoleReqNewRole("");
+        setRoleReqReason("");
+        setSubmittingRoleReq(false);
+      },
+      onError: (err: any) => {
+        toast({ title: "Error", description: err?.data?.error ?? "Failed to submit", variant: "destructive" });
+        setSubmittingRoleReq(false);
+      },
+    },
+  });
+
+  const createFinanceApprovalMutation = useCreateFinanceApproval({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListAllPayoutsQueryKey() });
+        toast({ title: "Approval request submitted", description: "A CFO or CEO must approve this payout." });
+      },
+      onError: (err: any) => {
+        toast({ title: "Error", description: err?.data?.error ?? "Could not submit approval request", variant: "destructive" });
+      },
+    },
+  });
+
+  const inviteStaffMutation = useInviteStaffUser({
+    mutation: {
+      onSuccess: () => {
+        toast({ title: "Staff member invited", description: `An invitation email has been sent to ${inviteStaffEmail}.` });
+        setShowInviteStaffModal(false);
+        setInviteStaffName("");
+        setInviteStaffEmail("");
+        setInviteStaffRole("");
+        setInviteStaffDeptId("");
+        setInvitingStaff(false);
+        queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+      },
+      onError: (err: any) => {
+        toast({ title: "Error", description: err?.data?.error ?? "Failed to invite staff member", variant: "destructive" });
+        setInvitingStaff(false);
       },
     },
   });
@@ -485,30 +645,6 @@ export default function SuperAdmin() {
     setSubLoading(false);
   }, []);
 
-  const loadUnlockRequests = useCallback(async () => {
-    setUnlockLoading(true);
-    try { setUnlockRequests(await apiRequest<any[]>("/api/admin/unlock-requests")); } catch {}
-    setUnlockLoading(false);
-  }, []);
-
-  const loadRoleRequests = useCallback(async () => {
-    setRoleReqLoading(true);
-    try { setRoleRequests(await apiRequest<any[]>("/api/admin/role-requests")); } catch {}
-    setRoleReqLoading(false);
-  }, []);
-
-  const loadFinanceApprovals = useCallback(async () => {
-    setFinanceLoading(true);
-    try { setFinanceApprovals(await apiRequest<any[]>("/api/admin/finance-approvals")); } catch {}
-    setFinanceLoading(false);
-  }, []);
-
-  const loadDepartments = useCallback(async () => {
-    setDeptLoading(true);
-    try { setDepartments(await apiRequest<any[]>("/api/admin/departments")); } catch {}
-    setDeptLoading(false);
-  }, []);
-
   const loadDeptStaff = useCallback(async (deptId: number) => {
     setLoadingDeptStaff(deptId);
     try {
@@ -539,90 +675,66 @@ export default function SuperAdmin() {
       setShowAssignModal(false);
       setAssignUserId("");
       setAssignDeptId("");
-      // Refresh staff for that dept if it was open
       if (selectedDeptId === Number(assignDeptId)) {
         await loadDeptStaff(Number(assignDeptId));
       }
-      await loadDepartments();
+      queryClient.invalidateQueries({ queryKey: getListDepartmentsQueryKey() });
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error ?? "Failed to assign", variant: "destructive" });
     }
     setAssigningUser(false);
   };
 
-  const handleSubmitRoleReq = async (e: React.FormEvent) => {
+  const handleSubmitRoleReq = (e: React.FormEvent) => {
     e.preventDefault();
     if (!roleReqTarget || !roleReqNewRole) return;
+    const requestedRole = roleReqNewRole;
     setSubmittingRoleReq(true);
-    try {
-      await apiRequest("/api/admin/role-requests", {
-        method: "POST",
-        body: JSON.stringify({ targetUserId: roleReqTarget.id, requestedRole: roleReqNewRole, reason: roleReqReason || undefined }),
-      });
-      toast({ title: "Role change request submitted for approval" });
-      setRoleReqTarget(null);
-      setRoleReqNewRole("");
-      setRoleReqReason("");
-      await loadRoleRequests();
-    } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error ?? "Failed to submit", variant: "destructive" });
-    }
-    setSubmittingRoleReq(false);
+    createRoleRequestMutation.mutate({
+      data: {
+        targetUserId: roleReqTarget.id,
+        requestedRole,
+        reason: roleReqReason || undefined,
+      },
+    });
   };
 
-  const handleUnlockAction = async (id: number, action: "approve" | "deny") => {
+  const handleUnlockAction = (id: number, action: "approve" | "deny") => {
     setUnlockActionId(id);
-    try {
-      await apiRequest(`/api/admin/unlock-requests/${id}/${action}`, { method: "POST", body: JSON.stringify({}) });
-      toast({ title: action === "approve" ? "Account unlocked" : "Request denied" });
-      await loadUnlockRequests();
-    } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error ?? "Action failed", variant: "destructive" });
+    if (action === "approve") {
+      approveUnlockMutation.mutate({ requestId: id });
+    } else {
+      denyUnlockMutation.mutate({ requestId: id });
     }
-    setUnlockActionId(null);
   };
 
-  const handleRoleReqAction = async (id: number, action: "approve" | "deny") => {
+  const handleRoleReqAction = (id: number, action: "approve" | "deny") => {
     setRoleReqActionId(id);
-    try {
-      await apiRequest(`/api/admin/role-requests/${id}/${action}`, { method: "POST", body: JSON.stringify({}) });
-      toast({ title: action === "approve" ? "Role change approved" : "Request denied" });
-      await loadRoleRequests();
-    } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error ?? "Action failed", variant: "destructive" });
+    if (action === "approve") {
+      approveRoleMutation.mutate({ requestId: id });
+    } else {
+      denyRoleMutation.mutate({ requestId: id });
     }
-    setRoleReqActionId(null);
   };
 
-  const handleFinanceAction = async (id: number, action: "approve" | "deny") => {
+  const handleFinanceAction = (id: number, action: "approve" | "deny") => {
     setFinanceActionId(id);
-    try {
-      await apiRequest(`/api/admin/finance-approvals/${id}/${action}`, { method: "POST", body: JSON.stringify({}) });
-      toast({ title: action === "approve" ? "Finance action approved" : "Request denied" });
-      await loadFinanceApprovals();
-    } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error ?? "Action failed", variant: "destructive" });
+    if (action === "approve") {
+      approveFinanceMutation.mutate({ requestId: id });
+    } else {
+      denyFinanceMutation.mutate({ requestId: id });
     }
-    setFinanceActionId(null);
   };
 
-  const handleAddDepartment = async (e: React.FormEvent) => {
+  const handleAddDepartment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newDeptName.trim() || !newDeptRole.trim()) return;
+    if (!newDeptName.trim() || !newDeptRole) return;
     setAddingDept(true);
-    try {
-      await apiRequest("/api/admin/departments", { method: "POST", body: JSON.stringify({ name: newDeptName.trim(), role: newDeptRole.trim() }) });
-      toast({ title: "Department created" });
-      setNewDeptName(""); setNewDeptRole("");
-      await loadDepartments();
-    } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error ?? "Failed", variant: "destructive" });
-    }
-    setAddingDept(false);
+    createDepartmentMutation.mutate({ data: { name: newDeptName.trim(), role: newDeptRole } });
   };
 
-  // Pre-load on mount so the badge count is always visible in the nav
-  useEffect(() => { loadDeleteReqs(); loadUnlockRequests(); }, []);
+  // Pre-load delete requests on mount; unlock-requests are always fetched via React Query
+  useEffect(() => { loadDeleteReqs(); }, []);
 
   useEffect(() => {
     if (section === "support") loadSupport();
@@ -631,12 +743,6 @@ export default function SuperAdmin() {
     if (section === "groups") loadAllGroups();
     if (section === "enterprise") loadEnterprises();
     if (section === "subscribers") loadSubscribers();
-    if (section === "unlock-requests") loadUnlockRequests();
-    if (section === "role-requests") loadRoleRequests();
-    if (section === "finance-approvals") loadFinanceApprovals();
-    if (section === "departments") loadDepartments();
-    if (section === "users" && departments.length === 0) loadDepartments();
-    if (section === "profile" && departments.length === 0) loadDepartments();
   }, [section]);
 
   const saveProfileName = async () => {
@@ -954,7 +1060,7 @@ export default function SuperAdmin() {
                 action={
                   ["ceo", "super_admin", "cto_admin"].includes(user?.role ?? "") ? (
                     <button
-                      onClick={() => { setShowInviteStaffModal(true); if (departments.length === 0) loadDepartments(); }}
+                      onClick={() => { setShowInviteStaffModal(true); }}
                       className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-[#3A5A40] hover:bg-[#344E41] text-white rounded-xl transition-colors"
                     >
                       <Users2 className="w-3.5 h-3.5" />
@@ -1053,7 +1159,7 @@ export default function SuperAdmin() {
                         <label className="block text-xs font-semibold text-[#374151] mb-1.5">Role <span className="text-red-500">*</span></label>
                         <select
                           value={inviteStaffRole}
-                          onChange={e => setInviteStaffRole(e.target.value)}
+                          onChange={e => setInviteStaffRole(e.target.value as InviteStaffBodyRole)}
                           required
                           className="w-full px-3 py-2 text-sm border border-[#E8E4DF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#3A5A40]/20 bg-white"
                         >
@@ -1125,7 +1231,7 @@ export default function SuperAdmin() {
                         <label className="block text-xs font-semibold text-[#374151] mb-1.5">Requested new role <span className="text-red-500">*</span></label>
                         <select
                           value={roleReqNewRole}
-                          onChange={e => setRoleReqNewRole(e.target.value)}
+                          onChange={e => setRoleReqNewRole(e.target.value as CreateRoleRequestBodyRequestedRole)}
                           required
                           className="w-full px-3 py-2 text-sm border border-[#E8E4DF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#3A5A40]/20 bg-white"
                         >
@@ -1339,16 +1445,9 @@ export default function SuperAdmin() {
                           {/* Finance staff (non-CFO): routes through dual-control approval queue */}
                           {user?.role === "finance" && !user?.isFinanceAdmin && (
                             <button
-                              onClick={async () => {
-                                try {
-                                  await apiRequest("/api/admin/finance-approvals", { method: "POST", body: JSON.stringify({ actionType: "payout_transfer", actionPayload: { payoutId: p.id } }) });
-                                  toast({ title: "Approval request submitted", description: "A CFO or CEO must approve this payout." });
-                                  queryClient.invalidateQueries({ queryKey: getListAllPayoutsQueryKey() });
-                                } catch (err: any) {
-                                  toast({ title: "Error", description: err?.data?.error ?? "Could not submit approval request", variant: "destructive" });
-                                }
-                              }}
-                              className="text-xs font-medium text-amber-700 hover:underline"
+                              onClick={() => createFinanceApprovalMutation.mutate({ data: { actionType: "payout_transfer", actionPayload: { payoutId: p.id } } })}
+                              disabled={createFinanceApprovalMutation.isPending}
+                              className="text-xs font-medium text-amber-700 hover:underline disabled:opacity-50"
                             >
                               Request Approval
                             </button>
@@ -2198,7 +2297,7 @@ export default function SuperAdmin() {
           {/* ── ACCOUNT UNLOCK REQUESTS ────────────────────────────── */}
           {section === "unlock-requests" && (
             <div>
-              <SectionHeader title="Account Unlock Requests" sub="Users who passed security question verification and need their accounts unlocked" onRefresh={loadUnlockRequests} loading={unlockLoading} />
+              <SectionHeader title="Account Unlock Requests" sub="Users who passed security question verification and need their accounts unlocked" onRefresh={() => refetchUnlockRequests()} loading={unlockLoading} />
               {unlockLoading ? (
                 <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[#3A5A40]" /></div>
               ) : unlockRequests.length === 0 ? (
@@ -2217,7 +2316,7 @@ export default function SuperAdmin() {
                             <div>
                               <div className="font-medium text-[#1F2937] text-sm">{r.user?.name ?? `User #${r.userId}`}</div>
                               <div className="text-xs text-[#6B7280]">{r.user?.email}</div>
-                              <div className="text-xs text-[#9CA3AF] mt-0.5">Verified {formatTime(r.verifiedAt)} · Request #{r.id}</div>
+                              <div className="text-xs text-[#9CA3AF] mt-0.5">Submitted {formatTime(r.createdAt)} · Request #{r.id}</div>
                             </div>
                           </div>
                           <Badge status={r.status} />
@@ -2244,7 +2343,7 @@ export default function SuperAdmin() {
                         )}
                         {r.status !== "pending" && r.reviewedBy && (
                           <div className="mt-3 text-xs text-[#9CA3AF]">
-                            Reviewed by {r.reviewer?.name ?? `User #${r.reviewedBy}`} · {formatTime(r.reviewedAt)}
+                            Reviewed by {r.reviewer?.name ?? `User #${r.reviewedBy}`} · {formatTime(r.reviewedAt ?? "")}
                           </div>
                         )}
                       </div>
@@ -2258,7 +2357,7 @@ export default function SuperAdmin() {
           {/* ── ROLE CHANGE REQUESTS ────────────────────────────────── */}
           {section === "role-requests" && (
             <div>
-              <SectionHeader title="Role Change Requests" sub="Staff role change requests awaiting approval" onRefresh={loadRoleRequests} loading={roleReqLoading} />
+              <SectionHeader title="Role Change Requests" sub="Staff role change requests awaiting approval" onRefresh={() => refetchRoleRequests()} loading={roleReqLoading} />
               {roleReqLoading ? (
                 <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[#3A5A40]" /></div>
               ) : roleRequests.length === 0 ? (
@@ -2313,7 +2412,7 @@ export default function SuperAdmin() {
           {/* ── FINANCE APPROVAL REQUESTS ───────────────────────────── */}
           {section === "finance-approvals" && (
             <div>
-              <SectionHeader title="Finance Approvals" sub="Finance actions submitted for dual-control approval" onRefresh={loadFinanceApprovals} loading={financeLoading} />
+              <SectionHeader title="Finance Approvals" sub="Finance actions submitted for dual-control approval" onRefresh={() => refetchFinanceApprovals()} loading={financeLoading} />
               {/* Non-CFO finance staff can only view their own submissions, not approve */}
               {user?.role === "finance" && !user?.isFinanceAdmin && (
                 <div className="mb-4 flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
@@ -2381,7 +2480,7 @@ export default function SuperAdmin() {
                         )}
                         {r.status !== "pending" && r.reviewedBy && (
                           <div className="mt-3 text-xs text-[#9CA3AF]">
-                            Reviewed by {r.reviewer?.name ?? `User #${r.reviewedBy}`} · {formatTime(r.reviewedAt)}
+                            Reviewed by {r.reviewer?.name ?? `User #${r.reviewedBy}`} · {formatTime(r.reviewedAt ?? "")}
                           </div>
                         )}
                       </div>
@@ -2395,7 +2494,7 @@ export default function SuperAdmin() {
           {/* ── DEPARTMENTS ─────────────────────────────────────────── */}
           {section === "departments" && (
             <div className="max-w-3xl space-y-6">
-              <SectionHeader title="Departments" sub="Manage staff departments, roles, and assignments" onRefresh={loadDepartments} loading={deptLoading} />
+              <SectionHeader title="Departments" sub="Manage staff departments, roles, and assignments" onRefresh={() => refetchDepartments()} loading={deptLoading} />
 
               {/* Actions row */}
               <div className="flex gap-3 flex-wrap">
@@ -2413,7 +2512,7 @@ export default function SuperAdmin() {
                     />
                     <select
                       value={newDeptRole}
-                      onChange={e => setNewDeptRole(e.target.value)}
+                      onChange={e => setNewDeptRole(e.target.value as CreateDepartmentBodyRole)}
                       required
                       className="px-3 py-2 text-sm border border-[#E8E4DF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#3A5A40]/20 bg-white"
                     >

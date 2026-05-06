@@ -655,6 +655,41 @@ export const UpdateUserRoleBodyRole = {
 export interface UpdateUserRoleBody {
   role?: UpdateUserRoleBodyRole;
   isFinanceAdmin?: boolean;
+  departmentId?: number | null;
+}
+
+export type InviteStaffBodyRole =
+  (typeof InviteStaffBodyRole)[keyof typeof InviteStaffBodyRole];
+
+export const InviteStaffBodyRole = {
+  ceo: "ceo",
+  cto_admin: "cto_admin",
+  it_support: "it_support",
+  finance: "finance",
+  marketing: "marketing",
+  relationship_manager: "relationship_manager",
+  super_admin: "super_admin",
+} as const;
+
+export interface InviteStaffBody {
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
+  name: string;
+  email: string;
+  role: InviteStaffBodyRole;
+  departmentId?: number | null;
+}
+
+export type SecurityQuestionsResponseQuestionsItem = {
+  questionIndex: number;
+  questionText: string;
+};
+
+export interface SecurityQuestionsResponse {
+  questions: SecurityQuestionsResponseQuestionsItem[];
+  recoveryToken: string;
 }
 
 export type ListUsersParams = {
@@ -703,4 +738,11 @@ export type AssignUserToDepartmentBody = {
 
 export type VerifySecurityQuestions200 = {
   verified: boolean;
+};
+
+export type GetSecurityQuestionsParams = {
+  /**
+   * Short-lived recovery challenge token issued by the login lockout response
+   */
+  challenge: string;
 };

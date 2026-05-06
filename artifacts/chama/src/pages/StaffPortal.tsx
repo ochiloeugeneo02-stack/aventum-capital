@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useLoginUser } from "@workspace/api-client-react";
+import { useLoginUser, useVerifySecurityQuestions, getSecurityQuestions } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
@@ -85,12 +85,13 @@ export default function StaffPortal() {
   async function handleAccountLocked(userEmail: string, recoveryChallenge?: string) {
     setLockedEmail(userEmail);
     setAccountLocked(true);
+    if (!recoveryChallenge) {
+      toast({ title: "Recovery link expired", description: "Please try logging in again to receive a new recovery challenge.", variant: "destructive" });
+      return;
+    }
     setLoadingQuestions(true);
     try {
-      const url = recoveryChallenge
-        ? `/api/auth/security-questions/${encodeURIComponent(userEmail)}?challenge=${encodeURIComponent(recoveryChallenge)}`
-        : `/api/auth/security-questions/${encodeURIComponent(userEmail)}`;
-      const data: any = await apiRequest(url);
+      const data = await getSecurityQuestions(userEmail, { challenge: recoveryChallenge });
       setSecurityQuestions(data.questions ?? []);
       setRecoveryToken(data.recoveryToken ?? null);
     } catch {
@@ -138,24 +139,28 @@ export default function StaffPortal() {
     }
   }
 
-  async function handleRecoverySubmit(e: React.FormEvent) {
+  const verifySecurityQuestionsMutation = useVerifySecurityQuestions({
+    mutation: {
+      onSuccess: () => {
+        setRecoveryStep("success");
+        setSubmittingRecovery(false);
+      },
+      onError: (err: any) => {
+        const msg = err?.data?.error ?? "One or more answers are incorrect. Please try again.";
+        toast({ title: "Verification failed", description: msg, variant: "destructive" });
+        setSubmittingRecovery(false);
+      },
+    },
+  });
+
+  function handleRecoverySubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmittingRecovery(true);
-    try {
-      const answers = securityQuestions.map(q => ({
-        questionIndex: q.questionIndex,
-        answer: securityAnswers[q.questionIndex] ?? "",
-      }));
-      await apiRequest("/api/auth/security-questions/verify", {
-        method: "POST",
-        body: JSON.stringify({ recoveryToken, answers }),
-      });
-      setRecoveryStep("success");
-    } catch (err: any) {
-      const msg = err?.data?.error ?? "One or more answers are incorrect. Please try again.";
-      toast({ title: "Verification failed", description: msg, variant: "destructive" });
-    }
-    setSubmittingRecovery(false);
+    const answers = securityQuestions.map(q => ({
+      questionIndex: q.questionIndex,
+      answer: securityAnswers[q.questionIndex] ?? "",
+    }));
+    verifySecurityQuestionsMutation.mutate({ data: { recoveryToken: recoveryToken ?? "", answers } });
   }
 
   const isStaffUser = user && STAFF_ROLES.includes(user.role);
