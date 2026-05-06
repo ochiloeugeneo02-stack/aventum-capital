@@ -611,6 +611,35 @@ export async function sendWelcomeEmail(opts: {
   return sendViaResend(opts.email, "Welcome to Aventum Capital", html);
 }
 
+export async function sendStaffWelcomeEmail(opts: {
+  email: string;
+  name: string;
+  role: string;
+  token: string;
+  appBaseUrl: string;
+}): Promise<boolean> {
+  const setPasswordUrl = `${opts.appBaseUrl}/reset-password?token=${opts.token}`;
+  const roleLabel = opts.role.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  const html = buildEmailWrapper({
+    headerTitle: "You have been invited to join Aventum Capital.",
+    headerSubtitle: `Hi ${opts.name}, your staff account has been created. Set your password to get started.`,
+    bodyHtml: `
+      <p style="font-size:15px;color:#374151;margin:0 0 20px;">Hi <strong>${opts.name}</strong>,</p>
+      <p style="font-size:15px;color:#374151;margin:0 0 24px;">
+        An Aventum Capital administrator has created a staff account for you with the <strong>${roleLabel}</strong> role. Click the button below to set your password and activate your account.
+      </p>
+      <div style="background:#fbfaf7;border:1px solid #ebe8df;border-radius:16px;padding:18px 22px;margin-bottom:24px;">
+        <div style="font-size:12px;font-weight:700;color:#9aa38d;letter-spacing:1.6px;text-transform:uppercase;margin-bottom:6px;">Your role</div>
+        <div style="font-size:16px;font-weight:700;color:#344E41;">${roleLabel}</div>
+      </div>
+      <a href="${setPasswordUrl}" style="display:inline-block;background:#3A5A40;color:#ffffff;text-decoration:none;text-align:center;padding:14px 28px;border-radius:8px;font-size:14px;font-weight:700;margin-bottom:24px;">Set my password</a>
+      <div style="height:1px;background:#e7e4dc;margin:4px 0 20px;"></div>
+      <p style="font-size:13px;line-height:1.7;color:#969da6;margin:0 0 12px;">This invitation link expires in 24 hours. If you were not expecting this, you can safely ignore this email.</p>
+      <p style="font-size:12px;line-height:1.7;color:#969da6;margin:0;">Copy link: <a href="${setPasswordUrl}" style="color:#588157;text-decoration:underline;word-break:break-all;">${setPasswordUrl}</a></p>`,
+  });
+  return sendViaResend(opts.email, "You've been invited to Aventum Capital — set your password", html);
+}
+
 export async function sendCycleApprovalRequestEmail(opts: {
   email: string;
   adminName: string;

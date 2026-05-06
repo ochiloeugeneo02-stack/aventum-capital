@@ -5,7 +5,7 @@ import { requireAuth, requirePermission, requireRole } from "../lib/auth";
 import { asyncHandler } from "../lib/asyncHandler";
 import { createAuditLog } from "../lib/auditLog";
 import { hashPassword } from "../lib/auth";
-import { sendPasswordResetEmail } from "../lib/email";
+import { sendPasswordResetEmail, sendStaffWelcomeEmail } from "../lib/email";
 import { logger } from "../lib/logger";
 import { getAppBaseUrl } from "../lib/appUrl";
 import crypto from "node:crypto";
@@ -14,6 +14,15 @@ import zod from "zod";
 // ─── Request body schemas ──────────────────────────────────────────────────────
 
 const VALID_ROLES = ["member","group_admin","org_admin","super_admin","ceo","cto_admin","it_support","finance","marketing","relationship_manager"] as const;
+
+const STAFF_ONLY_ROLES = ["ceo","cto_admin","it_support","finance","marketing","relationship_manager","super_admin"] as const;
+
+const InviteStaffBody = zod.object({
+  name: zod.string().min(1).max(100).trim(),
+  email: zod.string().email().toLowerCase(),
+  role: zod.enum(STAFF_ONLY_ROLES),
+  departmentId: zod.number().int().positive().optional(),
+});
 
 const RoleRequestBody = zod.object({
   targetUserId: zod.number().int().positive(),
@@ -494,6 +503,69 @@ router.put("/admin/users/:id/role", requirePermission("roles:assign"), asyncHand
   await createAuditLog({ action: "user.role_updated", performedBy: req.session!.userId!, targetType: "user", targetId: userId, details: JSON.stringify({ role, isFinanceAdmin }) });
 
   res.json({ id: updated.id, name: updated.name, email: updated.email, role: updated.role, isFinanceAdmin: updated.isFinanceAdmin });
+}));
+
+// ─── Staff user invitation ────────────────────────────────────────────────────
+
+router.post("/admin/staff-users", requirePermission("roles:assign"), asyncHandler(async (req, res) => {
+  const parsed = InviteStaffBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Validation error", message: parsed.error.issues[0]?.message }); return; }
+  const { name, email, role, departmentId } = parsed.data;
+  const adminId = req.session!.userId!;
+
+  // Check email not already taken
+  const [existing] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, email)).limit(1);
+  if (existing) { res.status(409).json({ error: "A user with this email address already exists" }); return; }
+
+  // Validate department if provided
+  if (departmentId !== undefined) {
+    const [dept] = await db.select({ id: departmentsTable.id }).from(departmentsTable).where(eq(departmentsTable.id, departmentId)).limit(1);
+    if (!dept) { res.status(404).json({ error: "Department not found" }); return; }
+  }
+
+  // Generate a random temporary password (user must reset it before use)
+  const tempPassword = crypto.randomBytes(24).toString("hex");
+  const hashedTemp = await hashPassword(tempPassword);
+
+  const [newUser] = await db.insert(usersTable).values({
+    name,
+    email,
+    passwordHash: hashedTemp,
+    role,
+    departmentId: departmentId ?? null,
+    requiresPasswordReset: true,
+    isActive: true,
+  }).returning();
+
+  // Generate password-reset token (24 h) so the invite link sets the real password
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  await db.update(usersTable).set({ passwordResetToken: token, passwordResetTokenExpiry: expiry }).where(eq(usersTable.id, newUser.id));
+
+  // Send welcome/set-password email (fire and forget — log failures for observability)
+  sendStaffWelcomeEmail({ email: newUser.email, name: newUser.name, role: newUser.role, token, appBaseUrl: getAppBaseUrl(req) }).catch((err) => {
+    logger.error({ err, email: newUser.email, newUserId: newUser.id }, "Staff invitation email failed to send");
+  });
+
+  await createAuditLog({
+    action: "user.staff_invited",
+    performedBy: adminId,
+    targetType: "user",
+    targetId: newUser.id,
+    details: `Staff account created: role=${role}, email=${email}${departmentId ? `, departmentId=${departmentId}` : ""}`,
+  });
+
+  logger.info({ newUserId: newUser.id, role, email, adminId }, "Staff user invited");
+
+  res.status(201).json({
+    id: newUser.id,
+    name: newUser.name,
+    email: newUser.email,
+    role: newUser.role,
+    departmentId: newUser.departmentId,
+    requiresPasswordReset: true,
+    createdAt: newUser.createdAt.toISOString(),
+  });
 }));
 
 export default router;
