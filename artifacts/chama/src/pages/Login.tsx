@@ -281,7 +281,7 @@ export default function Login() {
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="grace@aventum.co" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" />
+                  <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
@@ -297,27 +297,6 @@ export default function Login() {
                   Sign in
                 </Button>
               </form>
-
-              <div className="mt-6 p-3 bg-muted/50 rounded-xl text-xs text-muted-foreground">
-                <p className="font-medium mb-2">Demo accounts — click to fill:</p>
-                <div className="space-y-1.5">
-                  {[
-                    { label: "Super Admin", email: "admin@aventum.co", password: "admin123", color: "bg-purple-100 text-purple-700 hover:bg-purple-200" },
-                    { label: "Grace", email: "grace@aventum.co", password: "grace123", color: "bg-[#3A5A40]/10 text-[#3A5A40] hover:bg-[#3A5A40]/20" },
-                    { label: "Amina", email: "amina@aventum.co", password: "member123", color: "bg-blue-100 text-blue-700 hover:bg-blue-200" },
-                  ].map(({ label, email, password, color }) => (
-                    <button
-                      key={email}
-                      type="button"
-                      onClick={() => { setEmail(email); setPassword(password); }}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors text-left ${color}`}
-                    >
-                      <span className="font-medium">{label}</span>
-                      <span className="opacity-70">{email}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               <div className="mt-5 text-center">
                 <button

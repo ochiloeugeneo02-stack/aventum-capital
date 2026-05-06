@@ -239,11 +239,6 @@ function HeroLoginPanel() {
           Create account →
         </button>
       </div>
-      <div className="mt-5 pt-4 border-t border-white/10 text-xs text-white/30 hidden sm:block">
-        <p className="font-medium text-white/40 mb-1.5">Demo accounts</p>
-        <p>admin@aventum.co · Aventum2024!</p>
-        <p>grace@aventum.co · grace123</p>
-      </div>
     </div>
   );
 }

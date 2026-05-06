@@ -219,12 +219,35 @@ async function ensureAppSchema() {
        ON CONFLICT (email) DO NOTHING`,
       [theWaveHash]
     );
-    // eoo.admin@aventumcapital.com → Aventum@2024 (super_admin)
-    const eooHash = "$2b$10$4O4B19RV.Lp.o0OTf4Xn9uQGLaGYV/z7PMGP4p63.amEHAhhgwLSG";
+    // eoo.admin@aventumcapital.com — ensure role is super_admin but NEVER overwrite password
+    // Initial hash: Allsaved@19 — only applied on first INSERT, never on update
+    const eooInitialHash = "$2b$10$SsfzzlHnaKCk70BjRxKqOOm5lUTGHCQIX4VjI1GQzbhF94xXASXHW";
     await client.query(
-      `UPDATE users SET password_hash = $1, role = 'super_admin' WHERE email = 'eoo.admin@aventumcapital.com'`,
-      [eooHash]
+      `INSERT INTO users (name, email, username, password_hash, role, is_active, email_marketing)
+       VALUES ('EOO Admin', 'eoo.admin@aventumcapital.com', 'eoo.admin', $1, 'super_admin', true, false)
+       ON CONFLICT (email) DO UPDATE SET role = 'super_admin'`,
+      [eooInitialHash]
     );
+
+    // Staff department accounts — INSERT only, never overwrite passwords
+    // All start with password: Aventum@Staff1
+    const staffHash = "$2b$10$3eSFGysiMxsjJDNyEx1R2u0wpL6nfgZh35HzNWAc0DoH3oorfVuy2";
+    const staffAccounts = [
+      { name: 'CEO',                  email: 'ceo@aventumcapital.com',       username: 'ceo.aventum',       role: 'ceo' },
+      { name: 'CTO Admin',            email: 'cto@aventumcapital.com',        username: 'cto.aventum',       role: 'cto_admin' },
+      { name: 'IT Support',           email: 'itsupport@aventumcapital.com',  username: 'it.aventum',        role: 'it_support' },
+      { name: 'Finance',              email: 'finance@aventumcapital.com',    username: 'finance.aventum',   role: 'finance' },
+      { name: 'Marketing',            email: 'marketing@aventumcapital.com',  username: 'marketing.aventum', role: 'marketing' },
+      { name: 'Relationship Manager', email: 'rm@aventumcapital.com',         username: 'rm.aventum',        role: 'relationship_manager' },
+    ];
+    for (const acc of staffAccounts) {
+      await client.query(
+        `INSERT INTO users (name, email, username, password_hash, role, is_active, email_marketing)
+         VALUES ($1, $2, $3, $4, $5, true, false)
+         ON CONFLICT (email) DO NOTHING`,
+        [acc.name, acc.email, acc.username, staffHash, acc.role]
+      );
+    }
 
     const theWaveRemoval = await client.query(
       `WITH marker AS (
