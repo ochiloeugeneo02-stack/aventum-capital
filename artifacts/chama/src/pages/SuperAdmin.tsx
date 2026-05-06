@@ -48,7 +48,7 @@ import {
   Clock, Loader2, ChevronRight, Search, Shield, Activity, TrendingUp,
   X, Zap, MessageCircle, Send, ChevronLeft, HelpCircle, LogOut, Trash2,
   Building2, Globe, Mail, Users2, Pencil, Check, CalendarRange, StickyNote, Download,
-  Settings, KeyRound, Unlock, UserCog, BadgeDollarSign, Layers,
+  Settings, KeyRound, Unlock, UserCog, BadgeDollarSign, Layers, Network,
 } from "lucide-react";
 
 type Section =
@@ -67,9 +67,31 @@ type Section =
   | "role-requests"
   | "finance-approvals"
   | "departments"
+  | "org-chart"
   | "profile";
 
 interface NavItem { id: Section; label: string; icon: React.ElementType; badge?: number; roles?: string[]; }
+
+interface OrgChartMember {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  isFinanceAdmin: boolean;
+}
+
+interface OrgChartDepartment {
+  id: number;
+  name: string;
+  role: string;
+  createdAt: string;
+  staff: OrgChartMember[];
+}
+
+interface OrgChartData {
+  departments: OrgChartDepartment[];
+  unassigned: OrgChartMember[];
+}
 
 interface SupportTicket {
   id: number;
@@ -316,6 +338,10 @@ export default function SuperAdmin() {
   const [inviteStaffRole, setInviteStaffRole] = useState<InviteStaffBodyRole | "">("");
   const [inviteStaffDeptId, setInviteStaffDeptId] = useState<string>("");
   const [invitingStaff, setInvitingStaff] = useState(false);
+
+  // Org chart
+  const [orgChart, setOrgChart] = useState<OrgChartData | null>(null);
+  const [orgChartLoading, setOrgChartLoading] = useState(false);
 
   // Inline department reassignment
   const [deptDropdownUserId, setDeptDropdownUserId] = useState<number | null>(null);
@@ -690,6 +716,15 @@ export default function SuperAdmin() {
     setLoadingDeptStaff(null);
   }, []);
 
+  const loadOrgChart = useCallback(async () => {
+    setOrgChartLoading(true);
+    try {
+      const data = await apiRequest<OrgChartData>("/api/admin/org-chart");
+      setOrgChart(data);
+    } catch {}
+    setOrgChartLoading(false);
+  }, []);
+
   const openAssignModal = useCallback(async () => {
     setShowAssignModal(true);
     try {
@@ -779,6 +814,7 @@ export default function SuperAdmin() {
     if (section === "groups") loadAllGroups();
     if (section === "enterprise") loadEnterprises();
     if (section === "subscribers") loadSubscribers();
+    if (section === "org-chart") loadOrgChart();
   }, [section]);
 
   const saveProfileName = async () => {
@@ -922,6 +958,7 @@ export default function SuperAdmin() {
     { id: "role-requests",     label: "Role Changes",        icon: UserCog,                 roles: ["ceo", "super_admin", "cto_admin"], badge: pendingRoleReqs || undefined },
     { id: "finance-approvals", label: "Finance Approvals",   icon: BadgeDollarSign,         roles: ["ceo", "super_admin", "finance"], badge: pendingFinance || undefined },
     { id: "departments",       label: "Departments",         icon: Layers,                  roles: ["ceo", "super_admin", "cto_admin"] },
+    { id: "org-chart",         label: "Org Chart",           icon: Network,                 roles: ["ceo", "super_admin", "cto_admin"] },
     { id: "audit-logs",        label: "Audit Log",           icon: FileText,                roles: ["ceo", "super_admin", "cto_admin", "it_support", "finance"] },
     { id: "subscribers",       label: "Newsletter",          icon: Mail,                    roles: ["ceo", "super_admin", "marketing"] },
     { id: "profile",           label: "My Profile",          icon: Settings },
@@ -2810,6 +2847,105 @@ export default function SuperAdmin() {
                       </div>
                     </form>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── ORG CHART ──────────────────────────────────────────── */}
+          {section === "org-chart" && (
+            <div>
+              <SectionHeader
+                title="Org Chart"
+                sub="Staff organised by department at a glance"
+                onRefresh={loadOrgChart}
+                loading={orgChartLoading}
+              />
+
+              {orgChartLoading && !orgChart ? (
+                <div className="flex justify-center py-16">
+                  <Loader2 className="w-6 h-6 animate-spin text-[#3A5A40]" />
+                </div>
+              ) : !orgChart || (orgChart.departments.length === 0 && orgChart.unassigned.length === 0) ? (
+                <EmptyState icon={Network} title="No staff yet" sub="Invite staff and assign them to departments to populate the org chart" />
+              ) : (
+                <div className="space-y-8">
+                  {/* Department cards grid */}
+                  {orgChart.departments.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                      {orgChart.departments.map((dept: OrgChartDepartment) => (
+                        <div key={dept.id} className="bg-white rounded-2xl border border-[#E8E4DF] overflow-hidden flex flex-col">
+                          {/* Card header */}
+                          <div className="px-5 py-4 border-b border-[#F0EDE9] flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-[#EAF0EB] flex items-center justify-center flex-shrink-0">
+                              <Layers className="w-4 h-4 text-[#3A5A40]" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-[#1F2937] truncate">{dept.name}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <Badge status={dept.role} />
+                                <span className="text-xs text-[#9CA3AF]">
+                                  {dept.staff.length} {dept.staff.length === 1 ? "member" : "members"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Staff member cards */}
+                          <div className="flex-1 px-4 py-3 space-y-2">
+                            {dept.staff.length === 0 ? (
+                              <div className="flex flex-col items-center justify-center py-5 text-center">
+                                <Users2 className="w-5 h-5 text-[#D1CEC9] mb-1.5" />
+                                <p className="text-xs text-[#9CA3AF]">No staff assigned</p>
+                              </div>
+                            ) : (
+                              dept.staff.map((member: OrgChartMember) => (
+                                <div key={member.id} className="flex items-center gap-2.5 px-3 py-2.5 bg-[#FAFAF9] rounded-xl border border-[#F0EDE9]">
+                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#3A5A40] to-[#6B9E77] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                    {(member.name ?? "?")[0].toUpperCase()}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-semibold text-[#1F2937] truncate">{member.name}</p>
+                                    <p className="text-[11px] text-[#9CA3AF] truncate">{member.email}</p>
+                                  </div>
+                                  {member.isFinanceAdmin && (
+                                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex-shrink-0">CFO</span>
+                                  )}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Unassigned bucket */}
+                  {orgChart.unassigned.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#9CA3AF]" />
+                        <p className="text-sm font-semibold text-[#6B7280]">Unassigned</p>
+                        <span className="text-xs text-[#9CA3AF] bg-[#F5F5F4] px-2 py-0.5 rounded-full">
+                          {orgChart.unassigned.length}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                        {orgChart.unassigned.map((member: OrgChartMember) => (
+                          <div key={member.id} className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-[#E8E4DF]">
+                            <div className="w-8 h-8 rounded-full bg-[#F5F4F0] flex items-center justify-center text-[#6B7280] text-xs font-bold flex-shrink-0">
+                              {(member.name ?? "?")[0].toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-[#1F2937] truncate">{member.name}</p>
+                              <p className="text-xs text-[#9CA3AF] truncate">{member.email}</p>
+                            </div>
+                            <Badge status={member.role} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

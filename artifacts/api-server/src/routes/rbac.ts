@@ -387,6 +387,57 @@ router.post("/admin/finance-approvals/:id/deny", requirePermission("financeAppro
   res.json({ success: true, message: "Finance action denied." });
 }));
 
+// ─── Org Chart ───────────────────────────────────────────────────────────────
+
+router.get("/admin/org-chart", requirePermission("departments:view"), asyncHandler(async (req, res) => {
+  const departments = await db.select().from(departmentsTable).orderBy(departmentsTable.name);
+
+  const allStaff = await db.select({
+    id: usersTable.id,
+    name: usersTable.name,
+    email: usersTable.email,
+    role: usersTable.role,
+    departmentId: usersTable.departmentId,
+    isFinanceAdmin: usersTable.isFinanceAdmin,
+  }).from(usersTable).where(inArray(usersTable.role, [...STAFF_ONLY_ROLES]));
+
+  const staffByDept = new Map<number, typeof allStaff>();
+  const unassigned: typeof allStaff = [];
+
+  for (const s of allStaff) {
+    if (s.departmentId !== null && s.departmentId !== undefined) {
+      const arr = staffByDept.get(s.departmentId) ?? [];
+      arr.push(s);
+      staffByDept.set(s.departmentId, arr);
+    } else {
+      unassigned.push(s);
+    }
+  }
+
+  res.json({
+    departments: departments.map(d => ({
+      id: d.id,
+      name: d.name,
+      role: d.role,
+      createdAt: d.createdAt,
+      staff: (staffByDept.get(d.id) ?? []).map(s => ({
+        id: s.id,
+        name: s.name,
+        email: s.email,
+        role: s.role,
+        isFinanceAdmin: s.isFinanceAdmin,
+      })),
+    })),
+    unassigned: unassigned.map(s => ({
+      id: s.id,
+      name: s.name,
+      email: s.email,
+      role: s.role,
+      isFinanceAdmin: s.isFinanceAdmin,
+    })),
+  });
+}));
+
 // ─── Departments ─────────────────────────────────────────────────────────────
 
 router.get("/admin/departments", requirePermission("departments:view"), asyncHandler(async (req, res) => {
