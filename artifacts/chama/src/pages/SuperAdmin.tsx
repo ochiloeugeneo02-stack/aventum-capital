@@ -22,6 +22,7 @@ import {
   useCreateFinanceApproval,
   useInviteStaffUser,
   useResendStaffInvite,
+  useUpdateUserRole,
   getGetAdminStatsQueryKey,
   getListUsersQueryKey,
   getListAllContributionsQueryKey,
@@ -315,6 +316,24 @@ export default function SuperAdmin() {
   const [inviteStaffRole, setInviteStaffRole] = useState<InviteStaffBodyRole | "">("");
   const [inviteStaffDeptId, setInviteStaffDeptId] = useState<string>("");
   const [invitingStaff, setInvitingStaff] = useState(false);
+
+  // Inline department reassignment
+  const [deptDropdownUserId, setDeptDropdownUserId] = useState<number | null>(null);
+  const [updatingDeptUserId, setUpdatingDeptUserId] = useState<number | null>(null);
+  const updateUserRoleMutation = useUpdateUserRole({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+        toast({ title: "Department updated", description: "Staff member's department has been updated." });
+        setDeptDropdownUserId(null);
+        setUpdatingDeptUserId(null);
+      },
+      onError: (err: any) => {
+        toast({ title: "Failed to update department", description: err?.response?.data?.error ?? "Something went wrong.", variant: "destructive" });
+        setUpdatingDeptUserId(null);
+      },
+    },
+  });
 
   // Resend invite
   const [resendingInviteId, setResendingInviteId] = useState<number | null>(null);
@@ -1103,7 +1122,61 @@ export default function SuperAdmin() {
                       <td className="px-5 py-3.5 text-sm text-[#6B7280]">{u.email}</td>
                       <td className="px-5 py-3.5"><Badge status={u.role} /></td>
                       <td className="px-5 py-3.5">
-                        {dept ? (
+                        {["ceo", "cto_admin", "super_admin"].includes(user?.role ?? "") ? (
+                          <div className="relative">
+                            <button
+                              onClick={() => setDeptDropdownUserId(deptDropdownUserId === u.id ? null : u.id)}
+                              disabled={updatingDeptUserId === u.id}
+                              className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg transition-colors group hover:bg-[#EAF0EB] focus:outline-none focus:ring-2 focus:ring-[#3A5A40]/20 disabled:opacity-50"
+                            >
+                              {updatingDeptUserId === u.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin text-[#3A5A40]" />
+                              ) : dept ? (
+                                <>
+                                  <Layers className="w-3 h-3 text-[#3A5A40]" />
+                                  <span className="text-[#3A5A40]">{dept.name}</span>
+                                </>
+                              ) : (
+                                <span className="text-[#C4BFBA] group-hover:text-[#9CA3AF]">— assign</span>
+                              )}
+                            </button>
+                            {deptDropdownUserId === u.id && (
+                              <>
+                              <div className="fixed inset-0 z-10" onClick={() => setDeptDropdownUserId(null)} />
+                              <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-[#E8E4DF] rounded-xl shadow-lg py-1 min-w-[160px]">
+                                <button
+                                  className="w-full text-left px-3 py-1.5 text-xs text-[#9CA3AF] hover:bg-[#F5F4F0] transition-colors"
+                                  onClick={() => {
+                                    setUpdatingDeptUserId(u.id);
+                                    setDeptDropdownUserId(null);
+                                    updateUserRoleMutation.mutate({ userId: u.id, data: { departmentId: null } });
+                                  }}
+                                >
+                                  No department
+                                </button>
+                                {(departments as any[]).map((d: any) => (
+                                  <button
+                                    key={d.id}
+                                    className={cn(
+                                      "w-full text-left px-3 py-1.5 text-xs hover:bg-[#EAF0EB] transition-colors flex items-center gap-1.5",
+                                      u.departmentId === d.id ? "text-[#3A5A40] font-semibold bg-[#EAF0EB]" : "text-[#374151]"
+                                    )}
+                                    onClick={() => {
+                                      if (u.departmentId === d.id) { setDeptDropdownUserId(null); return; }
+                                      setUpdatingDeptUserId(u.id);
+                                      setDeptDropdownUserId(null);
+                                      updateUserRoleMutation.mutate({ userId: u.id, data: { departmentId: d.id } });
+                                    }}
+                                  >
+                                    <Layers className="w-3 h-3 shrink-0" />
+                                    {d.name}
+                                  </button>
+                                ))}
+                              </div>
+                              </>
+                            )}
+                          </div>
+                        ) : dept ? (
                           <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg bg-[#EAF0EB] text-[#3A5A40]">
                             <Layers className="w-3 h-3" />
                             {dept.name}
